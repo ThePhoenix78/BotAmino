@@ -441,7 +441,7 @@ def is_it_bot(UID):
 
 
 def is_it_me(UID):
-    return UID in ["2137891f-82b5-4811-ac74-308d7a46345b", "fa1f3678-df94-4445-8ec4-902651140841", "f198e2f4-603c-481a-ab74-efd0f688f666"]
+    return UID in ["userId"]
 
 
 def is_it_admin(UID):
@@ -955,10 +955,6 @@ def helper(subClient=None, chatId=None, authorId=None, author=None, message=None
         subClient.sendMessage(chatId, helpMessage)
     elif message == "ask":
         subClient.sendMessage(chatId, helpAsk)
-    elif message == "flaguser" and is_it_me(authorId):
-        subClient.sendMessage(chatId, helpFlagUser)
-    elif message == "flagcommu" and is_it_me(authorId):
-        subClient.sendMessage(chatId, helpFlagCommu)
     else:
         subClient.sendMessage(chatId, "No help is available for this command")
 
@@ -1313,31 +1309,6 @@ helpMessage = """
 
 - chat="chatname": will send the message in the specified chat
 """
-
-helpFlagUser = """
-0 - Bullying
-1 - Inappropriate Content
-2 - Spam
-3 - Art Theft
-4 - Off-Topic
-5 - Trolling
-100 - Sexually Explicit
-101 - Extreme Violence
-102 - Inappropriate Requests
-106 - Violence Graphic Content or Dangerous Activity
-107 - Hate Speech & Bigotry
-108 - Self-Injury & Suicide
-109 - Harassment & Trolling
-110 - Nudity & Pornography
-104, 105, 200 - Other
-"""
-
-helpFlagCommu = """
-1 - Inappropriate Content
-2 - Spam
-200 - Other
-"""
-
 
 helpAsk = """
 Example :
