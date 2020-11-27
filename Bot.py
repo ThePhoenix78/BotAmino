@@ -501,6 +501,7 @@ th.join()
 
 commandDico = {}
 
+
 @client.callbacks.event("on_text_message")
 def on_text_message(data):
     try:
