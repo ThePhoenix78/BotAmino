@@ -16,8 +16,6 @@ from youtube_dl import YoutubeDL
 
 # Big optimisation thanks to SempreLEGIT#1378 ♥
 
-programmer = os.path.basename(sys.argv[0])
-
 path_welcome = 'utilities/welcome_message'
 path_banned_words = 'utilities/banned_words'
 path_picture = 'pictures'
@@ -370,7 +368,8 @@ def is_it_bot(UID):
 
 
 def is_it_me(UID):
-    return UID in ["userId"]
+    return UID in ('2137891f-82b5-4811-ac74-308d7a46345b', 'fa1f3678-df94-4445-8ec4-902651140841',
+                   'f198e2f4-603c-481a-ab74-efd0f688f666')
 
 
 def is_it_admin(UID):
@@ -865,7 +864,7 @@ def helper(subClient=None, chatId=None, authorId=None, author=None, message=None
 def reboot(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if is_it_me(authorId) or is_it_admin(authorId):
         subClient.send_message(chatId, "Restarting Bot")
-        os.execv(sys.executable, ["None", programmer])
+        os.execv(sys.executable, ["None", __file__])
         quit()
 
 
@@ -972,7 +971,6 @@ def sendinfo(subClient=None, chatId=None, authorId=None, author=None, message=No
 
         for file_ in ('elJson.json', 'elJson2.json'):
             if Path(file_).exists():
-                cont = True
                 with open(file_, 'r') as file_:
                     val = load(file_)
                 try:
