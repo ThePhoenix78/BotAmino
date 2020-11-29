@@ -1,5 +1,6 @@
 import sys
 import os
+
 from json import dumps, load
 from time import sleep
 from string import punctuation
@@ -81,7 +82,7 @@ class BotAmino:
         self.allNewUsersCommunityId = [elem["uid"] for elem in userList.json["userProfileList"]]
 
     def create_welcome_files(self):
-        with open(f'{path_welcome}/{self.communityAminoId}.txt', 'w', encoding='utf8') as file_:
+        with open(f'{path_welcome}/{self.communityAminoId}.txt', 'w', encoding='utf8'):
             pass
 
     def create_banned_files(self):
@@ -104,7 +105,10 @@ class BotAmino:
     def is_agent(self, UID):
         return UID == self.communityLeaderAgentId
 
-    def accept_role(self, RID: str):
+    def accept_role(self, RID: str = None, CID: str = None):
+        with suppress(Exception):
+            self.subclient.accept_host(CID)
+            return True
         try:
             self.subclient.promotion(noticeId=RID)
             return True
@@ -393,7 +397,7 @@ class BotAmino:
 
 
 def is_it_bot(UID):
-    return UID == bot_id
+    return UID == botId
 
 
 def is_it_me(UID):
@@ -466,7 +470,7 @@ def joinamino(subClient=None, chatId=None, authorId=None, author=None, message=N
 
 
 def title(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
-    if subClient.is_in_staff(bot_id):
+    if subClient.is_in_staff(botId):
         color = None
         try:
             elem = message.strip().split("color=")
@@ -538,7 +542,7 @@ def leave(subClient=None, chatId=None, authorId=None, author=None, message=None,
 
 
 def clear(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
-    if (subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId)) and subClient.is_in_staff(bot_id):
+    if (subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId)) and subClient.is_in_staff(botId):
         size = 1
         msg = ""
         val = ""
@@ -681,7 +685,7 @@ def msg(subClient=None, chatId=None, authorId=None, author=None, message=None, m
             subClient.send_message(chatId=chatId, message=f"{message}", messageType=value, mentionUserIds=ment)
 
 
-def abw(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
+def add_banned_word(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId):
         if not message or message in subClient.bannedWords:
             return
@@ -693,7 +697,7 @@ def abw(subClient=None, chatId=None, authorId=None, author=None, message=None, m
         subClient.send_message(chatId, "Banned word list updated")
 
 
-def rbw(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
+def remove_banned_word(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId):
         if not message:
             return
@@ -705,7 +709,7 @@ def rbw(subClient=None, chatId=None, authorId=None, author=None, message=None, m
         subClient.send_message(chatId, "Banned word list updated")
 
 
-def bwl(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
+def banned_word_list(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     val = ""
     if subClient.bannedWords:
         for elem in subClient.bannedWords:
@@ -743,27 +747,25 @@ def leaveAmino(subClient=None, chatId=None, authorId=None, author=None, message=
 
 
 def prank(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
-    if is_it_me(authorId) or is_it_admin(authorId):
-        with suppress(Exception):
-            subClient.delete_message(chatId, messageId, asStaff=True)
+    with suppress(Exception):
+        subClient.delete_message(chatId, messageId, asStaff=True)
 
-        transactionId = "5b3964da-a83d-c4d0-daf3-6e259d10fbc3"
-        oldChat = None
-        if message and is_it_me(authorId):
-            chatIde = subClient.get_chat_id(message)
-            if chatIde:
-                oldChat = chatId
-                chatId = chatIde
-        for _ in range(10):
-            subClient.subclient.send_coins(coins=500, chatId=chatId, transactionId=transactionId)
+    transactionId = "5b3964da-a83d-c4d0-daf3-6e259d10fbc3"
+    oldChat = None
+    if message and is_it_me(authorId):
+        chatIde = subClient.get_chat_id(message)
+        if chatIde:
+            oldChat = chatId
+            chatId = chatIde
+    for _ in range(10):
+        subClient.subclient.send_coins(coins=500, chatId=chatId, transactionId=transactionId)
 
-        if oldChat:
-            chatId = oldChat
-        subClient.send_message(chatId, "Done")
+    if oldChat:
+        chatId = oldChat
+    subClient.send_message(chatId, "Done")
 
 
 def image(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
-    os.chdir(depart)
     val = os.listdir("pictures")
     if val:
         file = choice(val)
@@ -775,7 +777,6 @@ def image(subClient=None, chatId=None, authorId=None, author=None, message=None,
 
 
 def audio(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
-    os.chdir(depart)
     val = os.listdir("sound")
     if val:
         file = choice(val)
@@ -809,7 +810,7 @@ def telecharger(url):
                 'preferredquality': '192',
                 }],
             'extract-audio': True,
-            'outtmpl': path_download+music+".webm",
+            'outtmpl': f"{path_download}/{music}.webm",
             }
 
         with YoutubeDL(ydl_opts) as ydl:
@@ -855,10 +856,9 @@ def decoupe(musical, temps):
 
 
 def convert(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
-    os.chdir(depart)
     music, size = telecharger(message)
     if music:
-        music = path_download+music
+        music = f"{path_download}/{music}"
         val = decoupe(music, size)
 
         if not val:
@@ -893,8 +893,7 @@ def helper(subClient=None, chatId=None, authorId=None, author=None, message=None
 def reboot(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if is_it_me(authorId) or is_it_admin(authorId):
         subClient.send_message(chatId, "Restarting Bot")
-        os.execv(sys.executable, ["None", __file__])
-        quit()
+        os.execv(sys.executable, ["None", os.path.basename(sys.argv[0])])
 
 
 def stop(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
@@ -1064,18 +1063,17 @@ def accept(subClient=None, chatId=None, authorId=None, author=None, message=None
         val = subClient.subclient.get_notices(start=0, size=25)
         ans = None
         res = None
-        with suppress(Exception):
-            subClient.subclient.accept_host(chatId)
+        if subClient.accept_role("", chatId):
             subClient.send_message(chatId, "Accepted!")
             return
 
         for elem in val:
             if 'become' in elem['title'] or "host" in elem['title']:
                 res = elem['noticeId']
-        if res:
-            ans = subClient.accept_role(res)
-        if ans:
-            subClient.send_message(chatId, "Accepted!")
+            if res:
+                ans = subClient.accept_role(res)
+            if ans:
+                subClient.send_message(chatId, "Accepted!")
         else:
             subClient.send_message(chatId, "Error!")
 
@@ -1102,9 +1100,10 @@ def askstaff(subClient=None, chatId=None, authorId=None, author=None, message=No
             communaute[commu].ask_amino_staff(message=message)
         subClient.send_message(chatId, "Asking...")
 
+
 def lock_command(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId):
-        if not message or message in subClient.lockedCommand:
+        if not message or message in subClient.lockedCommand or message in ("lock", "unlock"):
             return
         try:
             message = message.lower().strip().split()
@@ -1113,7 +1112,8 @@ def lock_command(subClient=None, chatId=None, authorId=None, author=None, messag
         subClient.add_locked_command(message)
         subClient.send_message(chatId, "Locked command list updated")
 
-def remove_lock(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
+
+def unlock_command(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId):
         if not message:
             return
@@ -1125,8 +1125,19 @@ def remove_lock(subClient=None, chatId=None, authorId=None, author=None, message
         subClient.send_message(chatId, "Locked command list updated")
 
 
+def locked_command_list(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
+    val = ""
+    if subClient.lockedCommand:
+        for elem in subClient.lockedCommand:
+            val += elem+"\n"
+    else:
+        val = "No locked command"
+    subClient.send_message(chatId, val)
+
+
 commandDico = {"help": helper, "title": title, "dice": dice, "join": join, "ramen": ramen,
-               "cookie": cookie, "leave": leave, "abw": abw, "rbw": rbw, "bwl": bwl,
+               "cookie": cookie, "leave": leave, "abw": add_banned_word, "rbw": remove_banned_word,
+               "bwl": banned_word_list, "llock": locked_command_list,
                "clear": clear, "joinall": joinall, "leaveall": leaveall, "reboot": reboot,
                "stop": stop, "spam": spam, "mention": mention, "msg": msg,
                "uinfo": uinfo, "cinfo": cinfo, "joinamino": joinamino, "get_chats": get_chats, "sw": sw,
@@ -1134,7 +1145,7 @@ commandDico = {"help": helper, "title": title, "dice": dice, "join": join, "rame
                "leaveamino": leaveAmino, "sendinfo": sendinfo, "image": image, "all": mentionall,
                "block": block, "unblock": unblock, "follow": follow, "unfollow": unfollow,
                "stopamino": stopamino, "block": block, "unblock": unblock,
-               "ask": askthing, "askstaff": askstaff, "lock": lock_command, "rlock": remove_lock,
+               "ask": askthing, "askstaff": askstaff, "lock": lock_command, "unlock": unlock_command,
                "global": getglobal, "audio": audio, "convert": convert}
 
 
@@ -1171,7 +1182,7 @@ helpMsg = """
 - leaveamino\t: leave the community
 - all\t: mention all the users of a channel
 - lock (command)\t: lock the command (nobody can use it)
-- rlock (command)\t: remove the lock for the command
+- unlock (command)\t: remove the lock for the command
 
 [C]--- SPECIAL ---
 - joinamino (amino id): join the amino (you need to be in the amino's staff)**
@@ -1185,7 +1196,6 @@ helpMsg = """
 
 -- all commands are available for the owner of the bot --
 -- Bot made by The_Phoenix --
--- Thanks to Yu for supporting me^^ --
 """
 
 helpMessage = """
@@ -1256,7 +1266,7 @@ mdp = login[1].strip()
 
 client = Client()
 client.login(email=identifiant, password=mdp)
-bot_id = client.userId
+botId = client.userId
 aminoList = client.sub_clients()
 
 communaute = {}
