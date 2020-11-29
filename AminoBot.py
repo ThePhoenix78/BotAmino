@@ -1091,7 +1091,7 @@ def askstaff(subClient=None, chatId=None, authorId=None, author=None, message=No
         for commu in aminoList.comId:
             communaute[commu].ask_amino_staff(message=message)
         subClient.send_message(chatId, "Asking...")
-        
+
 def lock_command(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId):
         if not message or message in subClient.lockedCommand:
@@ -1102,7 +1102,7 @@ def lock_command(subClient=None, chatId=None, authorId=None, author=None, messag
             message = [message.lower().strip()]
         subClient.add_locked_command(message)
         subClient.send_message(chatId, "Locked command list updated")
-        
+
 def remove_lock(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId):
         if not message:
@@ -1218,7 +1218,7 @@ try:
         permsList = load(fic)
 except FileNotFoundError:
     with open('admin.json', 'w') as fic:
-        fic.write("['YOUR AMINOID HERE']")
+        fic.write('[\n\t"YOUR AMINOID HERE"\n]')
     print("You should put your Amino Id in the file admin.json")
     permsList = []
 
@@ -1227,7 +1227,7 @@ try:
         commandLock = load(fic)
 except FileNotFoundError:
     with open('lock.json', 'w') as fic:
-        fic.write("['COMMAND HERE', 'OTHER COMMAND HERE']")
+        fic.write('[\n\t"COMMAND HERE"\n]')
     print("You should put the commands you don't want to use in the file lock.json")
     commandLock = []
 
@@ -1255,7 +1255,7 @@ tailleCommu = 0
 for command in commandLock:
     if command in commandDico.keys():
         del commandDico[command]
-    
+
 
 def tradlist(sub):
     sublist = []
