@@ -63,7 +63,13 @@ class BotAmino:
             self.communityStaff = [elem["uid"] for elem in self.communityStaffList]
 
         if not Path(f'{path_welcome}/{self.communityAminoId}.txt').exists():
-            self.create_files()
+            self.create_welcome_files()
+
+        if not Path(f'{path_banned_words}/{self.communityAminoId}.txt').exists():
+            self.create_banned_files()
+
+        if not Path(f'{path_lock}/{self.communityAminoId}.txt').exists():
+            self.create_lock_files()
 
         self.subclient = SubClient(comId=self.communityId, profile=client.profile)
         self.bannedWords = self.banned_words()
@@ -74,11 +80,15 @@ class BotAmino:
         self.allUsers = userList.json['userProfileCount']
         self.allNewUsersCommunityId = [elem["uid"] for elem in userList.json["userProfileList"]]
 
-    def create_files(self):
+    def create_welcome_files(self):
         with open(f'{path_welcome}/{self.communityAminoId}.txt', 'w', encoding='utf8') as file_:
             pass
+
+    def create_banned_files(self):
         with open(f'{path_banned_words}/{self.communityAminoId}.json', 'w', encoding='utf8') as file_:
             file_.write('[]')
+
+    def create_lock_files(self):
         with open(f'{path_lock}/{self.communityAminoId}.json', 'w', encoding='utf8') as file_:
             file_.write('[]')
 
@@ -1275,6 +1285,7 @@ permsList = tradlist(permsList)
 
 
 def threadLaunch(commu):
+    commi = BotAmino(client=client, community=commu)
     try:
         commi = BotAmino(client=client, community=commu)
         communaute[commi.communityId] = commi
