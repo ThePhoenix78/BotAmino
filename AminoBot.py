@@ -17,25 +17,16 @@ from contextlib import suppress
 
 programmer = os.path.basename(sys.argv[0])
 
-platform = sys.platform
-slash = "\\"
 
-if platform == "win32":
-    slash = "\\"
-else:
-    slash = "/"
-
-pathWelcome = f"utilities{slash}welcomeMessage{slash}"
-pathBannedWords = f"utilities{slash}bannedWords{slash}"
-pict = f"pictures{slash}"
-sounder = f"sound{slash}"
-downloader = f"download{slash}"
-
+path_welcome = 'utilities/welcome_message'
+path_banned_words = 'utilities/banned_words'
+path_picture = 'pictures'
+path_sound = 'sound'
+path_download = 'download'
 
 depart = os.getcwd()
-marche = True
 
-for i in ('utilities', 'pictures', 'download', 'sound', 'utilities/welcomeMessage', 'utilities/bannedWords'):
+for i in ("utilities", path_welcome, path_banned_words, path_picture, path_sound, path_download):
     Path(i).mkdir(exist_ok=True)
 
 
@@ -72,27 +63,22 @@ class BotAmino:
             self.communityCurators = [elem["uid"] for elem in self.communityStaffList if elem["role"] == 101]
             self.communityStaff = [elem["uid"] for elem in self.communityStaffList]
 
-        try:
-            fic = open(f"{pathWelcome}{self.communityAminoId}.txt", "r", encoding="utf8")
-            fic.close()
-        except FileNotFoundError:
-            self.createFiles()
+        if not Path(f'{path_welcome}/{self.communityAminoId}.txt').exists():
+            self.create_files()
 
         self.subclient = amino.SubClient(comId=self.communityId, profile=client.profile)
-        self.bannedWords = self.bannedWordsList()
-        self.messageBvn = self.welcomeMessage()
+        self.bannedWords = self.banned_words()
+        self.messageBvn = self.get_welcome_message()
         self.subclient.activity_status("on")
         userList = self.subclient.get_all_users(start=0, size=25, type="recent")
         self.allUsers = userList.json['userProfileCount']
         self.allNewUsersCommunityId = [elem["uid"] for elem in userList.json["userProfileList"]]
 
-    def createFiles(self):
-        os.chdir(depart)
-        fic = open(f"{pathWelcome}{self.communityAminoId}.txt", "w", encoding="utf8")
-        fic.close()
-        fic = open(f"{pathBannedWords}{self.communityAminoId}.json", "w", encoding="utf8")
-        fic.write("[]")
-        fic.close()
+    def create_files(self):
+        with open(f'{path_welcome}/{self.communityAminoId}.txt', 'w', encoding='utf8') as file_:
+            pass
+        with open(f'{path_banned_words}/{self.communityAminoId}.json', 'w', encoding='utf8') as file_:
+            file_.write('[]')
 
     def is_in_staff(self, UID):
         return UID in self.communityStaff
@@ -106,34 +92,31 @@ class BotAmino:
     def is_agent(self, UID):
         return UID == self.communityLeaderAgentId
 
-    def acceptRole(self, RID: str):
+    def accept_role(self, RID: str):
         try:
             self.subclient.promotion(noticeId=RID)
             return True
-        except:
+        except Exception:
             return False
 
-    def getStaff(self, community):
-        if type(community) == type(10):
-            try:
-                community = self.client.get_community_info(comId=community)
-            except:
-                pass
+    def get_staff(self, community):
+        if isinstance(community, int):
+            with suppress(Exception):
+                community = self.client.get_community_info(com_id=community)
         else:
             try:
                 informations = self.client.get_from_code("https://aminoapps.com/c/"+community)
-            except:
+            except Exception:
                 return False
+
             communityId = informations.json["extensions"]["community"]["ndcId"]
             community = self.client.get_community_info(comId=communityId)
 
         try:
             communityStaffList = community.json["communityHeadList"]
-        except:
-            communityStaffList = ""
-
-        if communityStaffList:
             communityStaff = [elem["uid"] for elem in communityStaffList]
+        except Exception:
+            communityStaffList = ""
 
         return communityStaff
 
@@ -163,12 +146,12 @@ class BotAmino:
                 return (user["nickname"], user['uid'])
         return False
 
-    def askAllMembers(self, message, lvl: int):
+    def ask_all_members(self, message, lvl: int):
         size = self.allUsers
         st = 0
-        users = self.subclient.get_all_users(type="recent", start=st, size=100)
 
         while size > 100:
+            users = self.subclient.get_all_users(type="recent", start=st, size=100)
             userLvlList = []
             userLvlList = [user['uid'] for user in users.json['userProfileList'] if user['level'] <= lvl]
             self.subclient.start_chat(userId=userLvlList, message=message)
@@ -180,10 +163,10 @@ class BotAmino:
         userLvlList = [user['uid'] for user in users.json['userProfileList'] if user['level'] <= lvl]
         self.subclient.start_chat(userId=userLvlList, message=message)
 
-    def askAminoStaff(self, message):
+    def ask_amino_staff(self, message):
         self.subclient.start_chat(userId=self.communityStaff, message=message)
 
-    def getChatId(self, chat: str = None):
+    def get_chat_id(self, chat: str = None):
         with suppress(Exception):
             return self.subclient.get_from_code(chat).objectId
 
@@ -196,41 +179,41 @@ class BotAmino:
                 return t
         return False
 
-    def prefixe(self, prefixe: str):
+    def set_prefixe(self, prefixe: str):
         self.prefixeId = prefixe
 
-    def stopInstance(self):
+    def stop_instance(self):
         self.marche = False
 
-    def setWelcomeMessage(self, message: str):
-        with open(f"{pathWelcome}{self.communityAminoId}.txt", "w", encoding="utf8") as fic:
+    def set_welcome_message(self, message: str):
+        with open(f"{path_welcome}/{self.communityAminoId}.txt", "w", encoding="utf8") as fic:
             fic.write(message)
         self.messageBvn = message
 
-    def welcomeMessage(self):
-        with open(f"{pathWelcome}{self.communityAminoId}.txt", "r", encoding="utf8") as fic:
+    def get_welcome_message(self):
+        with open(f"{path_welcome}/{self.communityAminoId}.txt", "r", encoding="utf8") as fic:
             return fic.read()
 
-    def bannedWordsList(self):
-        with open(f"{pathBannedWords}{self.communityAminoId}.json", "r", encoding="utf8") as fic:
+    def banned_words(self):
+        with open(f"{path_banned_words}/{self.communityAminoId}.json", "r", encoding="utf8") as fic:
             message = json.load(fic)
         message = [elem.lower() for elem in message]
         return message
 
-    def addBannedWords(self, liste: list):
+    def add_banned_words(self, liste: list):
         self.bannedWords.extend(liste)
-        with open(f"{pathBannedWords}{self.communityAminoId}.json", "w", encoding="utf8") as fic:
+        with open(f"{path_banned_words}{self.communityAminoId}.json", "w", encoding="utf8") as fic:
             fic.write(json.dumps(self.bannedWords, sort_keys=False, indent=4))
 
-    def removeBannedWord(self, liste: list):
+    def remove_banned_words(self, liste: list):
         os.chdir(depart)
         for elem in liste:
             if elem in self.bannedWords:
                 self.bannedWords.remove(elem)
-        with open(f"{pathBannedWords}{self.communityAminoId}.json", "w", encoding="utf8") as fic:
+        with open(f"{path_banned_words}{self.communityAminoId}.json", "w", encoding="utf8") as fic:
             fic.write(json.dumps(self.bannedWords, sort_keys=False, indent=4))
 
-    def leaveCommunity(self):
+    def leave_community(self):
         self.client.leave_community(comId=self.communityId)
         self.marche = False
         val = self.subclient.get_public_chat_threads().chatId
@@ -238,7 +221,7 @@ class BotAmino:
             with suppress(Exception):
                 self.subclient.leave_chat(elem)
 
-    def checkNewMember(self):
+    def check_new_member(self):
         newList = self.subclient.get_all_users()
         newMember = [elem["uid"] for elem in newList.json["userProfileList"]]
         for elem in newMember:
@@ -254,31 +237,31 @@ class BotAmino:
                 self.allUsers += 1
                 self.allNewUsersCommunityId.append(elem)
 
-    def getMemberLevel(self, UID):
+    def get_member_level(self, UID):
         return self.subclient.get_user_info(userId=UID).level
 
-    def isLevelGood(self, UID):
+    def is_level_good(self, UID):
         return self.subclient.get_user_info(userId=UID).level > self.lvlmin
 
-    def getMemberTitles(self, UID):
+    def get_member_titles(self, UID):
         try:
             return self.subclient.get_user_info(userId=UID).customTitles
         except Exception:
             return False
 
-    def getMember(self, UID):
+    def get_member_info(self, UID):
         return self.subclient.get_user_info(userId=UID)
 
-    def setMessageLevel(self, level: int):
+    def get_message_level(self, level: int):
         return f"You need the level {level} to do this command"
 
-    def deleteMessage(self, chatId: str, messageId: str, reason: str = "Clear", asStaff: bool = False):
+    def delete_message(self, chatId: str, messageId: str, reason: str = "Clear", asStaff: bool = False):
         self.subclient.delete_message(chatId, messageId, asStaff, reason)
 
-    def sendMessage(self, chatId: str = None, message: str = "None", messageType: str = None, file: str = None, fileType: str = None, replyTo: str = None, mentionUserIds: str = None):
+    def send_message(self, chatId: str = None, message: str = "None", messageType: str = None, file: str = None, fileType: str = None, replyTo: str = None, mentionUserIds: str = None):
         self.subclient.send_message(chatId=chatId, message=message, file=file, fileType=fileType, replyTo=replyTo, messageType=messageType, mentionUserIds=mentionUserIds)
 
-    def joinChat(self, chat: str, chatId: str = None):
+    def join_chat(self, chat: str, chatId: str = None):
         chat = chat.replace("http:aminoapps.com/p/", "")
         if not chat:
             with suppress(Exception):
@@ -290,53 +273,51 @@ class BotAmino:
                 self.subclient.join_chat(chati)
                 return chat
 
-        val = self.subclient.get_public_chat_threads()
-        for elem, t in zip(val.title, val.chatId):
-            if chat == elem:
-                self.subclient.join_chat(t)
-                return elem
+        chats = self.subclient.get_public_chat_threads()
+        for title, chat_id in zip(chats.title, chats.chatId):
+            if chat == title:
+                self.subclient.join_chat(chat_id)
+                return title
 
-        val = self.subclient.get_public_chat_threads()
-        for elem, t in zip(val.title, val.chatId):
-            if chat.lower() in elem.lower() or chat == t:
-                self.subclient.join_chat(t)
-                return elem
+        chats = self.subclient.get_public_chat_threads()
+        for title, chat_id in zip(chats.title, chats.chatId):
+            if chat.lower() in title.lower() or chat == chat_id:
+                self.subclient.join_chat(chat_id)
+                return title
 
         return False
 
-    def chatList(self):
+    def get_chats(self):
         return self.subclient.get_public_chat_threads()
 
-    def joinAllChat(self):
+    def join_all_chat(self):
         val = self.subclient.get_public_chat_threads().chatId
         for elem in val:
             with suppress(Exception):
                 self.subclient.join_chat(elem)
 
-    def leaveChat(self, chat: str):
+    def leave_chat(self, chat: str):
         self.subclient.leave_chat(chat)
 
-    def leaveAllChat(self):
+    def leave_all_chats(self):
         val = self.subclient.get_public_chat_threads().chatId
         for elem in val:
             with suppress(Exception):
                 self.subclient.leave_chat(elem)
 
-    def followUser(self, UID):
+    def follow_user(self, UID):
         self.subclient.follow(userId=[UID])
 
-    def unFollowUser(self, UID):
+    def unfollow_user(self, UID):
         self.subclient.unfollow(userId=UID)
 
-    def addTitle(self, UID, title: str, color: str = "#999999"):
-        member = self.getMemberTitles(UID)
+    def add_title(self, UID, title: str, color: str = "#999999"):
+        member = self.get_member_titles(UID)
         tlist = []
         clist = []
-        try:
-            tlist = [elem["title"] for elem in member]
-            clist = [elem["color"] for elem in member]
-        except:
-            pass
+        with suppress(Exception):
+            tlist = [elem['title'] for elem in member]
+            clist = [elem['color'] for elem in member]
 
         tlist.append(title)
         clist.append(color)
@@ -346,8 +327,8 @@ class BotAmino:
 
         return True
 
-    def removeTitle(self, UID, title: str):
-        member = self.getMemberTitles(UID)
+    def remove_title(self, UID, title: str):
+        member = self.get_member_titles(UID)
         tlist = []
         clist = []
         for elem in member:
@@ -365,10 +346,10 @@ class BotAmino:
         i = 59
         o = 0
         activities = ["!cookie for cookies", "Hello everyone!", "!help for help"]
-        while marche and self.marche:
+        while self.marche:
             if i >= 60:
                 if self.messageBvn:
-                    self.checkNewMember()
+                    self.check_new_member()
                 with suppress(Exception):
                     self.subclient.activity_status('on')
                 self.subclient.edit_profile(content=activities[o])
@@ -385,7 +366,7 @@ class BotAmino:
 
 
 def is_it_bot(UID):
-    return UID == botId
+    return UID == bot_id
 
 
 def is_it_me(UID):
@@ -411,17 +392,17 @@ def joinamino(subClient=None, chatId=None, authorId=None, author=None, message=N
     invit = None
 
     if tailleCommu >= 20 and not (is_it_me(authorId) or is_it_admin(authorId)):
-        subClient.sendMessage(chatId, "The bot has joined too many communities!")
+        subClient.send_message(chatId, "The bot has joined too many communities!")
         return
 
-    staff = subClient.getStaff(message)
+    staff = subClient.get_staff(message)
 
     if not staff:
-        subClient.sendMessage(chatId, "Wrong amino ID!")
+        subClient.send_message(chatId, "Wrong amino ID!")
         return
 
     if authorId not in staff and not is_it_me(authorId):
-        subClient.sendMessage(chatId, "You need to be in the community's staff!")
+        subClient.send_message(chatId, "You need to be in the community's staff!")
         return
 
     try:
@@ -448,44 +429,44 @@ def joinamino(subClient=None, chatId=None, authorId=None, author=None, message=N
             if isJoined:
                 communaute[comId] = BotAmino(client=client, community=message)
                 communaute[comId].run()
-                subClient.sendMessage(chatId, "Joined!")
+                subClient.send_message(chatId, "Joined!")
                 return
         else:
-            subClient.sendMessage(chatId, "Allready joined!")
+            subClient.send_message(chatId, "Allready joined!")
             return
-    subClient.sendMessage(chatId, "Waiting for join!")
+    subClient.send_message(chatId, "Waiting for join!")
 
 
 def title(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
-    if subClient.is_in_staff(botId):
+    if subClient.is_in_staff(bot_id):
         color = None
         try:
             elem = message.strip().split("color=")
             message, color = elem[0], elem[1].strip()
             if not color.startswith("#"):
                 color = "#"+color
-            val = subClient.addTitle(authorId, message, color)
+            val = subClient.add_title(authorId, message, color)
         except Exception:
-            val = subClient.addTitle(authorId, message)
+            val = subClient.add_title(authorId, message)
 
         if val:
-            subClient.sendMessage(chatId, f"The titles of {author} has changed")
+            subClient.send_message(chatId, f"The titles of {author} has changed")
         else:
-            subClient.sendMessage(chatId, subClient.setMessageLevel(subClient.lvlmin))
+            subClient.send_message(chatId, subClient.get_message_level(subClient.lvlmin))
 
 
 def cookie(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
-    subClient.sendMessage(chatId, f"Here is a cookie for {author} 🍪")
+    subClient.send_message(chatId, f"Here is a cookie for {author} 🍪")
 
 
 def ramen(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
-    subClient.sendMessage(chatId, f"Here are some ramen for {author} 🍜")
+    subClient.send_message(chatId, f"Here are some ramen for {author} 🍜")
 
 
 def dice(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if not message:
         cpt = random.randint(1, 20)
-        subClient.sendMessage(chatId, f"🎲 -{cpt},(1-20)- 🎲")
+        subClient.send_message(chatId, f"🎲 -{cpt},(1-20)- 🎲")
     with suppress(Exception):
         pt = message.split('d')
         val = ''
@@ -494,46 +475,46 @@ def dice(subClient=None, chatId=None, authorId=None, author=None, message=None, 
             cpt += pt
             val += str(random.randint(1, int(pt[1]))) + ' '
 
-        subClient.sendMessage(chatId, f'🎲 -{cpt},[ {val}](1-{pt[1]})- 🎲')
+        subClient.send_message(chatId, f'🎲 -{cpt},[ {val}](1-{pt[1]})- 🎲')
 
 
 def join(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
-    val = subClient.joinChat(message, chatId)
+    val = subClient.join_chat(message, chatId)
     if val or val == "":
-        subClient.sendMessage(chatId, f"Chat {val} joined".strip())
+        subClient.send_message(chatId, f"Chat {val} joined".strip())
     else:
-        subClient.sendMessage(chatId, "No chat joined")
+        subClient.send_message(chatId, "No chat joined")
 
 
 def joinall(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if subClient.is_in_staff(authorId) or is_it_me(authorId):
-        if subClient.joinAllChat():
-            subClient.sendMessage(chatId, "All chat joined")
+        if subClient.join_all_chat():
+            subClient.send_message(chatId, "All chat joined")
 
 
 def leaveall(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId):
-        subClient.sendMessage(chatId, "Leaving all chat...")
-        subClient.leaveAllChat()
+        subClient.send_message(chatId, "Leaving all chat...")
+        subClient.leave_all_chats()
 
 
 def leave(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if message and (is_it_me(authorId) or is_it_admin(authorId)):
-        chatIde = subClient.getChatId(message)
+        chatIde = subClient.get_chat_id(message)
         if chatIde:
             chatId = chatIde
-    subClient.leaveChat(chatId)
+    subClient.leave_chat(chatId)
 
 
 def clear(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
-    if (subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId)) and subClient.is_in_staff(botId):
+    if (subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId)) and subClient.is_in_staff(bot_id):
         size = 1
         msg = ""
         val = ""
-        subClient.deleteMessage(chatId, messageId, asStaff=True)
+        subClient.delete_message(chatId, messageId, asStaff=True)
         if "chat=" in message and is_it_me(authorId):
             chatName = message.rsplit("chat=", 1).pop()
-            chatIde = subClient.getChatId(chatName)
+            chatIde = subClient.get_chat_id(chatName)
             if chatIde:
                 chatId = chatIde
             message = " ".join(message.strip().split(" ")[:-1])
@@ -555,10 +536,10 @@ def clear(subClient=None, chatId=None, authorId=None, author=None, message=None,
 
         for message, authorId in zip(messages.messageId, messages.author.userId):
             if not val:
-                subClient.deleteMessage(chatId, message, asStaff=True)
+                subClient.delete_message(chatId, message, asStaff=True)
                 continue
             elif authorId == val[1]:
-                subClient.deleteMessage(chatId, message, asStaff=True)
+                subClient.delete_message(chatId, message, asStaff=True)
 
 
 def spam(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
@@ -574,13 +555,13 @@ def spam(subClient=None, chatId=None, authorId=None, author=None, message=None, 
 
     for i in range(size):
         with suppress(Exception):
-            subClient.sendMessage(chatId, msg)
+            subClient.send_message(chatId, msg)
 
 
 def mention(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if "chat=" in message and is_it_me(authorId):
         chatName = message.rsplit("chat=", 1).pop()
-        chatIde = subClient.getChatId(chatName)
+        chatIde = subClient.get_chat_id(chatName)
         if chatIde:
             chatId = chatIde
         message = " ".join(message.strip().split(" ")[:-1])
@@ -593,7 +574,7 @@ def mention(subClient=None, chatId=None, authorId=None, author=None, message=Non
     val = subClient.get_user_id(message)
 
     if not val:
-        subClient.sendMessage(chatId=chatId, message="Username not found")
+        subClient.send_message(chatId=chatId, message="Username not found")
         return
 
     if size > 5 and not (is_it_me(authorId) or is_it_admin(authorId)):
@@ -602,13 +583,13 @@ def mention(subClient=None, chatId=None, authorId=None, author=None, message=Non
     if val:
         for i in range(size):
             with suppress(Exception):
-                subClient.sendMessage(chatId=chatId, message=f"‎‏‎‏@{val[0]}‬‭", mentionUserIds=[val[1]])
+                subClient.send_message(chatId=chatId, message=f"‎‏‎‏@{val[0]}‬‭", mentionUserIds=[val[1]])
 
 
 def mentionall(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId):
         if message and is_it_me(authorId):
-            chatIde = subClient.getChatId(message)
+            chatIde = subClient.get_chat_id(message)
             if chatIde:
                 chatId = chatIde
             message = " ".join(message.strip().split(" ")[:-1])
@@ -627,7 +608,7 @@ def mentionall(subClient=None, chatId=None, authorId=None, author=None, message=
 
         for i in range(size):
             with suppress(Exception):
-                subClient.sendMessage(chatId=chatId, message=f"@everyone{test}", mentionUserIds=mention)
+                subClient.send_message(chatId=chatId, message=f"@everyone{test}", mentionUserIds=mention)
 
 
 def msg(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
@@ -635,11 +616,11 @@ def msg(subClient=None, chatId=None, authorId=None, author=None, message=None, m
     size = 1
     ment = None
     with suppress(Exception):
-        subClient.deleteMessage(chatId, messageId, asStaff=True)
+        subClient.delete_message(chatId, messageId, asStaff=True)
 
     if "chat=" in message and is_it_me(authorId):
         chatName = message.rsplit("chat=", 1).pop()
-        chatIde = subClient.getChatId(chatName)
+        chatIde = subClient.get_chat_id(chatName)
         if chatIde:
             chatId = chatIde
         message = " ".join(message.strip().split(" ")[:-1])
@@ -666,7 +647,7 @@ def msg(subClient=None, chatId=None, authorId=None, author=None, message=None, m
 
     for i in range(size):
         with suppress(Exception):
-            subClient.sendMessage(chatId=chatId, message=f"{message}", messageType=value, mentionUserIds=ment)
+            subClient.send_message(chatId=chatId, message=f"{message}", messageType=value, mentionUserIds=ment)
 
 
 def abw(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
@@ -677,8 +658,8 @@ def abw(subClient=None, chatId=None, authorId=None, author=None, message=None, m
             message = message.lower().strip().split()
         except Exception:
             message = [message.lower().strip()]
-        subClient.addBannedWords(message)
-        subClient.sendMessage(chatId, "Banned word list updated")
+        subClient.add_banned_words(message)
+        subClient.send_message(chatId, "Banned word list updated")
 
 
 def rbw(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
@@ -689,8 +670,8 @@ def rbw(subClient=None, chatId=None, authorId=None, author=None, message=None, m
             message = message.lower().strip().split()
         except Exception:
             message = [message.lower().strip()]
-        subClient.removeBannedWord(message)
-        subClient.sendMessage(chatId, "Banned word list updated")
+        subClient.remove_banned_words(message)
+        subClient.send_message(chatId, "Banned word list updated")
 
 
 def bwl(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
@@ -700,45 +681,45 @@ def bwl(subClient=None, chatId=None, authorId=None, author=None, message=None, m
             val += elem+"\n"
     else:
         val = "No words in the list"
-    subClient.sendMessage(chatId, val)
+    subClient.send_message(chatId, val)
 
 
 def sw(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId):
-        subClient.setWelcomeMessage(message)
-        subClient.sendMessage(chatId, "Welcome message changed")
+        subClient.set_welcome_message(message)
+        subClient.send_message(chatId, "Welcome message changed")
 
 
-def chatList(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
-    val = subClient.chatList()
+def get_chats(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
+    val = subClient.get_chats()
     for elem, t in zip(val.title, val.chatId):
-        subClient.sendMessage(chatId, elem)
+        subClient.send_message(chatId, elem)
 
 
 def chatid(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if is_it_me(authorId) or is_it_admin(authorId):
-        val = subClient.chatList()
+        val = subClient.get_chats()
         for elem, t in zip(val.title, val.chatId):
             if message.lower() in elem.lower():
-                subClient.sendMessage(chatId, f"{elem} | {t}")
+                subClient.send_message(chatId, f"{elem} | {t}")
 
 
 def leaveAmino(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId):
-        subClient.sendMessage(chatId, "Leaving the amino!")
-        subClient.leaveCommunity()
+        subClient.send_message(chatId, "Leaving the amino!")
+        subClient.leave_community()
     del communaute[subClient.communityId]
 
 
 def prank(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if is_it_me(authorId) or is_it_admin(authorId):
         with suppress(Exception):
-            subClient.deleteMessage(chatId, messageId, asStaff=True)
+            subClient.delete_message(chatId, messageId, asStaff=True)
 
         transactionId = "5b3964da-a83d-c4d0-daf3-6e259d10fbc3"
         oldChat = None
         if message and is_it_me(authorId):
-            chatIde = subClient.getChatId(message)
+            chatIde = subClient.get_chat_id(message)
             if chatIde:
                 oldChat = chatId
                 chatId = chatIde
@@ -747,7 +728,7 @@ def prank(subClient=None, chatId=None, authorId=None, author=None, message=None,
 
         if oldChat:
             chatId = oldChat
-        subClient.sendMessage(chatId, "Done")
+        subClient.send_message(chatId, "Done")
 
 
 def image(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
@@ -756,10 +737,10 @@ def image(subClient=None, chatId=None, authorId=None, author=None, message=None,
     if val:
         file = random.choice(val)
         with suppress(Exception):
-            with open(pict+file,  'rb') as fp:
-                subClient.sendMessage(chatId, file=fp, fileType="image")
+            with open(path_picture+file,  'rb') as fp:
+                subClient.send_message(chatId, file=fp, fileType="image")
         return
-    subClient.sendMessage(chatId, "Error! No file")
+    subClient.send_message(chatId, "Error! No file")
 
 
 def audio(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
@@ -768,10 +749,10 @@ def audio(subClient=None, chatId=None, authorId=None, author=None, message=None,
     if val:
         file = random.choice(val)
         with suppress(Exception):
-            with open(sounder+file,  'rb') as fp:
-                subClient.sendMessage(chatId, file=fp, fileType="audio")
+            with open(path_sound+file,  'rb') as fp:
+                subClient.send_message(chatId, file=fp, fileType="audio")
         return
-    subClient.sendMessage(chatId, "Error! No file")
+    subClient.send_message(chatId, "Error! No file")
 
 
 def telecharger(url):
@@ -786,7 +767,7 @@ def telecharger(url):
             ide = ide[-1]
             music = ide
 
-        if music in os.listdir(sounder):
+        if music in os.listdir(path_sound):
             return music
 
         ydl_opts = {
@@ -797,7 +778,7 @@ def telecharger(url):
                 'preferredquality': '192',
                 }],
             'extract-audio': True,
-            'outtmpl': downloader+music+".webm",
+            'outtmpl': path_download+music+".webm",
             }
 
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
@@ -846,52 +827,48 @@ def convert(subClient=None, chatId=None, authorId=None, author=None, message=Non
     os.chdir(depart)
     music, size = telecharger(message)
     if music:
-        music = downloader+music
+        music = path_download+music
         val = decoupe(music, size)
 
         if not val:
             try:
                 with open(music,  'rb') as fp:
-                    subClient.sendMessage(chatId, file=fp, fileType="audio")
+                    subClient.send_message(chatId, file=fp, fileType="audio")
             except Exception:
-                subClient.sendMessage(chatId, "Error! File too heavy (9 min max)")
+                subClient.send_message(chatId, "Error! File too heavy (9 min max)")
             os.remove(music)
             return
         os.remove(music)
         for elem in val:
             with suppress(Exception):
                 with open(elem,  'rb') as fp:
-                    subClient.sendMessage(chatId, file=fp, fileType="audio")
+                    subClient.send_message(chatId, file=fp, fileType="audio")
             os.remove(elem)
         return
-    subClient.sendMessage(chatId, "Error! Wrong link")
+    subClient.send_message(chatId, "Error! Wrong link")
 
 
 def helper(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if not message:
-        subClient.sendMessage(chatId, helpMsg)
+        subClient.send_message(chatId, helpMsg)
     elif message == "msg":
-        subClient.sendMessage(chatId, helpMessage)
+        subClient.send_message(chatId, helpMessage)
     elif message == "ask":
-        subClient.sendMessage(chatId, helpAsk)
+        subClient.send_message(chatId, helpAsk)
     else:
-        subClient.sendMessage(chatId, "No help is available for this command")
+        subClient.send_message(chatId, "No help is available for this command")
 
 def reboot(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
-    global marche
     if is_it_me(authorId) or is_it_admin(authorId):
-        subClient.sendMessage(chatId, "Restarting Bot")
+        subClient.send_message(chatId, "Restarting Bot")
         os.execv(sys.executable, ["None", programmer])
-        marche = False
         quit()
 
 
 def stop(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
-    global marche
     if is_it_me(authorId) or is_it_admin(authorId):
-        subClient.sendMessage(chatId, "Stopping Bot")
+        subClient.send_message(chatId, "Stopping Bot")
         os.execv(sys.executable, ["None", "None"])
-        marche = False
         sys.exit(1)
 
 
@@ -937,7 +914,7 @@ def uinfo(subClient=None, chatId=None, authorId=None, author=None, message=None,
                 file = 'result'+str(i)+'.jpg'
                 page.save(file,  'JPEG')
                 with open(file,  'rb') as fp:
-                    subClient.sendMessage(chatId, file=fp, fileType="image")
+                    subClient.send_message(chatId, file=fp, fileType="image")
                 os.remove(file)
             os.remove("result.pdf")
 
@@ -949,12 +926,12 @@ def uinfo(subClient=None, chatId=None, authorId=None, author=None, message=None,
                 file = 'result'+str(i)+'.jpg'
                 page.save(file,  'JPEG')
                 with open(file,  'rb') as fp:
-                    subClient.sendMessage(chatId, file=fp, fileType="image")
+                    subClient.send_message(chatId, file=fp, fileType="image")
                 os.remove(file)
             os.remove("result.pdf")
 
         if not os.path.getsize("elJson.json") and not os.path.getsize("elJson.json"):
-            subClient.sendMessage(chatId, "Error!")
+            subClient.send_message(chatId, "Error!")
 
 
 def cinfo(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
@@ -976,12 +953,12 @@ def cinfo(subClient=None, chatId=None, authorId=None, author=None, message=None,
                 file = 'result'+str(i)+'.jpg'
                 page.save(file,  'JPEG')
                 with open(file,  'rb') as fp:
-                    subClient.sendMessage(chatId, file=fp, fileType="image")
+                    subClient.send_message(chatId, file=fp, fileType="image")
                 os.remove(file)
             os.remove("result.pdf")
 
         if not os.path.getsize("elJson.json"):
-            subClient.sendMessage(chatId, "Error!")
+            subClient.send_message(chatId, "Error!")
             return
 
 
@@ -990,7 +967,7 @@ def sendinfo(subClient=None, chatId=None, authorId=None, author=None, message=No
         arg = message.strip().split(" ")
 
         if not os.path.getsize("elJson.json") and not os.path.getsize("elJson2.json"):
-            subClient.sendMessage(chatId, "Error!")
+            subClient.send_message(chatId, "Error!")
             return
 
         if os.path.getsize("elJson.json"):
@@ -1003,7 +980,7 @@ def sendinfo(subClient=None, chatId=None, authorId=None, author=None, message=No
                 mem = arg.pop(0)
                 memoire = val[mem]
             except:
-                subClient.sendMessage(chatId, "Wrong key!")
+                subClient.send_message(chatId, "Wrong key!")
                 return
 
             if arg:
@@ -1011,10 +988,10 @@ def sendinfo(subClient=None, chatId=None, authorId=None, author=None, message=No
                     try:
                         memoire = memoire[elem]
                     except:
-                        subClient.sendMessage(chatId, "Wrong key 1!")
+                        subClient.send_message(chatId, "Wrong key 1!")
                         cont = False
             if cont:
-                subClient.sendMessage(chatId, f"{memoire}")
+                subClient.send_message(chatId, f"{memoire}")
 
         if os.path.getsize("elJson2.json"):
             cont = True
@@ -1029,34 +1006,34 @@ def sendinfo(subClient=None, chatId=None, authorId=None, author=None, message=No
                     try:
                         memoire = memoire[elem]
                     except:
-                        subClient.sendMessage(chatId, "Wrong key 2!")
+                        subClient.send_message(chatId, "Wrong key 2!")
                         cont = False
             if cont:
-                subClient.sendMessage(chatId, f"{memoire}")
+                subClient.send_message(chatId, f"{memoire}")
 
 
 def getglobal(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     val = subClient.get_user_id(message)[1]
     if val:
         ide = subClient.client.get_user_info(val).aminoId
-        subClient.sendMessage(chatId, "http://aminoapps.com/u/"+ide)
+        subClient.send_message(chatId, "http://aminoapps.com/u/"+ide)
         return
-    subClient.sendMessage(chatId, "Error!")
+    subClient.send_message(chatId, "Error!")
 
 
 def follow(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
-    subClient.followUser(authorId)
-    subClient.sendMessage(chatId, "Now following you!")
+    subClient.follow_user(authorId)
+    subClient.send_message(chatId, "Now following you!")
 
 
 def unfollow(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
-    subClient.unFollowUser(authorId)
-    subClient.sendMessage(chatId, "Unfollow!")
+    subClient.unfollow_user(authorId)
+    subClient.send_message(chatId, "Unfollow!")
 
 
 def stopamino(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if is_it_me(authorId) or is_it_admin(authorId):
-        subClient.stopInstance()
+        subClient.stop_instance()
         del communaute[subClient.communityId]
 
 
@@ -1065,7 +1042,7 @@ def block(subClient=None, chatId=None, authorId=None, author=None, message=None,
         val = subClient.get_user_id(message)
         if val:
             subClient.client.block(val[1])
-            subClient.sendMessage(chatId, f"User {val[0]} blocked!")
+            subClient.send_message(chatId, f"User {val[0]} blocked!")
 
 
 def unblock(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
@@ -1074,7 +1051,7 @@ def unblock(subClient=None, chatId=None, authorId=None, author=None, message=Non
         for elem, t in zip(val.aminoId, val.userId):
             if message in elem:
                 subClient.client.unblock(t)
-                subClient.sendMessage(chatId, f"User {elem} unblocked!")
+                subClient.send_message(chatId, f"User {elem} unblocked!")
 
 
 def accept(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
@@ -1084,18 +1061,18 @@ def accept(subClient=None, chatId=None, authorId=None, author=None, message=None
         res = None
         with suppress(Exception):
             subClient.subclient.accept_host(chatId)
-            subClient.sendMessage(chatId, "Accepted!")
+            subClient.send_message(chatId, "Accepted!")
             return
 
         for elem in val:
             if 'become' in elem['title'] or "host" in elem['title']:
                 res = elem['noticeId']
         if res:
-            ans = subClient.acceptRole(res)
+            ans = subClient.accept_role(res)
         if ans:
-            subClient.sendMessage(chatId, "Accepted!")
+            subClient.send_message(chatId, "Accepted!")
         else:
-            subClient.sendMessage(chatId, "Error!")
+            subClient.send_message(chatId, "Error!")
 
 
 def askthing(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
@@ -1109,23 +1086,23 @@ def askthing(subClient=None, chatId=None, authorId=None, author=None, message=No
         except ValueError:
             lvl = 20
 
-        subClient.askAllMembers(message, lvl)
-        subClient.sendMessage(chatId, "Asking...")
+        subClient.ask_all_members(message, lvl)
+        subClient.send_message(chatId, "Asking...")
 
 
 def askstaff(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if is_it_me(authorId) or is_it_admin(authorId):
         aminoList = client.sub_clients()
         for commu in aminoList.comId:
-            communaute[commu].askAminoStaff(message=message)
-        subClient.sendMessage(chatId, "Asking...")
+            communaute[commu].ask_amino_staff(message=message)
+        subClient.send_message(chatId, "Asking...")
 
 
 commandDico = {"help": helper, "title": title, "dice": dice, "join": join, "ramen": ramen,
                 "cookie": cookie, "leave": leave, "abw": abw, "rbw": rbw, "bwl": bwl,
                 "clear": clear, "joinall": joinall, "leaveall": leaveall, "reboot": reboot,
                 "stop": stop, "spam": spam, "mention": mention, "msg": msg,
-                "uinfo": uinfo, "cinfo": cinfo, "joinamino": joinamino, "chatlist": chatList, "sw": sw,
+                "uinfo": uinfo, "cinfo": cinfo, "joinamino": joinamino, "get_chats": get_chats, "sw": sw,
                 "accept": accept, "chatid": chatid, "prank": prank,
                 "leaveamino": leaveAmino, "sendinfo": sendinfo, "image": image, "all": mentionall,
                 "block": block, "unblock": unblock, "follow": follow, "unfollow": unfollow,
@@ -1144,7 +1121,7 @@ helpMsg = """
 - spam (amount)\t: spam an message (limited to 10)
 - msg (type)\t: send a "special" message (limited to 10)
 - bwl\t:  the list of banneds words*
-- chatlist\t: the list of public chats
+- get_chats\t: the list of public chats
 - global (user)\t: give the global profile of the user
 - leave\t:  leave the current channel
 - follow\t: follow you
@@ -1239,7 +1216,7 @@ mdp = login[1].strip()
 
 client = amino.Client()
 client.login(email=identifiant, password=mdp)
-botId = client.userId
+bot_id = client.userId
 aminoList = client.sub_clients()
 
 communaute = {}
@@ -1269,7 +1246,8 @@ def threadLaunch(commu):
         communaute[commi.communityId] = commi
         communaute[commi.communityId].run()
     except Exception:
-        client.leave_community(commu)
+        pass
+        # client.leave_community(commu)
 
 
 for commu in aminoList.comId:
@@ -1303,7 +1281,7 @@ def on_text_message(data):
             else:
                 for elem in para:
                     if elem in subClient.bannedWords:
-                        subClient.deleteMessage(chatId, data.message.messageId, "Banned word", asStaff=True)
+                        subClient.delete_message(chatId, data.message.messageId, "Banned word", asStaff=True)
                         return
 
     if message.startswith(subClient.prefixeId) and not is_it_bot(authorId):
