@@ -16,6 +16,7 @@ from youtube_dl import YoutubeDL
 
 # Big optimisation thanks to SempreLEGIT#1378 ♥
 
+path_lock = 'utilities/locked_commands'
 path_welcome = 'utilities/welcome_message'
 path_banned_words = 'utilities/banned_words'
 path_picture = 'pictures'
@@ -24,7 +25,7 @@ path_download = 'download'
 
 depart = os.getcwd()
 
-for i in ("utilities", path_welcome, path_banned_words, path_picture, path_sound, path_download):
+for i in ("utilities", path_welcome, path_banned_words, path_picture, path_sound, path_download, path_lock):
     Path(i).mkdir(exist_ok=True)
 
 
@@ -67,6 +68,7 @@ class BotAmino:
         self.subclient = SubClient(comId=self.communityId, profile=client.profile)
         self.bannedWords = self.banned_words()
         self.messageBvn = self.get_welcome_message()
+        self.lockedCommand = self.get_locked_command()
         self.subclient.activity_status("on")
         userList = self.subclient.get_all_users(start=0, size=25, type="recent")
         self.allUsers = userList.json['userProfileCount']
@@ -76,6 +78,8 @@ class BotAmino:
         with open(f'{path_welcome}/{self.communityAminoId}.txt', 'w', encoding='utf8') as file_:
             pass
         with open(f'{path_banned_words}/{self.communityAminoId}.json', 'w', encoding='utf8') as file_:
+            file_.write('[]')
+        with open(f'{path_lock}/{self.communityAminoId}.json', 'w', encoding='utf8') as file_:
             file_.write('[]')
 
     def is_in_staff(self, UID):
@@ -192,6 +196,22 @@ class BotAmino:
         with open(f"{path_welcome}/{self.communityAminoId}.txt", "r", encoding="utf8") as fic:
             return fic.read()
 
+    def add_locked_command(self, liste: list):
+        self.lockedCommand.extend(liste)
+        with open(f"{path_lock}/{self.communityAminoId}.json", "w", encoding="utf8") as fic:
+            fic.write(dumps(self.lockedCommand, sort_keys=False, indent=4))
+
+    def remove_locked_command(self, liste: list):
+        for elem in liste:
+            if elem in self.lockedCommand:
+                self.lockedCommand.remove(elem)
+        with open(f"{path_lock}/{self.communityAminoId}.json", "w", encoding="utf8") as fic:
+            fic.write(dumps(self.lockedCommand, sort_keys=False, indent=4))
+
+    def get_locked_command(self):
+        with open(f"{path_lock}/{self.communityAminoId}.json", "r", encoding="utf8") as fic:
+            return load(fic)
+
     def banned_words(self):
         with open(f"{path_banned_words}/{self.communityAminoId}.json", "r", encoding="utf8") as fic:
             message = load(fic)
@@ -200,15 +220,14 @@ class BotAmino:
 
     def add_banned_words(self, liste: list):
         self.bannedWords.extend(liste)
-        with open(f"{path_banned_words}{self.communityAminoId}.json", "w", encoding="utf8") as fic:
+        with open(f"{path_banned_words}/{self.communityAminoId}.json", "w", encoding="utf8") as fic:
             fic.write(dumps(self.bannedWords, sort_keys=False, indent=4))
 
     def remove_banned_words(self, liste: list):
-        os.chdir(depart)
         for elem in liste:
             if elem in self.bannedWords:
                 self.bannedWords.remove(elem)
-        with open(f"{path_banned_words}{self.communityAminoId}.json", "w", encoding="utf8") as fic:
+        with open(f"{path_banned_words}/{self.communityAminoId}.json", "w", encoding="utf8") as fic:
             fic.write(dumps(self.bannedWords, sort_keys=False, indent=4))
 
     def leave_community(self):
@@ -1072,6 +1091,28 @@ def askstaff(subClient=None, chatId=None, authorId=None, author=None, message=No
         for commu in aminoList.comId:
             communaute[commu].ask_amino_staff(message=message)
         subClient.send_message(chatId, "Asking...")
+        
+def lock_command(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
+    if subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId):
+        if not message or message in subClient.lockedCommand:
+            return
+        try:
+            message = message.lower().strip().split()
+        except Exception:
+            message = [message.lower().strip()]
+        subClient.add_locked_command(message)
+        subClient.send_message(chatId, "Locked command list updated")
+        
+def remove_lock(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
+    if subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId):
+        if not message:
+            return
+        try:
+            message = message.lower().strip().split()
+        except Exception:
+            message = [message.lower().strip()]
+        subClient.remove_locked_command(message)
+        subClient.send_message(chatId, "Locked command list updated")
 
 
 commandDico = {"help": helper, "title": title, "dice": dice, "join": join, "ramen": ramen,
@@ -1083,7 +1124,7 @@ commandDico = {"help": helper, "title": title, "dice": dice, "join": join, "rame
                "leaveamino": leaveAmino, "sendinfo": sendinfo, "image": image, "all": mentionall,
                "block": block, "unblock": unblock, "follow": follow, "unfollow": unfollow,
                "stopamino": stopamino, "block": block, "unblock": unblock,
-               "ask": askthing, "askstaff": askstaff,
+               "ask": askthing, "askstaff": askstaff, "lock": lock_command, "rlock": remove_lock,
                "global": getglobal, "audio": audio, "convert": convert}
 
 
@@ -1119,6 +1160,8 @@ helpMsg = """
 - leaveall\t:  leave all public channels
 - leaveamino\t: leave the community
 - all\t: mention all the users of a channel
+- lock (command)\t: lock the command (nobody can use it)
+- rlock (command)\t: remove the lock for the command
 
 [C]--- SPECIAL ---
 - joinamino (amino id): join the amino (you need to be in the amino's staff)**
@@ -1131,6 +1174,8 @@ helpMsg = """
 ²(only for devlopper or bot owner)
 
 -- all commands are available for the owner of the bot --
+-- Bot made by The_Phoenix --
+-- Thanks to Yu for supporting me^^ --
 """
 
 helpMessage = """
@@ -1178,6 +1223,15 @@ except FileNotFoundError:
     permsList = []
 
 try:
+    with open("lock.json", "r") as fic:
+        commandLock = load(fic)
+except FileNotFoundError:
+    with open('lock.json', 'w') as fic:
+        fic.write("['COMMAND HERE', 'OTHER COMMAND HERE']")
+    print("You should put the commands you don't want to use in the file lock.json")
+    commandLock = []
+
+try:
     with open("client.txt", "r") as fic:
         login = fic.readlines()
 except FileNotFoundError:
@@ -1198,6 +1252,10 @@ aminoList = client.sub_clients()
 communaute = {}
 tailleCommu = 0
 
+for command in commandLock:
+    if command in commandDico.keys():
+        del commandDico[command]
+    
 
 def tradlist(sub):
     sublist = []
@@ -1261,7 +1319,7 @@ def on_text_message(data):
                         subClient.delete_message(chatId, data.message.messageId, "Banned word", asStaff=True)
                         return
 
-    if message.startswith(subClient.prefixeId) and not is_it_bot(authorId):
+    if message.startswith(subClient.prefixeId) and not is_it_bot(authorId) and not [True for command in subClient.lockedCommand if command.lower() in commandDico.keys()]:
         author = data.message.author.nickname
         commande = ""
         message = str(message).strip().split(communaute[commuId].prefixeId, 1).pop()
