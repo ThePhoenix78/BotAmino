@@ -1140,7 +1140,7 @@ commandDico = {"help": helper, "title": title, "dice": dice, "join": join, "rame
                "bwl": banned_word_list, "llock": locked_command_list,
                "clear": clear, "joinall": joinall, "leaveall": leaveall, "reboot": reboot,
                "stop": stop, "spam": spam, "mention": mention, "msg": msg,
-               "uinfo": uinfo, "cinfo": cinfo, "joinamino": joinamino, "get_chats": get_chats, "sw": sw,
+               "uinfo": uinfo, "cinfo": cinfo, "joinamino": joinamino, "chatlist": get_chats, "sw": sw,
                "accept": accept, "chatid": chatid, "prank": prank,
                "leaveamino": leaveAmino, "sendinfo": sendinfo, "image": image, "all": mentionall,
                "block": block, "unblock": unblock, "follow": follow, "unfollow": unfollow,
@@ -1159,7 +1159,8 @@ helpMsg = """
 - spam (amount)\t: spam an message (limited to 10)
 - msg (type)\t: send a "special" message (limited to 10)
 - bwl\t:  the list of banneds words*
-- get_chats\t: the list of public chats
+- llock\t: the list of locked commands
+- chatlist\t: the list of public chats
 - global (user)\t: give the global profile of the user
 - leave\t:  leave the current channel
 - follow\t: follow you
