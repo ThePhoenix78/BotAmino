@@ -1341,11 +1341,13 @@ def on_text_message(data):
                         subClient.delete_message(chatId, data.message.messageId, "Banned word", asStaff=True)
                         return
 
-    if message.startswith(subClient.prefixeId) and not is_it_bot(authorId) and not [True for command in subClient.lockedCommand if command.lower() in commandDico.keys()]:
+    if message.startswith(subClient.prefixeId) and not is_it_bot(authorId):
         author = data.message.author.nickname
         commande = ""
         message = str(message).strip().split(communaute[commuId].prefixeId, 1).pop()
         commande = str(message).strip().split(" ", 1)[0].lower()
+        if command in subClient.lockedCommand:
+            return
         try:
             message = str(message).strip().split(" ", 1)[1]
         except Exception:
