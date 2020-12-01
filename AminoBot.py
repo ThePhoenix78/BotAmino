@@ -1082,6 +1082,7 @@ def unlock_command(subClient=None, chatId=None, authorId=None, author=None, mess
             subClient.remove_locked_command(message)
             subClient.send_message(chatId, "Locked command list updated")
 
+
 def locked_command_list(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     val = ""
     if subClient.locked_command:
@@ -1295,13 +1296,12 @@ def on_text_message(data):
                         subClient.delete_message(chatId, data.message.messageId, "Banned word", asStaff=True)
                         return
 
-
-    if message.startswith(subClient.prefixeId) and not is_it_bot(authorId):
+    if message.startswith(subClient.prefix) and not is_it_bot(authorId):
         author = data.message.author.nickname
         commande = ""
         message = str(message).strip().split(communaute[commuId].prefix, 1).pop()
         commande = str(message).strip().split(" ", 1)[0].lower()
-        if commande in subClient.lockedCommand:
+        if commande in subClient.locked_command:
             return
         try:
             message = str(message).strip().split(" ", 1)[1]
@@ -1311,5 +1311,6 @@ def on_text_message(data):
         return
 
     [Thread(target=values, args=[subClient, chatId, authorId, author, message, messageId]).start() for key, values in commands_dict.items() if commande == key.lower()]
+
 
 print("Ready")
