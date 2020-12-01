@@ -1,2 +1,2 @@
 # AminoBot
-An API for bots in Amino
+A bot for amino based on Slimakoi's work
