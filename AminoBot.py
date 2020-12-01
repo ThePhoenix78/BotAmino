@@ -1150,53 +1150,58 @@ commandDico = {"help": helper, "title": title, "dice": dice, "join": join, "rame
 
 
 helpMsg = """
-[C]--- COMMON COMMAND ---
-- help (command)\t:  show this or the help associated to the command
-- title (title)\t:  edit titles*
-- dice (xdy)\t:  return x dice y (1d20) per default
-- join (chat)\t:  join the specified channel
-- mention (user)\t: mention an user
-- spam (amount)\t: spam an message (limited to 10)
-- msg (type)\t: send a "special" message (limited to 10)
-- bwl\t:  the list of banneds words*
-- llock\t: the list of locked commands
-- chatlist\t: the list of public chats
-- global (user)\t: give the global profile of the user
-- leave\t:  leave the current channel
-- follow\t: follow you
-- unfollow\t: unfollow you
-- convert (url)\t: will convert and send the music from the url (9 min max)
-- audio\t: will send audio
-- image\t: will send an image
-- ramen\t:  give ramens!
-- cookie\t:  give a cookie!
+[CB]--- COMMON COMMAND ---
 
-[C]--- STAFF COMMAND ---
-- accept\t: accept the staff role
-- abw (word list)\t:  add a banned word to the list*
-- rbw (word list)\t:  remove a banned word from the list*
-- sw (message)\t:  set the welcome message for new members (will start as soon as the welcome message is set)
-- ask (message)(lvl=)\t: ask to all level (lvl) and inferior something
-- clear (amount)\t:  clear the specified amount of message from the chat (max 50)*
-- joinall\t:  join all public channels
-- leaveall\t:  leave all public channels
-- leaveamino\t: leave the community
-- all\t: mention all the users of a channel
-- lock (command)\t: lock the command (nobody can use it)
-- unlock (command)\t: remove the lock for the command
+• help (command)\t:  show this or the help associated to the command
+• title (title)\t:  edit titles*
+• dice (xdy)\t:  return x dice y (1d20) per default
+• join (chat)\t:  join the specified channel
+• mention (user)\t: mention an user
+• spam (amount)\t: spam an message (limited to 10)
+• msg (type)\t: send a "special" message (limited to 10)
+• bwl\t:  the list of banneds words*
+• llock\t: the list of locked commands
+• chatlist\t: the list of public chats
+• global (user)\t: give the global profile of the user
+• leave\t:  leave the current channel
+• follow\t: follow you
+• unfollow\t: unfollow you
+• convert (url)\t: will convert and send the music from the url (9 min max)
+• audio\t: will send audio
+• image\t: will send an image
+• ramen\t:  give ramens!
+• cookie\t:  give a cookie!
+\n
+[CB]--- STAFF COMMAND ---
 
-[C]--- SPECIAL ---
-- joinamino (amino id): join the amino (you need to be in the amino's staff)**
-- uinfo (user): will give informations about the user²
-- cinfo (aminoId): will give informations about the community²
-- sendinfo (args): send the info from uinfo or cinfo
+• accept\t: accept the staff role
+• abw (word list)\t:  add a banned word to the list*
+• rbw (word list)\t:  remove a banned word from the list*
+• sw (message)\t:  set the welcome message for new members (will start as soon as the welcome message is set)
+• ask (message)(lvl=)\t: ask to all level (lvl) and inferior something
+• clear (amount)\t:  clear the specified amount of message from the chat (max 50)*
+• joinall\t:  join all public channels
+• leaveall\t:  leave all public channels
+• leaveamino\t: leave the community
+• all\t: mention all the users of a channel
+• lock (command)\t: lock the command (nobody can use it)
+• unlock (command)\t: remove the lock for the command
+\n
+[CB]--- SPECIAL ---
+
+• joinamino (amino id): join the amino (you need to be in the amino's staff)**
+• uinfo (user): will give informations about the user²
+• cinfo (aminoId): will give informations about the community²
+• sendinfo (args): send the info from uinfo or cinfo
+
+[CB]--- NOTE ---
 
 *(only work if bot is in staff)
 **(In developpement)
 ²(only for devlopper or bot owner)
 
--- all commands are available for the owner of the bot --
--- Bot made by The_Phoenix --
+[C]-- all commands are available for the owner of the bot --
+[C]-- Bot made by The_Phoenix --
 """
 
 helpMessage = """
