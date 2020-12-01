@@ -1310,12 +1310,7 @@ def threadLaunch(commu):
         # client.leave_community(commu)
 
 
-for commu in aminoList.comId:
-    th = Thread(target=threadLaunch, args=[commu])
-    th.start()
-    tailleCommu += 1
-
-th.join()
+tailleCommu = len([Thread(target=threadLaunch, args=[commu]).start() for commu in aminoList.comId])
 
 
 @client.callbacks.event("on_text_message")
@@ -1350,7 +1345,7 @@ def on_text_message(data):
         commande = ""
         message = str(message).strip().split(communaute[commuId].prefixeId, 1).pop()
         commande = str(message).strip().split(" ", 1)[0].lower()
-        if command in subClient.lockedCommand:
+        if commande in subClient.lockedCommand:
             return
         try:
             message = str(message).strip().split(" ", 1)[1]
