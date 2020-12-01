@@ -1253,7 +1253,9 @@ def tradlist(sub):
             continue
     return sublist
 
+
 perms_list = tradlist(perms_list)
+
 
 def threadLaunch(commu):
     try:
@@ -1265,7 +1267,7 @@ def threadLaunch(commu):
         # client.leave_community(commu)
 
 
-taille_commu = len([Thread(target=threadLaunch, args=[commu]).start() for commu in aminoList.comId])
+taille_commu = len([Thread(target=threadLaunch, args=[commu]).start() for commu in amino_list.comId])
 
 
 @client.callbacks.event("on_text_message")
