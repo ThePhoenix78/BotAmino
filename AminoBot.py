@@ -1095,65 +1095,70 @@ def locked_command_list(subClient=None, chatId=None, authorId=None, author=None,
 commands_dict = {"help": helper, "title": title, "dice": dice, "join": join, "ramen": ramen,
                  "cookie": cookie, "leave": leave, "abw": add_banned_word, "rbw": remove_banned_word,
                  "bwl": banned_word_list, "llock": locked_command_list,
-                 "clear": clear, "join_all": join_all, "leave_all": leave_all, "reboot": reboot,
+                 "clear": clear, "joinall": join_all, "leaveall": leave_all, "reboot": reboot,
                  "stop": stop, "spam": spam, "mention": mention, "msg": msg,
-                 "uinfo": uinfo, "cinfo": cinfo, "join_amino": join_amino, "chatlist": get_chats, "sw": sw,
+                 "uinfo": uinfo, "cinfo": cinfo, "joinamino": join_amino, "chatlist": get_chats, "sw": sw,
                  "accept": accept, "chat_id": chat_id, "prank": prank,
                  "leaveamino": leave_amino, "sendinfo": sendinfo, "image": image, "all": mentionall,
                  "block": block, "unblock": unblock, "follow": follow, "unfollow": unfollow,
                  "stop_amino": stop_amino, "block": block, "unblock": unblock,
-                 "ask": ask_thing, "ask_staff": ask_staff, "lock": lock_command, "unlock": unlock_command,
+                 "ask": ask_thing, "askstaff": ask_staff, "lock": lock_command, "unlock": unlock_command,
                  "global": get_global, "audio": audio, "convert": convert}
 
 
 helpMsg = """
-[C]--- COMMON COMMAND ---
-- help (command)\t:  show this or the help associated to the command
-- title (title)\t:  edit titles*
-- dice (xdy)\t:  return x dice y (1d20) per default
-- join (chat)\t:  join the specified channel
-- mention (user)\t: mention an user
-- spam (amount)\t: spam an message (limited to 10)
-- msg (type)\t: send a "special" message (limited to 10)
-- bwl\t:  the list of banneds words*
-- llock\t: the list of locked commands
-- chatlist\t: the list of public chats
-- global (user)\t: give the global profile of the user
-- leave\t:  leave the current channel
-- follow\t: follow you
-- unfollow\t: unfollow you
-- convert (url)\t: will convert and send the music from the url (9 min max)
-- audio\t: will send audio
-- image\t: will send an image
-- ramen\t:  give ramens!
-- cookie\t:  give a cookie!
+[CB]--- COMMON COMMAND ---
 
-[C]--- STAFF COMMAND ---
-- accept\t: accept the staff role
-- abw (word list)\t:  add a banned word to the list*
-- rbw (word list)\t:  remove a banned word from the list*
-- sw (message)\t:  set the welcome message for new members (will start as soon as the welcome message is set)
-- ask (message)(lvl=)\t: ask to all level (lvl) and inferior something
-- clear (amount)\t:  clear the specified amount of message from the chat (max 50)*
-- join_all\t:  join all public channels
-- leave_all\t:  leave all public channels
-- leaveamino\t: leave the community
-- all\t: mention all the users of a channel
-- lock (command)\t: lock the command (nobody can use it)
-- unlock (command)\t: remove the lock for the command
+• help (command)\t:  show this or the help associated to the command
+• title (title)\t:  edit titles*
+• dice (xdy)\t:  return x dice y (1d20) per default
+• join (chat)\t:  join the specified channel
+• mention (user)\t: mention an user
+• spam (amount)\t: spam an message (limited to 10)
+• msg (type)\t: send a "special" message (limited to 10)
+• bwl\t:  the list of banneds words*
+• llock\t: the list of locked commands
+• chatlist\t: the list of public chats
+• global (user)\t: give the global profile of the user
+• leave\t:  leave the current channel
+• follow\t: follow you
+• unfollow\t: unfollow you
+• convert (url)\t: will convert and send the music from the url (9 min max)
+• audio\t: will send audio
+• image\t: will send an image
+• ramen\t:  give ramens!
+• cookie\t:  give a cookie!
+\n
+[CB]--- STAFF COMMAND ---
 
-[C]--- SPECIAL ---
-- join_amino (amino id): join the amino (you need to be in the amino's staff)**
-- uinfo (user): will give informations about the user²
-- cinfo (aminoId): will give informations about the community²
-- sendinfo (args): send the info from uinfo or cinfo
+• accept\t: accept the staff role
+• abw (word list)\t:  add a banned word to the list*
+• rbw (word list)\t:  remove a banned word from the list*
+• sw (message)\t:  set the welcome message for new members (will start as soon as the welcome message is set)
+• ask (message)(lvl=)\t: ask to all level (lvl) and inferior something
+• clear (amount)\t:  clear the specified amount of message from the chat (max 50)*
+• joinall\t:  join all public channels
+• leaveall\t:  leave all public channels
+• leaveamino\t: leave the community
+• all\t: mention all the users of a channel
+• lock (command)\t: lock the command (nobody can use it)
+• unlock (command)\t: remove the lock for the command
+\n
+[CB]--- SPECIAL ---
+
+• joinamino (amino id): join the amino (you need to be in the amino's staff)**
+• uinfo (user): will give informations about the user²
+• cinfo (aminoId): will give informations about the community²
+• sendinfo (args): send the info from uinfo or cinfo
+
+[CB]--- NOTE ---
 
 *(only work if bot is in staff)
 **(In developpement)
 ²(only for devlopper or bot owner)
 
--- all commands are available for the owner of the bot --
--- Bot made by The_Phoenix --
+[C]-- all commands are available for the owner of the bot --
+[C]-- Bot made by The_Phoenix --
 """
 
 help_message = """
@@ -1260,13 +1265,7 @@ def threadLaunch(commu):
         # client.leave_community(commu)
 
 
-th = [Thread(target=threadLaunch, args=[commu]) for commu in amino_list.comId]
-for i in th:
-    i.start()
-    taille_commu += 1
-
-for i in th:
-    i.join()
+taille_commu = len([Thread(target=threadLaunch, args=[commu]).start() for commu in aminoList.comId])
 
 
 @client.callbacks.event("on_text_message")
@@ -1294,11 +1293,14 @@ def on_text_message(data):
                         subClient.delete_message(chatId, data.message.messageId, "Banned word", asStaff=True)
                         return
 
-    if message.startswith(subClient.prefix) and not is_it_bot(authorId) and not [True for command in subClient.locked_command if command.lower() in commands_dict.keys()]:
+
+    if message.startswith(subClient.prefixeId) and not is_it_bot(authorId):
         author = data.message.author.nickname
         commande = ""
         message = str(message).strip().split(communaute[commuId].prefix, 1).pop()
         commande = str(message).strip().split(" ", 1)[0].lower()
+        if commande in subClient.lockedCommand:
+            return
         try:
             message = str(message).strip().split(" ", 1)[1]
         except Exception:
