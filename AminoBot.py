@@ -1301,7 +1301,6 @@ permsList = tradlist(permsList)
 
 
 def threadLaunch(commu):
-    commi = BotAmino(client=client, community=commu)
     try:
         commi = BotAmino(client=client, community=commu)
         communaute[commi.communityId] = commi
