@@ -1,5 +1,6 @@
 import sys
 import os
+import txt2pdf
 
 from json import dumps, load
 from time import sleep
@@ -385,15 +386,19 @@ class BotAmino:
     def run(self):
         Thread(target=self.passive).start()
 
+
 def is_it_bot(uid):
     return uid == botId
+
 
 def is_it_me(uid):
     return uid in ('2137891f-82b5-4811-ac74-308d7a46345b', 'fa1f3678-df94-4445-8ec4-902651140841',
                    'f198e2f4-603c-481a-ab74-efd0f688f666')
 
+
 def is_it_admin(uid):
     return uid in perms_list
+
 
 def join_community(comId: str = None, inv: str = None):
     with suppress(Exception):
@@ -912,11 +917,10 @@ def uinfo(subClient=None, chatId=None, authorId=None, author=None, message=None,
 
         for i in ("elJson.json", "elJson2.json"):
             if os.path.getsize(i):
-                os.system(f"txt2pdf {i} --output result.pdf")
+                txt2pdf.callPDF(i, "result.pdf")
                 pages = convert_from_path('result.pdf', 150)
-                i = 1
+                file = 'result.jpg'
                 for page in pages:
-                    file = 'result'+str(i)+'.jpg'
                     page.save(file,  'JPEG')
                     with open(file, 'rb') as fp:
                         subClient.send_message(chatId, file=fp, fileType="image")
@@ -951,6 +955,7 @@ def cinfo(subClient=None, chatId=None, authorId=None, author=None, message=None,
 
         if not os.path.getsize("elJson.json"):
             subClient.send_message(chatId, "Error!")
+
 
 def sendinfo(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if (is_it_admin(authorId) or is_it_me(authorId)) and message != "":
