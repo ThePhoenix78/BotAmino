@@ -1045,15 +1045,6 @@ def accept(subClient=None, chatId=None, authorId=None, author=None, message=None
             subClient.send_message(chatId, "Error!")
 
 
-def say(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
-    audio_file = f"{path_download}/ttp.mp3"
-    voices = engine.getProperty('voices')
-    engine.setProperty('voice', choice([voice.id for voice in voices]))
-    engine.save_to_file(message, audio_file)
-    engine.runAndWait()
-    with open(audio_file, 'rb') as fp:
-        subClient.send_message(chatId, file=fp, fileType="audio")
-    os.remove(audio_file)
 
 
 def ask_thing(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
