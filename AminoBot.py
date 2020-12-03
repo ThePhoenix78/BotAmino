@@ -27,8 +27,6 @@ path_picture = 'pictures'
 path_sound = 'sound'
 path_download = 'download'
 
-engine = pyttsx3.init()
-
 
 for i in ("utilities", path_welcome, path_banned_words, path_picture, path_sound, path_download, path_lock):
     Path(i).mkdir(exist_ok=True)
