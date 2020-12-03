@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-#https://github.com/baruchel/txt2pdf
+# https://github.com/baruchel/txt2pdf
 
 import argparse
 import reportlab.lib.pagesizes
@@ -336,6 +336,7 @@ parser.add_argument(
     help='Add line numbers')
 
 args = parser.parse_args()
+
 
 def callPDF(filename=None, output=None, args=args):
     if filename:

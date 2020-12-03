@@ -1,6 +1,7 @@
 import sys
 import os
 import txt2pdf
+import pyttsx3
 
 from json import dumps, load
 from time import sleep
@@ -25,6 +26,8 @@ path_banned_words = 'utilities/banned_words'
 path_picture = 'pictures'
 path_sound = 'sound'
 path_download = 'download'
+
+engine = pyttsx3.init()
 
 
 for i in ("utilities", path_welcome, path_banned_words, path_picture, path_sound, path_download, path_lock):
@@ -1042,6 +1045,17 @@ def accept(subClient=None, chatId=None, authorId=None, author=None, message=None
             subClient.send_message(chatId, "Error!")
 
 
+def say(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
+    audio_file = f"{path_download}/ttp.mp3"
+    voices = engine.getProperty('voices')
+    engine.setProperty('voice', choice([voice.id for voice in voices]))
+    engine.save_to_file(message, audio_file)
+    engine.runAndWait()
+    with open(audio_file, 'rb') as fp:
+        subClient.send_message(chatId, file=fp, fileType="audio")
+    os.remove(audio_file)
+
+
 def ask_thing(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId):
         lvl = ""
@@ -1109,7 +1123,7 @@ commands_dict = {"help": helper, "title": title, "dice": dice, "join": join, "ra
                  "block": block, "unblock": unblock, "follow": follow, "unfollow": unfollow,
                  "stop_amino": stop_amino, "block": block, "unblock": unblock,
                  "ask": ask_thing, "askstaff": ask_staff, "lock": lock_command, "unlock": unlock_command,
-                 "global": get_global, "audio": audio, "convert": convert}
+                 "global": get_global, "audio": audio, "convert": convert, "say": say}
 
 
 helpMsg = """
@@ -1132,6 +1146,7 @@ helpMsg = """
 • convert (url)\t: will convert and send the music from the url (9 min max)
 • audio\t: will send audio
 • image\t: will send an image
+• say (message)\t: say the message in audio
 • ramen\t:  give ramens!
 • cookie\t:  give a cookie!
 \n
