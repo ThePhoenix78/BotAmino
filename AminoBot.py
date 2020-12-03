@@ -441,20 +441,23 @@ def join_amino(subClient=None, chatId=None, authorId=None, author=None, message=
         comId = val.json["extensions"]["community"]["ndcId"]
     except Exception:
         val = ""
-    else:
+
+    isJoined = val.json["extensions"]["isCurrentUserJoined"]
+    if not isJoined:
+        join_community(comId, invit)
+        val = client.get_from_code(f"http://aminoapps.com/c/{amino_c}")
         isJoined = val.json["extensions"]["isCurrentUserJoined"]
-        if not isJoined:
-            join_community(comId, invit)
-            val = client.get_from_code(f"http://aminoapps.com/c/{amino_c}")
-            isJoined = val.json["extensions"]["isCurrentUserJoined"]
-            if isJoined:
-                communaute[comId] = BotAmino(client=client, community=message)
-                communaute[comId].run()
-                subClient.send_message(chatId, "Joined!")
-                return
-        else:
-            subClient.send_message(chatId, "Allready joined!")
+        if isJoined:
+            communaute[comId] = BotAmino(client=client, community=message)
+            communaute[comId].run()
+            subClient.send_message(chatId, "Joined!")
             return
+        subClient.send_message(chatId, "Waiting for join!")
+        return
+    else:
+        subClient.send_message(chatId, "Allready joined!")
+        return
+    
     subClient.send_message(chatId, "Waiting for join!")
 
 
