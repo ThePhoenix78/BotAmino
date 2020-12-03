@@ -1,6 +1,7 @@
 import sys
 import os
 import txt2pdf
+from gtts import gTTS
 
 from json import dumps, load
 from time import sleep
@@ -44,7 +45,7 @@ class BotAmino:
             self.community_amino_id = self.community.aminoId
         else:
             self.community_amino_id = community
-            self.informations = self.client.get_from_code(community)
+            self.informations = self.client.get_from_code(f"http://aminoapps.com/c/{community}")
             self.community_id = self.informations.json["extensions"]["community"]["ndcId"]
             self.community = self.client.get_community_info(comId=self.community_id)
 
@@ -122,7 +123,7 @@ class BotAmino:
                 community = self.client.get_community_info(com_id=community)
         else:
             try:
-                informations = self.client.get_from_code(community)
+                informations = self.client.get_from_code(f"http://aminoapps.com/c/{community}")
             except Exception:
                 return False
 
@@ -183,7 +184,7 @@ class BotAmino:
 
     def get_chat_id(self, chat: str = None):
         with suppress(Exception):
-            return self.subclient.get_from_code(chat).objectId
+            return self.subclient.get_from_code(f"http://aminoapps.com/c/{chat}").objectId
 
         val = self.subclient.get_public_chat_threads()
         for title, chat_id in zip(val.title, val.chatId):
@@ -296,7 +297,7 @@ class BotAmino:
                 return ""
 
             with suppress(Exception):
-                chati = self.subclient.get_from_code(chat).objectId
+                chati = self.subclient.get_from_code(f"http://aminoapps.com/c/{chat}").objectId
                 self.subclient.join_chat(chati)
                 return chat
 
@@ -436,7 +437,7 @@ def join_amino(subClient=None, chatId=None, authorId=None, author=None, message=
         invit = None
 
     try:
-        val = subClient.client.get_from_code(amino_c)
+        val = subClient.client.get_from_code(f"http://aminoapps.com/c/{amino_c}")
         comId = val.json["extensions"]["community"]["ndcId"]
     except Exception:
         val = ""
@@ -444,7 +445,7 @@ def join_amino(subClient=None, chatId=None, authorId=None, author=None, message=
         isJoined = val.json["extensions"]["isCurrentUserJoined"]
         if not isJoined:
             join_community(comId, invit)
-            val = client.get_from_code(amino_c)
+            val = client.get_from_code(f"http://aminoapps.com/c/{amino_c}")
             isJoined = val.json["extensions"]["isCurrentUserJoined"]
             if isJoined:
                 communaute[comId] = BotAmino(client=client, community=message)
@@ -901,7 +902,7 @@ def uinfo(subClient=None, chatId=None, authorId=None, author=None, message=None,
 
         if not val:
             with suppress(Exception):
-                lin = subClient.client.get_from_code(message).json["extensions"]["linkInfo"]["objectId"]
+                lin = subClient.client.get_from_code(f"http://aminoapps.com/p/{message}").json["extensions"]["linkInfo"]["objectId"]
                 val = subClient.client.get_user_info(lin)
 
             with suppress(Exception):
@@ -935,18 +936,17 @@ def cinfo(subClient=None, chatId=None, authorId=None, author=None, message=None,
     if is_it_me(authorId) or is_it_admin(authorId):
         val = ""
         with suppress(Exception):
-            val = subClient.client.get_from_code(message)
+            val = subClient.client.get_from_code(f"http://aminoapps.com/c/{message}")
 
         with suppress(Exception):
             with open("elJson.json", "w") as file_:
                 file_.write(dumps(val.json, sort_keys=False, indent=4))
 
         if os.path.getsize("elJson.json"):
-            os.system("txt2pdf elJson.json --output result.pdf")
+            txt2pdf.callPDF("elJson.json", "result.pdf")
             pages = convert_from_path('result.pdf', 150)
-            i = 1
             for page in pages:
-                file = 'result'+str(i)+'.jpg'
+                file = 'result.jpg'
                 page.save(file,  'JPEG')
                 with open(file, 'rb') as fp:
                     subClient.send_message(chatId, file=fp, fileType="image")
@@ -1042,6 +1042,15 @@ def accept(subClient=None, chatId=None, authorId=None, author=None, message=None
             subClient.send_message(chatId, "Error!")
 
 
+def say(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
+    if message:
+        audio_file = f"{path_download}/ttp.mp3"
+        gTTS(text=message, lang='en', slow=False).save(audio_file)
+        with open(audio_file, 'rb') as fp:
+            subClient.send_message(chatId, file=fp, fileType="audio")
+        os.remove(audio_file)
+
+
 def ask_thing(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId):
         lvl = ""
@@ -1109,7 +1118,7 @@ commands_dict = {"help": helper, "title": title, "dice": dice, "join": join, "ra
                  "block": block, "unblock": unblock, "follow": follow, "unfollow": unfollow,
                  "stop_amino": stop_amino, "block": block, "unblock": unblock,
                  "ask": ask_thing, "askstaff": ask_staff, "lock": lock_command, "unlock": unlock_command,
-                 "global": get_global, "audio": audio, "convert": convert}
+                 "global": get_global, "audio": audio, "convert": convert, "say": say}
 
 
 helpMsg = """
@@ -1132,6 +1141,7 @@ helpMsg = """
 • convert (url)\t: will convert and send the music from the url (9 min max)
 • audio\t: will send audio
 • image\t: will send an image
+• say\t: will say the message in audio
 • ramen\t:  give ramens!
 • cookie\t:  give a cookie!
 \n
@@ -1250,7 +1260,7 @@ def tradlist(sub):
     sublist = []
     for elem in sub:
         with suppress(Exception):
-            val = client.get_from_code(elem).objectId
+            val = client.get_from_code(f"http://aminoapps.com/p/{elem}").objectId
             sublist.append(val)
             continue
         with suppress(Exception):
