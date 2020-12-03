@@ -27,6 +27,8 @@ path_picture = 'pictures'
 path_sound = 'sound'
 path_download = 'download'
 
+engine = pyttsx3.init()
+
 
 for i in ("utilities", path_welcome, path_banned_words, path_picture, path_sound, path_download, path_lock):
     Path(i).mkdir(exist_ok=True)
@@ -1141,7 +1143,7 @@ helpMsg = """
 • convert (url)\t: will convert and send the music from the url (9 min max)
 • audio\t: will send audio
 • image\t: will send an image
-• say\t: will say the message in audio
+• say (message)\t: say the message in audio
 • ramen\t:  give ramens!
 • cookie\t:  give a cookie!
 \n
