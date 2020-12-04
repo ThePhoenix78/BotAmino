@@ -68,10 +68,10 @@ class BotAmino:
         if not Path(f'{path_welcome}/{self.community_amino_id}.txt').exists():
             self.create_welcome_files()
 
-        if not Path(f'{path_banned_words}/{self.community_amino_id}.txt').exists():
+        if not Path(f'{path_banned_words}/{self.community_amino_id}.json').exists():
             self.create_banned_files()
 
-        if not Path(f'{path_lock}/{self.community_amino_id}.txt').exists():
+        if not Path(f'{path_lock}/{self.community_amino_id}.json').exists():
             self.create_lock_files()
 
         self.subclient = SubClient(comId=self.community_id, profile=client.profile)
