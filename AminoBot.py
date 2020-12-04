@@ -1,7 +1,7 @@
 import sys
 import os
 import txt2pdf
-from gtts import gTTS
+from gtts import gTTS, lang
 
 from json import dumps, load
 from time import sleep
@@ -81,7 +81,6 @@ class BotAmino:
         self.subclient.activity_status("on")
         user_list = self.subclient.get_all_users(start=0, size=25, type="recent")
         self.all_users = user_list.json['userProfileCount']
-        self.all_new_users_community_id = [elem["uid"] for elem in user_list.json["userProfileList"]]
 
     def create_welcome_files(self):
         with open(f'{path_welcome}/{self.community_amino_id}.txt', 'w', encoding='utf8'):
@@ -258,12 +257,10 @@ class BotAmino:
             except Exception:
                 val = True
 
-            if elem not in self.all_new_users_community_id and not val:
+            if not val:
                 with suppress(Exception):
                     self.subclient.comment(message=self.message_bvn, userId=elem)
-
                 self.all_users += 1
-                self.all_new_users_community_id.append(elem)
 
     def get_member_level(self, uid):
         return self.subclient.get_user_info(userId=uid).level
@@ -457,7 +454,7 @@ def join_amino(subClient=None, chatId=None, authorId=None, author=None, message=
     else:
         subClient.send_message(chatId, "Allready joined!")
         return
-    
+
     subClient.send_message(chatId, "Waiting for join!")
 
 
@@ -905,7 +902,7 @@ def uinfo(subClient=None, chatId=None, authorId=None, author=None, message=None,
 
         if not val:
             with suppress(Exception):
-                lin = subClient.client.get_from_code(f"http://aminoapps.com/p/{message}").json["extensions"]["linkInfo"]["objectId"]
+                lin = subClient.client.get_from_code(f"http://aminoapps.com/u/{message}").json["extensions"]["linkInfo"]["objectId"]
                 val = subClient.client.get_user_info(lin)
 
             with suppress(Exception):
@@ -962,12 +959,12 @@ def cinfo(subClient=None, chatId=None, authorId=None, author=None, message=None,
 
 def sendinfo(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if (is_it_admin(authorId) or is_it_me(authorId)) and message != "":
-        arg = message.strip().split()
-
-        for file_ in ('elJson.json', 'elJson2.json'):
-            if Path(file_).exists():
-                with open(file_, 'r') as file_:
-                    val = load(file_)
+        arguments = message.strip().split()
+        for eljson in ('elJson.json', 'elJson2.json'):
+            if Path(eljson).exists():
+                arg = arguments.copy()
+                with open(eljson, 'r') as file:
+                    val = load(file)
                 try:
                     memoire = val[arg.pop(0)]
                 except Exception:
@@ -976,11 +973,11 @@ def sendinfo(subClient=None, chatId=None, authorId=None, author=None, message=No
                 if arg:
                     for elem in arg:
                         try:
-                            memoire = memoire[elem]
+                            memoire = memoire[str(elem)]
                         except Exception:
                             subClient.send_message(chatId, 'Wrong key 1!')
-                        else:
-                            subClient.send_message(chatId, memoire)
+                            return
+                subClient.send_message(chatId, memoire)
 
 
 def get_global(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
@@ -1048,7 +1045,8 @@ def accept(subClient=None, chatId=None, authorId=None, author=None, message=None
 def say(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if message:
         audio_file = f"{path_download}/ttp.mp3"
-        gTTS(text=message, lang='en', slow=False).save(audio_file)
+        langue = list(lang.tts_langs().keys())
+        gTTS(text=message, lang=choice(langue), slow=False).save(audio_file)
         with open(audio_file, 'rb') as fp:
             subClient.send_message(chatId, file=fp, fileType="audio")
         os.remove(audio_file)
@@ -1216,17 +1214,17 @@ Example :
 """
 
 try:
-    with open("admin.json", "r") as file_:
-        perms_list = load(file_)
+    with open("admin.json", "r") as file:
+        perms_list = load(file)
 except FileNotFoundError:
-    with open('admin.json', 'w') as file_:
-        file_.write('[\n\t"YOUR AMINOID HERE"\n]')
+    with open('admin.json', 'w') as file:
+        file.write('[\n\t"YOUR AMINOID HERE"\n]')
     print("You should put your Amino Id in the file admin.json")
     perms_list = []
 
 try:
-    with open("lock.json", "r") as file_:
-        command_lock = load(file_)
+    with open("lock.json", "r") as file:
+        command_lock = load(file)
 except FileNotFoundError:
     with open('lock.json', 'w') as file_:
         file_.write('[\n\t"COMMAND HERE"\n]')
@@ -1263,7 +1261,7 @@ def tradlist(sub):
     sublist = []
     for elem in sub:
         with suppress(Exception):
-            val = client.get_from_code(f"http://aminoapps.com/p/{elem}").objectId
+            val = client.get_from_code(f"http://aminoapps.com/u/{elem}").objectId
             sublist.append(val)
             continue
         with suppress(Exception):
