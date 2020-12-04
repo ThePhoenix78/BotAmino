@@ -493,6 +493,10 @@ def dice(subClient=None, chatId=None, authorId=None, author=None, message=None, 
         pt = message.split('d')
         val = ''
         cpt = 0
+        if int(pt[0]) > 20:
+            pt[0] = 20
+        if int(pt[1]) > 1000000:
+            pt[1] = 1000000
         for _ in range(int(pt[0])):
             ppt = randint(1, int(pt[1]))
             cpt += ppt
@@ -984,7 +988,7 @@ def get_global(subClient=None, chatId=None, authorId=None, author=None, message=
     val = subClient.get_user_id(message)[1]
     if val:
         ide = subClient.client.get_user_info(val).aminoId
-        subClient.send_message(chatId, ide)
+        subClient.send_message(chatId, f"http://aminoapps.com/u/{ide}")
     else:
         subClient.send_message(chatId, "Error!")
 
@@ -1317,7 +1321,7 @@ def on_text_message(data):
         commande = ""
         message = str(message).strip().split(communaute[commuId].prefix, 1).pop()
         commande = str(message).strip().split(" ", 1)[0].lower()
-        if commande in subClient.locked_command:
+        if commande in subClient.locked_command and not (subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId)):
             return
         try:
             message = str(message).strip().split(" ", 1)[1]
