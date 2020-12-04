@@ -1,8 +1,8 @@
 import sys
 import os
 import txt2pdf
-from gtts import gTTS, lang
 
+from gtts import gTTS, lang
 from json import dumps, load
 from time import sleep
 from string import punctuation
@@ -19,23 +19,18 @@ from amino.sub_client import SubClient
 
 # Big optimisation thanks to SempreLEGIT#1378 ♥
 
-
-path_lock = 'utilities/locked_commands'
-path_welcome = 'utilities/welcome_message'
-path_banned_words = 'utilities/banned_words'
+path_amino = 'utilities/amino_list'
 path_picture = 'pictures'
 path_sound = 'sound'
 path_download = 'download'
 
-
-for i in ("utilities", path_welcome, path_banned_words, path_picture, path_sound, path_download, path_lock):
+for i in ("utilities", path_picture, path_sound, path_download, path_amino):
     Path(i).mkdir(exist_ok=True)
 
 
 class BotAmino:
     def __init__(self, client, community, inv: str = None):
         self.client = client
-        self.prefix = "!"
         self.lvl_min = 0
         self.marche = True
 
@@ -65,34 +60,75 @@ class BotAmino:
             self.community_curators = [elem["uid"] for elem in self.community_staff_list if elem["role"] == 101]
             self.community_staff = [elem["uid"] for elem in self.community_staff_list]
 
-        if not Path(f'{path_welcome}/{self.community_amino_id}.txt').exists():
-            self.create_welcome_files()
-
-        if not Path(f'{path_banned_words}/{self.community_amino_id}.json').exists():
-            self.create_banned_files()
-
-        if not Path(f'{path_lock}/{self.community_amino_id}.json').exists():
-            self.create_lock_files()
+        if not Path(f'{path_amino}/{self.community_amino_id}.json').exists():
+            self.create_community_file()
 
         self.subclient = SubClient(comId=self.community_id, profile=client.profile)
-        self.banned_words = self.banned_words()
+        self.banned_words = self.get_banned_words()
         self.message_bvn = self.get_welcome_message()
         self.locked_command = self.get_locked_command()
+        self.prefix = self.get_prefix()
         self.subclient.activity_status("on")
         user_list = self.subclient.get_all_users(start=0, size=25, type="recent")
         self.all_users = user_list.json['userProfileCount']
 
-    def create_welcome_files(self):
-        with open(f'{path_welcome}/{self.community_amino_id}.txt', 'w', encoding='utf8'):
-            pass
+    def create_community_file(self):
+        with open(f'{path_amino}/{self.community_amino_id}.json', 'w', encoding='utf8') as file:
+            dict = self.create_dict()
+            file.write(dumps(dict, sort_keys=False, indent=4))
 
-    def create_banned_files(self):
-        with open(f'{path_banned_words}/{self.community_amino_id}.json', 'w', encoding='utf8') as file_:
-            file_.write('[]')
+    def create_dict(self):
+        return {"welcome": "", "banned_words": [], "locked_command": [], "prefix": "!"}
 
-    def create_lock_files(self):
-        with open(f'{path_lock}/{self.community_amino_id}.json', 'w', encoding='utf8') as file_:
-            file_.write('[]')
+    def update_file(self):
+        dict = self.get_dict()
+        with open(f"{path_amino}/{self.community_amino_id}.json", "w", encoding="utf8") as file:
+            file.write(dumps(dict, sort_keys=False, indent=4))
+
+    def get_dict(self):
+        return {"welcome": self.message_bvn, "banned_words": self.banned_words, "locked_command": self.locked_command, "prefix": self.prefix}
+
+    def get_file_info(self, info: str = None):
+        with open(f"{path_amino}/{self.community_amino_id}.json", "r", encoding="utf8") as file:
+            return load(file)[info]
+
+    def get_welcome_message(self):
+        return self.get_file_info("welcome")
+
+    def get_prefix(self):
+        return self.get_file_info("prefix")
+
+    def get_locked_command(self):
+        return self.get_file_info("locked_command")
+
+    def get_banned_words(self):
+        return self.get_file_info("banned_words")
+
+    def set_prefix(self, prefix: str):
+        self.prefix = prefix
+        self.update_file()
+
+    def set_welcome_message(self, message: str):
+        self.message_bvn = message
+        self.update_file()
+
+    def add_locked_command(self, liste: list):
+        self.locked_command.extend(liste)
+        self.update_file()
+
+    def add_banned_words(self, liste: list):
+        self.banned_words.extend(liste)
+        self.update_file()
+
+    def remove_locked_command(self, liste: list):
+        [self.locked_command.remove(elem) for elem in liste if elem in self.locked_command]
+        self.update_file()
+
+    def remove_banned_words(self, liste: list):
+        for elem in liste:
+            if elem in self.banned_words:
+                self.banned_words.remove(elem)
+        self.update_file()
 
     def is_in_staff(self, uid):
         return uid in self.community_staff
@@ -194,52 +230,8 @@ class BotAmino:
                 return chat_id
         return False
 
-    def set_prefix(self, prefix: str):
-        self.prefix = prefix
-
     def stop_instance(self):
         self.marche = False
-
-    def set_welcome_message(self, message: str):
-        with open(f"{path_welcome}/{self.community_amino_id}.txt", "w", encoding="utf8") as file_:
-            file_.write(message)
-        self.message_bvn = message
-
-    def get_welcome_message(self):
-        with open(f"{path_welcome}/{self.community_amino_id}.txt", "r", encoding="utf8") as file_:
-            return file_.read()
-
-    def add_locked_command(self, list_: list):
-        self.locked_command.extend(list_)
-        with open(f"{path_lock}/{self.community_amino_id}.json", "w", encoding="utf8") as file_:
-            file_.write(dumps(self.locked_command, sort_keys=False, indent=4))
-
-    def remove_locked_command(self, list_: list):
-        for elem in list_:
-            if elem in self.locked_command:
-                self.locked_command.remove(elem)
-        with open(f"{path_lock}/{self.community_amino_id}.json", "w", encoding="utf8") as file_:
-            file_.write(dumps(self.locked_command, sort_keys=False, indent=4))
-
-    def get_locked_command(self):
-        with open(f"{path_lock}/{self.community_amino_id}.json", "r", encoding="utf8") as file_:
-            return load(file_)
-
-    def banned_words(self):
-        with open(f"{path_banned_words}/{self.community_amino_id}.json", "r", encoding="utf8") as file_:
-            return [elem.lower() for elem in load(file_)]
-
-    def add_banned_words(self, list_: list):
-        self.banned_words.extend(list_)
-        with open(f"{path_banned_words}/{self.community_amino_id}.json", "w", encoding="utf8") as file_:
-            file_.write(dumps(self.banned_words, sort_keys=False, indent=4))
-
-    def remove_banned_words(self, list_: list):
-        for elem in list_:
-            if elem in self.banned_words:
-                self.banned_words.remove(elem)
-        with open(f"{path_banned_words}/{self.community_amino_id}.json", "w", encoding="utf8") as file_:
-            file_.write(dumps(self.banned_words, sort_keys=False, indent=4))
 
     def leave_community(self):
         self.client.leave_community(comId=self.community_id)
@@ -1045,13 +1037,17 @@ def accept(subClient=None, chatId=None, authorId=None, author=None, message=None
 
 
 def say(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
-    if message:
-        audio_file = f"{path_download}/ttp.mp3"
-        langue = list(lang.tts_langs().keys())
-        gTTS(text=message, lang=choice(langue), slow=False).save(audio_file)
+    audio_file = f"{path_download}/ttp{randint(1,500)}.mp3"
+    langue = list(lang.tts_langs().keys())
+    if not message:
+        message = subClient.subclient.get_chat_messages(chatId=chatId, size=2).content[1]
+    gTTS(text=message, lang=choice(langue), slow=False).save(audio_file)
+    try:
         with open(audio_file, 'rb') as fp:
             subClient.send_message(chatId, file=fp, fileType="audio")
-        os.remove(audio_file)
+    except Exception:
+        subClient.send_message(chatId, "Too heavy!")
+    os.remove(audio_file)
 
 
 def ask_thing(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
@@ -1075,6 +1071,12 @@ def ask_staff(subClient=None, chatId=None, authorId=None, author=None, message=N
         for commu in amino_list.comId:
             communaute[commu].ask_amino_staff(message=message)
         subClient.send_message(chatId, "Asking...")
+
+
+def prefix(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
+    if message:
+        subClient.set_prefix(message)
+        subClient.send_message(chatId, f"prefix set as {message}")
 
 
 def lock_command(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
@@ -1116,7 +1118,7 @@ commands_dict = {"help": helper, "title": title, "dice": dice, "join": join, "ra
                  "clear": clear, "joinall": join_all, "leaveall": leave_all, "reboot": reboot,
                  "stop": stop, "spam": spam, "mention": mention, "msg": msg,
                  "uinfo": uinfo, "cinfo": cinfo, "joinamino": join_amino, "chatlist": get_chats, "sw": sw,
-                 "accept": accept, "chat_id": chat_id, "prank": prank,
+                 "accept": accept, "chat_id": chat_id, "prank": prank, "prefix": prefix,
                  "leaveamino": leave_amino, "sendinfo": sendinfo, "image": image, "all": mentionall,
                  "block": block, "unblock": unblock, "follow": follow, "unfollow": unfollow,
                  "stop_amino": stop_amino, "block": block, "unblock": unblock,
@@ -1162,6 +1164,7 @@ helpMsg = """
 • all\t: mention all the users of a channel
 • lock (command)\t: lock the command (nobody can use it)
 • unlock (command)\t: remove the lock for the command
+• prefix (prefix)\t: set the prefix for the amino
 \n
 [CB]--- SPECIAL ---
 
