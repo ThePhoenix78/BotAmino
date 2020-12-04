@@ -973,14 +973,12 @@ def sendinfo(subClient=None, chatId=None, authorId=None, author=None, message=No
                     memoire = val[arg.pop(0)]
                 except Exception:
                     subClient.send_message(chatId, 'Wrong key!')
-                    return
                 if arg:
                     for elem in arg:
                         try:
                             memoire = memoire[str(elem)]
                         except Exception:
                             subClient.send_message(chatId, 'Wrong key 1!')
-                            return
                 subClient.send_message(chatId, memoire)
 
 
