@@ -109,7 +109,7 @@ class BotAmino:
         self.update_file()
 
     def set_welcome_message(self, message: str):
-        self.message_bvn = message
+        self.message_bvn = message.replace('"', '“')
         self.update_file()
 
     def add_locked_command(self, liste: list):
