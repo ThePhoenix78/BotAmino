@@ -63,13 +63,26 @@ class BotAmino:
         if not Path(f'{path_amino}/{self.community_amino_id}.json').exists():
             self.create_community_file()
 
+        old_dict = self.get_file_dict()
+        new_dict = self.create_dict()
+
+        for key, value in new_dict.items():
+            if key not in old_dict:
+                old_dict[key] = value
+
+        for key, value in old_dict.items():
+            if key not in new_dict:
+                del old_dict[key]
+
+        self.update_file(old_dict)
+
         self.subclient = SubClient(comId=self.community_id, profile=client.profile)
         self.banned_words = self.get_banned_words()
         self.message_bvn = self.get_welcome_message()
         self.locked_command = self.get_locked_command()
         self.prefix = self.get_prefix()
         self.subclient.activity_status("on")
-        user_list = self.subclient.get_all_users(start=0, size=25, type="recent")
+        user_list = self.subclient.get_all_users(start=0, size=1, type="recent")
         self.all_users = user_list.json['userProfileCount']
 
     def create_community_file(self):
@@ -78,19 +91,24 @@ class BotAmino:
             file.write(dumps(dict, sort_keys=False, indent=4))
 
     def create_dict(self):
-        return {"welcome": "", "banned_words": [], "locked_command": [], "prefix": "!"}
-
-    def update_file(self):
-        dict = self.get_dict()
-        with open(f"{path_amino}/{self.community_amino_id}.json", "w", encoding="utf8") as file:
-            file.write(dumps(dict, sort_keys=False, indent=4))
+        return {"welcome": "", "banned_words": [], "locked_command": [], "prefix": "!", "only_view": []}
 
     def get_dict(self):
-        return {"welcome": self.message_bvn, "banned_words": self.banned_words, "locked_command": self.locked_command, "prefix": self.prefix}
+        return {"welcome": self.message_bvn, "banned_words": self.banned_words, "locked_command": self.locked_command, "prefix": self.prefix, "only_view": self.only_view}
+
+    def update_file(self, dict=None):
+        if not dict:
+            dict = self.get_dict()
+        with open(f"{path_amino}/{self.community_amino_id}.json", "w", encoding="utf8") as file:
+            file.write(dumps(dict, sort_keys=False, indent=4))
 
     def get_file_info(self, info: str = None):
         with open(f"{path_amino}/{self.community_amino_id}.json", "r", encoding="utf8") as file:
             return load(file)[info]
+
+    def get_file_dict(self, info: str = None):
+        with open(f"{path_amino}/{self.community_amino_id}.json", "r", encoding="utf8") as file:
+            return load(file)
 
     def get_welcome_message(self):
         return self.get_file_info("welcome")
@@ -103,6 +121,9 @@ class BotAmino:
 
     def get_banned_words(self):
         return self.get_file_info("banned_words")
+
+    def get_only_view(self):
+        return self.get_file_info("only_view")
 
     def set_prefix(self, prefix: str):
         self.prefix = prefix
@@ -120,6 +141,10 @@ class BotAmino:
         self.banned_words.extend(liste)
         self.update_file()
 
+    def add_only_view(self, chatId: str):
+        self.only_view.append(chatId)
+        self.update_file()
+
     def remove_locked_command(self, liste: list):
         [self.locked_command.remove(elem) for elem in liste if elem in self.locked_command]
         self.update_file()
@@ -128,6 +153,10 @@ class BotAmino:
         for elem in liste:
             if elem in self.banned_words:
                 self.banned_words.remove(elem)
+        self.update_file()
+
+    def remove_only_view(self, chatId: str):
+        self.only_view.remove(chatId)
         self.update_file()
 
     def is_in_staff(self, uid):
@@ -358,7 +387,7 @@ class BotAmino:
     def passive(self):
         i = 59
         o = 0
-        activities = ["!cookie for cookies", "Hello everyone!", "!help for help"]
+        activities = [f"{self.prefix}cookie for cookies", "Hello everyone!", f"{self.prefix}help for help"]
         while self.marche:
             if i >= 60:
                 if self.message_bvn:
@@ -611,21 +640,11 @@ def mentionall(subClient=None, chatId=None, authorId=None, author=None, message=
                 chatId = chat_ide
             message = " ".join(message.strip().split()[:-1])
 
-        try:
-            size = int(message.strip().split().pop())
-            message = " ".join(message.strip().split()[:-1])
-        except ValueError:
-            size = 1
-
-        if size > 5 and not (is_it_me(authorId) or is_it_admin(authorId)):
-            size = 5
-
         mention = [userId for userId in subClient.subclient.get_chat_users(chatId=chatId).userId]
         test = "".join(["‎‏‎‏‬‭" for user in subClient.subclient.get_chat_users(chatId=chatId).userId])
 
-        for _ in range(size):
-            with suppress(Exception):
-                subClient.send_message(chatId=chatId, message=f"@everyone{test}", mentionUserIds=mention)
+        with suppress(Exception):
+            subClient.send_message(chatId=chatId, message=f"@everyone{test}", mentionUserIds=mention)
 
 
 def msg(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
@@ -906,11 +925,11 @@ def uinfo(subClient=None, chatId=None, authorId=None, author=None, message=None,
 
         with suppress(Exception):
             with open("elJson.json", "w") as file_:
-                file_.write(dumps(val.json, sort_keys=False, indent=4))
+                file_.write(dumps(val.json, sort_keys=True, indent=4))
 
         with suppress(Exception):
             with open("elJson2.json", "w") as file_:
-                file_.write(dumps(val2.json, sort_keys=False, indent=4))
+                file_.write(dumps(val2.json, sort_keys=True, indent=4))
 
         for i in ("elJson.json", "elJson2.json"):
             if os.path.getsize(i):
@@ -936,7 +955,7 @@ def cinfo(subClient=None, chatId=None, authorId=None, author=None, message=None,
 
         with suppress(Exception):
             with open("elJson.json", "w") as file_:
-                file_.write(dumps(val.json, sort_keys=False, indent=4))
+                file_.write(dumps(val.json, sort_keys=True, indent=4))
 
         if os.path.getsize("elJson.json"):
             txt2pdf.callPDF("elJson.json", "result.pdf")
@@ -1112,9 +1131,22 @@ def locked_command_list(subClient=None, chatId=None, authorId=None, author=None,
     subClient.send_message(chatId, val)
 
 
+def read_only(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
+    if subClient.is_in_staff(botId) and (subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId)):
+        chats = subClient.get_only_view()
+        if chatId not in chats:
+            subClient.add_only_view(chatId)
+            subClient.send_message(chatId, "This chat is now in only-view mode")
+        else:
+            subClient.remove_only_view(chatId)
+            subClient.send_message(chatId, "This chat is no longer in only-view mode")
+        return
+    subClient.send_message(chatId, "The bot need to be in the staff!")
+
+
 commands_dict = {"help": helper, "title": title, "dice": dice, "join": join, "ramen": ramen,
                  "cookie": cookie, "leave": leave, "abw": add_banned_word, "rbw": remove_banned_word,
-                 "bwl": banned_word_list, "llock": locked_command_list,
+                 "bwl": banned_word_list, "llock": locked_command_list, "view": read_only,
                  "clear": clear, "joinall": join_all, "leaveall": leave_all, "reboot": reboot,
                  "stop": stop, "spam": spam, "mention": mention, "msg": msg,
                  "uinfo": uinfo, "cinfo": cinfo, "joinamino": join_amino, "chatlist": get_chats, "sw": sw,
@@ -1164,6 +1196,7 @@ helpMsg = """
 • all\t: mention all the users of a channel
 • lock (command)\t: lock the command (nobody can use it)
 • unlock (command)\t: remove the lock for the command
+• view\t: set or unset the current channel to read-only*
 • prefix (prefix)\t: set the prefix for the amino
 \n
 [CB]--- SPECIAL ---
@@ -1306,6 +1339,10 @@ def on_text_message(data):
     messageId = data.message.messageId
     print(f"{data.message.author.nickname}:{message}")
 
+    if chatId in subClient.only_view and not (subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId)):
+        subClient.delete_message(chatId, messageId, "Read-only chat", asStaff=True)
+        return
+
     if not is_it_bot(authorId) and not subClient.is_in_staff(authorId):
         with suppress(Exception):
             para = normalize('NFD', message).encode('ascii', 'ignore').decode("utf8").strip().lower()
@@ -1314,7 +1351,7 @@ def on_text_message(data):
             if para != [""]:
                 for elem in para:
                     if elem in subClient.banned_words:
-                        subClient.delete_message(chatId, data.message.messageId, "Banned word", asStaff=True)
+                        subClient.delete_message(chatId, messageId, "Banned word", asStaff=True)
                         return
 
     if message.startswith(subClient.prefix) and not is_it_bot(authorId):
