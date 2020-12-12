@@ -18,6 +18,8 @@ from amino.client import Client
 from amino.sub_client import SubClient
 
 # Big optimisation thanks to SempreLEGIT#1378 ♥
+version = "1.2.0"
+
 
 path_amino = 'utilities/amino_list'
 path_picture = 'pictures'
@@ -80,10 +82,12 @@ class BotAmino:
         self.banned_words = self.get_banned_words()
         self.message_bvn = self.get_welcome_message()
         self.locked_command = self.get_locked_command()
+        self.welcome_chat = self.get_welcome_chat()
+        self.only_view = self.get_only_view()
         self.prefix = self.get_prefix()
         self.subclient.activity_status("on")
-        user_list = self.subclient.get_all_users(start=0, size=1, type="recent")
-        self.all_users = user_list.json['userProfileCount']
+        new_users = self.subclient.get_all_users(start=0, size=35, type="recent")
+        self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
 
     def create_community_file(self):
         with open(f'{path_amino}/{self.community_amino_id}.json', 'w', encoding='utf8') as file:
@@ -91,10 +95,10 @@ class BotAmino:
             file.write(dumps(dict, sort_keys=False, indent=4))
 
     def create_dict(self):
-        return {"welcome": "", "banned_words": [], "locked_command": [], "prefix": "!", "only_view": []}
+        return {"welcome": "", "banned_words": [], "locked_command": [], "prefix": "!", "only_view": [], "welcome_chat": ""}
 
     def get_dict(self):
-        return {"welcome": self.message_bvn, "banned_words": self.banned_words, "locked_command": self.locked_command, "prefix": self.prefix, "only_view": self.only_view}
+        return {"welcome": self.message_bvn, "banned_words": self.banned_words, "locked_command": self.locked_command, "prefix": self.prefix, "only_view": self.only_view, "welcome_chat": self.welcome_chat}
 
     def update_file(self, dict=None):
         if not dict:
@@ -125,12 +129,19 @@ class BotAmino:
     def get_only_view(self):
         return self.get_file_info("only_view")
 
+    def get_welcome_chat(self):
+        return self.get_file_info("welcome_chat")
+
     def set_prefix(self, prefix: str):
         self.prefix = prefix
         self.update_file()
 
     def set_welcome_message(self, message: str):
         self.message_bvn = message.replace('"', '“')
+        self.update_file()
+
+    def set_welcome_chat(self, chatId: str):
+        self.welcome_chat = chatId
         self.update_file()
 
     def add_locked_command(self, liste: list):
@@ -157,6 +168,10 @@ class BotAmino:
 
     def remove_only_view(self, chatId: str):
         self.only_view.remove(chatId)
+        self.update_file()
+
+    def unset_welcome_chat(self):
+        self.welcome_chat = ""
         self.update_file()
 
     def is_in_staff(self, uid):
@@ -203,7 +218,7 @@ class BotAmino:
             return community_staff
 
     def get_user_id(self, user_name):
-        size = self.all_users
+        size = self.subclient.get_all_users(start=0, size=1, type="recent").json['userProfileCount']
         st = 0
         while size > 100:
             users = self.subclient.get_all_users(start=st, size=100)
@@ -229,7 +244,7 @@ class BotAmino:
         return False
 
     def ask_all_members(self, message, lvl: int):
-        size = self.all_users
+        size = self.subclient.get_all_users(start=0, size=1, type="recent").json['userProfileCount']
         st = 0
 
         while size > 100:
@@ -281,7 +296,17 @@ class BotAmino:
             if not val:
                 with suppress(Exception):
                     self.subclient.comment(message=self.message_bvn, userId=elem)
-                self.all_users += 1
+
+    def welcome_new_member(self):
+        new_list = self.subclient.get_all_users()
+        new_member = [(elem["nickname"], elem["uid"]) for elem in new_list.json["userProfileList"]]
+
+        for elem in new_member:
+            name, uid = elem[0], elem[1]
+            if uid not in self.new_users:
+                self.send_message(chatId=self.welcome_chat, message=f"Welcome here ‎‏‎‏@{name}!‬‭", mentionUserIds=[uid])
+                self.new_users.pop(0)
+                self.new_users.append(uid)
 
     def get_member_level(self, uid):
         return self.subclient.get_user_info(userId=uid).level
@@ -392,6 +417,8 @@ class BotAmino:
             if i >= 60:
                 if self.message_bvn:
                     self.check_new_member()
+                if self.welcome_chat:
+                    self.welcome_new_member()
                 with suppress(Exception):
                     self.subclient.activity_status('on')
                 self.subclient.edit_profile(content=activities[o])
@@ -1144,6 +1171,16 @@ def read_only(subClient=None, chatId=None, authorId=None, author=None, message=N
     subClient.send_message(chatId, "The bot need to be in the staff!")
 
 
+def welcome_channel(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
+    subClient.set_welcome_chat(chatId)
+    subClient.send_message(chatId, "Welcome channel set!")
+
+
+def unwelcome_channel(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
+    subClient.unset_welcome_chat(chatId)
+    subClient.send_message(chatId, "Welcome channel unset!")
+
+
 commands_dict = {"help": helper, "title": title, "dice": dice, "join": join, "ramen": ramen,
                  "cookie": cookie, "leave": leave, "abw": add_banned_word, "rbw": remove_banned_word,
                  "bwl": banned_word_list, "llock": locked_command_list, "view": read_only,
@@ -1152,13 +1189,13 @@ commands_dict = {"help": helper, "title": title, "dice": dice, "join": join, "ra
                  "uinfo": uinfo, "cinfo": cinfo, "joinamino": join_amino, "chatlist": get_chats, "sw": sw,
                  "accept": accept, "chat_id": chat_id, "prank": prank, "prefix": prefix,
                  "leaveamino": leave_amino, "sendinfo": sendinfo, "image": image, "all": mentionall,
-                 "block": block, "unblock": unblock, "follow": follow, "unfollow": unfollow,
-                 "stop_amino": stop_amino, "block": block, "unblock": unblock,
+                 "block": block, "unblock": unblock, "follow": follow, "unfollow": unfollow, "unwelcome": unwelcome_channel,
+                 "stop_amino": stop_amino, "block": block, "unblock": unblock, "welcome": welcome_channel,
                  "ask": ask_thing, "askstaff": ask_staff, "lock": lock_command, "unlock": unlock_command,
                  "global": get_global, "audio": audio, "convert": convert, "say": say}
 
 
-helpMsg = """
+helpMsg = f"""
 [CB]--- COMMON COMMAND ---
 
 • help (command)\t:  show this or the help associated to the command
@@ -1188,6 +1225,8 @@ helpMsg = """
 • abw (word list)\t:  add a banned word to the list*
 • rbw (word list)\t:  remove a banned word from the list*
 • sw (message)\t:  set the welcome message for new members (will start as soon as the welcome message is set)
+• welcome\t:  set the welcome channel
+• unwelcome\t:  unset the welcome channel
 • ask (message)(lvl=)\t: ask to all level (lvl) and inferior something
 • clear (amount)\t:  clear the specified amount of message from the chat (max 50)*
 • joinall\t:  join all public channels
@@ -1213,7 +1252,8 @@ helpMsg = """
 ²(only for devlopper or bot owner)
 
 [C]-- all commands are available for the owner of the bot --
-[C]-- Bot made by The_Phoenix --
+[C]-- Bot made by @The_Phoenix --
+--{version}--
 """
 
 help_message = """
@@ -1252,22 +1292,18 @@ Example :
 """
 
 try:
-    with open("admin.json", "r") as file:
-        perms_list = load(file)
+    with open("config.json", "r") as file:
+        data = load(file)
+        perms_list = data["admin"]
+        command_lock = data["lock"]
+        del data
 except FileNotFoundError:
-    with open('admin.json', 'w') as file:
-        file.write('[\n\t"YOUR AMINOID HERE"\n]')
-    print("You should put your Amino Id in the file admin.json")
+    with open('config.json', 'w') as file:
+        file.write(dumps({"admin": [], "lock": []}, indent=4))
+    print("Created config.json!\nYou should put your Amino Id in the list admin\nand the commands you don't want to use in lock")
     perms_list = []
-
-try:
-    with open("lock.json", "r") as file:
-        command_lock = load(file)
-except FileNotFoundError:
-    with open('lock.json', 'w') as file_:
-        file_.write('[\n\t"COMMAND HERE"\n]')
-    print("You should put the commands you don't want to use in the file lock.json")
     command_lock = []
+
 
 try:
     with open("client.txt", "r") as file_:
@@ -1313,13 +1349,10 @@ perms_list = tradlist(perms_list)
 
 
 def threadLaunch(commu):
-    try:
+    with suppress(Exception):
         commi = BotAmino(client=client, community=commu)
         communaute[commi.community_id] = commi
         communaute[commi.community_id].run()
-    except Exception:
-        pass
-        # client.leave_community(commu)
 
 
 taille_commu = len([Thread(target=threadLaunch, args=[commu]).start() for commu in amino_list.comId])
@@ -1339,7 +1372,7 @@ def on_text_message(data):
     messageId = data.message.messageId
     print(f"{data.message.author.nickname}:{message}")
 
-    if chatId in subClient.only_view and not (subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId)):
+    if chatId in subClient.only_view and not (subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId)) and subClient.is_in_staff(botId):
         subClient.delete_message(chatId, messageId, "Read-only chat", asStaff=True)
         return
 
