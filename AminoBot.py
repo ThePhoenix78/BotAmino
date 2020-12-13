@@ -86,7 +86,7 @@ class BotAmino:
         self.only_view = self.get_only_view()
         self.prefix = self.get_prefix()
         self.subclient.activity_status("on")
-        new_users = self.subclient.get_all_users(start=0, size=35, type="recent")
+        new_users = self.subclient.get_all_users(start=0, size=30, type="recent")
         self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
 
     def create_community_file(self):
@@ -1177,7 +1177,7 @@ def welcome_channel(subClient=None, chatId=None, authorId=None, author=None, mes
 
 
 def unwelcome_channel(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
-    subClient.unset_welcome_chat(chatId)
+    subClient.unset_welcome_chat()
     subClient.send_message(chatId, "Welcome channel unset!")
 
 
@@ -1253,7 +1253,7 @@ helpMsg = f"""
 
 [C]-- all commands are available for the owner of the bot --
 [C]-- Bot made by @The_Phoenix --
---{version}--
+[C]--Version : {version}--
 """
 
 help_message = """
