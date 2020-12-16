@@ -18,7 +18,7 @@ from amino.client import Client
 from amino.sub_client import SubClient
 
 # Big optimisation thanks to SempreLEGIT#1378 ♥
-version = "1.2.0"
+version = "1.3.0"
 
 
 path_amino = 'utilities/amino_list'
@@ -82,6 +82,7 @@ class BotAmino:
         self.banned_words = self.get_banned_words()
         self.message_bvn = self.get_welcome_message()
         self.locked_command = self.get_locked_command()
+        self.admin_locked_command = self.get_admin_locked_command()
         self.welcome_chat = self.get_welcome_chat()
         self.only_view = self.get_only_view()
         self.prefix = self.get_prefix()
@@ -95,10 +96,10 @@ class BotAmino:
             file.write(dumps(dict, sort_keys=False, indent=4))
 
     def create_dict(self):
-        return {"welcome": "", "banned_words": [], "locked_command": [], "prefix": "!", "only_view": [], "welcome_chat": ""}
+        return {"welcome": "", "banned_words": [], "locked_command": [], "admin_locked_command": [], "prefix": "!", "only_view": [], "welcome_chat": ""}
 
     def get_dict(self):
-        return {"welcome": self.message_bvn, "banned_words": self.banned_words, "locked_command": self.locked_command, "prefix": self.prefix, "only_view": self.only_view, "welcome_chat": self.welcome_chat}
+        return {"welcome": self.message_bvn, "banned_words": self.banned_words, "locked_command": self.locked_command, "admin_locked_command": self.admin_locked_command, "prefix": self.prefix, "only_view": self.only_view, "welcome_chat": self.welcome_chat}
 
     def update_file(self, dict=None):
         if not dict:
@@ -122,6 +123,9 @@ class BotAmino:
 
     def get_locked_command(self):
         return self.get_file_info("locked_command")
+
+    def get_admin_locked_command(self):
+        return self.get_file_info("admin_locked_command")
 
     def get_banned_words(self):
         return self.get_file_info("banned_words")
@@ -148,6 +152,10 @@ class BotAmino:
         self.locked_command.extend(liste)
         self.update_file()
 
+    def add_admin_locked_command(self, liste: list):
+        self.admin_locked_command.extend(liste)
+        self.update_file()
+
     def add_banned_words(self, liste: list):
         self.banned_words.extend(liste)
         self.update_file()
@@ -158,6 +166,10 @@ class BotAmino:
 
     def remove_locked_command(self, liste: list):
         [self.locked_command.remove(elem) for elem in liste if elem in self.locked_command]
+        self.update_file()
+
+    def remove_admin_locked_command(self, liste: list):
+        [self.admin_locked_command.remove(elem) for elem in liste if elem in self.admin_locked_command]
         self.update_file()
 
     def remove_banned_words(self, liste: list):
@@ -298,15 +310,16 @@ class BotAmino:
                     self.subclient.comment(message=self.message_bvn, userId=elem)
 
     def welcome_new_member(self):
-        new_list = self.subclient.get_all_users()
+        new_list = self.subclient.get_all_users(start=0, size=25, type="recent")
         new_member = [(elem["nickname"], elem["uid"]) for elem in new_list.json["userProfileList"]]
 
         for elem in new_member:
             name, uid = elem[0], elem[1]
             if uid not in self.new_users:
                 self.send_message(chatId=self.welcome_chat, message=f"Welcome here ‎‏‎‏@{name}!‬‭", mentionUserIds=[uid])
-                self.new_users.pop(0)
-                self.new_users.append(uid)
+
+        new_users = self.subclient.get_all_users(start=0, size=30, type="recent")
+        self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
 
     def get_member_level(self, uid):
         return self.subclient.get_user_info(userId=uid).level
@@ -416,9 +429,11 @@ class BotAmino:
         while self.marche:
             if i >= 60:
                 if self.message_bvn:
-                    self.check_new_member()
+                    with suppress(Exception):
+                        self.check_new_member()
                 if self.welcome_chat:
-                    self.welcome_new_member()
+                    with suppress(Exception):
+                        self.welcome_new_member()
                 with suppress(Exception):
                     self.subclient.activity_status('on')
                 self.subclient.edit_profile(content=activities[o])
@@ -1158,6 +1173,33 @@ def locked_command_list(subClient=None, chatId=None, authorId=None, author=None,
     subClient.send_message(chatId, val)
 
 
+def admin_lock_command(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
+    if is_it_me(authorId) or is_it_admin(authorId):
+        if not message or message not in commands_dict.keys() or message == "alock":
+            return
+
+        command = subClient.admin_locked_command
+        message = [message]
+
+        if message[0] in command:
+            subClient.remove_admin_locked_command(message)
+        else:
+            subClient.add_admin_locked_command(message)
+
+        subClient.send_message(chatId, "Locked command list updated")
+
+
+def locked_admin_command_list(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
+    if is_it_me(authorId) or is_it_admin(authorId):
+        val = ""
+        if subClient.admin_locked_command:
+            for elem in subClient.admin_locked_command:
+                val += elem+"\n"
+        else:
+            val = "No locked command"
+        subClient.send_message(chatId, val)
+
+
 def read_only(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if subClient.is_in_staff(botId) and (subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId)):
         chats = subClient.get_only_view()
@@ -1185,9 +1227,9 @@ commands_dict = {"help": helper, "title": title, "dice": dice, "join": join, "ra
                  "cookie": cookie, "leave": leave, "abw": add_banned_word, "rbw": remove_banned_word,
                  "bwl": banned_word_list, "llock": locked_command_list, "view": read_only,
                  "clear": clear, "joinall": join_all, "leaveall": leave_all, "reboot": reboot,
-                 "stop": stop, "spam": spam, "mention": mention, "msg": msg,
+                 "stop": stop, "spam": spam, "mention": mention, "msg": msg, "alock": admin_lock_command,
                  "uinfo": uinfo, "cinfo": cinfo, "joinamino": join_amino, "chatlist": get_chats, "sw": sw,
-                 "accept": accept, "chat_id": chat_id, "prank": prank, "prefix": prefix,
+                 "accept": accept, "chat_id": chat_id, "prank": prank, "prefix": prefix, "allock": locked_admin_command_list,
                  "leaveamino": leave_amino, "sendinfo": sendinfo, "image": image, "all": mentionall,
                  "block": block, "unblock": unblock, "follow": follow, "unfollow": unfollow, "unwelcome": unwelcome_channel,
                  "stop_amino": stop_amino, "block": block, "unblock": unblock, "welcome": welcome_channel,
@@ -1215,7 +1257,7 @@ helpMsg = f"""
 • convert (url)\t: will convert and send the music from the url (9 min max)
 • audio\t: will send audio
 • image\t: will send an image
-• say (message)\t: say the message in audio
+• say\t: will say the message in audio
 • ramen\t:  give ramens!
 • cookie\t:  give a cookie!
 \n
@@ -1225,9 +1267,9 @@ helpMsg = f"""
 • abw (word list)\t:  add a banned word to the list*
 • rbw (word list)\t:  remove a banned word from the list*
 • sw (message)\t:  set the welcome message for new members (will start as soon as the welcome message is set)
-• welcome\t:  set the welcome channel
-• unwelcome\t:  unset the welcome channel
-• ask (message)(lvl=)\t: ask to all level (lvl) and inferior something
+• welcome\t:  set the welcome channel**
+• unwelcome\t:  unset the welcome channel**
+• ask (message)(lvl=)\t: ask to all level (lvl) and inferior something**
 • clear (amount)\t:  clear the specified amount of message from the chat (max 50)*
 • joinall\t:  join all public channels
 • leaveall\t:  leave all public channels
@@ -1235,7 +1277,7 @@ helpMsg = f"""
 • all\t: mention all the users of a channel
 • lock (command)\t: lock the command (nobody can use it)
 • unlock (command)\t: remove the lock for the command
-• view\t: set or unset the current channel to read-only*
+• view\t: set or unset the current channel to read-only
 • prefix (prefix)\t: set the prefix for the amino
 \n
 [CB]--- SPECIAL ---
@@ -1243,7 +1285,10 @@ helpMsg = f"""
 • joinamino (amino id): join the amino (you need to be in the amino's staff)**
 • uinfo (user): will give informations about the user²
 • cinfo (aminoId): will give informations about the community²
-• sendinfo (args): send the info from uinfo or cinfo
+• sendinfo (args): send the info from uinfo or cinfo²
+• alock (command): lock or unlock the command for everyone except the owenr of the bot²
+• allock\t: the list of the admin locked commands²
+• tr (message): translate a message in english²
 
 [CB]--- NOTE ---
 
@@ -1401,7 +1446,8 @@ def on_text_message(data):
     else:
         return
 
-    [Thread(target=values, args=[subClient, chatId, authorId, author, message, messageId]).start() for key, values in commands_dict.items() if commande == key.lower()]
+    with suppress(Exception):
+        [Thread(target=values, args=[subClient, chatId, authorId, author, message, messageId]).start() for key, values in commands_dict.items() if commande == key.lower()]
 
 
 print("Ready")
