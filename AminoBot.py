@@ -1288,7 +1288,6 @@ helpMsg = f"""
 • sendinfo (args): send the info from uinfo or cinfo²
 • alock (command): lock or unlock the command for everyone except the owenr of the bot²
 • allock\t: the list of the admin locked commands²
-• tr (message): translate a message in english²
 
 [CB]--- NOTE ---
 
