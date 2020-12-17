@@ -247,7 +247,7 @@ class BotAmino:
         users = self.subclient.get_all_users(start=0, size=size)
 
         for user in users.json['userProfileList']:
-            if user_name.lower() == user['nickname'].lower() or user_name == user['uid']:
+            if user_name == user['nickname'] or user_name == user['uid']:
                 return (user["nickname"], user['uid'])
 
         for user in users.json['userProfileList']:
