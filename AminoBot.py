@@ -602,7 +602,7 @@ def clear(subClient=None, chatId=None, authorId=None, author=None, message=None,
         msg = ""
         val = ""
         subClient.delete_message(chatId, messageId, asStaff=True)
-        if "chat=" in message and is_it_me(authorId):
+        if "chat=" in message and (is_it_me(authorId) or is_it_admin(authorId)):
             chat_name = message.rsplit("chat=", 1).pop()
             chat_ide = subClient.get_chat_id(chat_name)
             if chat_ide:
@@ -648,7 +648,7 @@ def spam(subClient=None, chatId=None, authorId=None, author=None, message=None, 
 
 
 def mention(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
-    if "chat=" in message and is_it_me(authorId):
+    if "chat=" in message and (is_it_me(authorId) or is_it_admin(authorId)):
         chat_name = message.rsplit("chat=", 1).pop()
         chat_ide = subClient.get_chat_id(chat_name)
         if chat_ide:
@@ -696,7 +696,7 @@ def msg(subClient=None, chatId=None, authorId=None, author=None, message=None, m
     with suppress(Exception):
         subClient.delete_message(chatId, messageId, asStaff=True)
 
-    if "chat=" in message and is_it_me(authorId):
+    if "chat=" in message and (is_it_me(authorId) or is_it_admin(authorId)):
         chat_name = message.rsplit("chat=", 1).pop()
         chat_ide = subClient.get_chat_id(chat_name)
         if chat_ide:
