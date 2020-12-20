@@ -18,7 +18,7 @@ from amino.client import Client
 from amino.sub_client import SubClient
 
 # Big optimisation thanks to SempreLEGIT#1378 ♥
-version = "1.3.0"
+version = "1.3.1"
 
 
 path_amino = 'utilities/amino_list'
@@ -1348,7 +1348,6 @@ except FileNotFoundError:
     perms_list = []
     command_lock = []
 
-
 try:
     with open("client.txt", "r") as file_:
         login = file_.readlines()
@@ -1447,6 +1446,20 @@ def on_text_message(data):
 
     with suppress(Exception):
         [Thread(target=values, args=[subClient, chatId, authorId, author, message, messageId]).start() for key, values in commands_dict.items() if commande == key.lower()]
+
+
+@client.callbacks.event("on_chat_invite")
+def on_chat_invite(data):
+    try:
+        commuId = data.json["ndcId"]
+        subClient = communaute[commuId]
+    except Exception:
+        return
+
+    chatId = data.message.chatId
+
+    subClient.join_chat(chatId=chatId)
+    subClient.send_message(chatId, "Hello!\nI am a bot, if you have any question ask a staff member!^^\nHow can I help you? (you can do !help for help)")
 
 
 print("Ready")
