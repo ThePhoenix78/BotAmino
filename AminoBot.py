@@ -5,8 +5,9 @@ import txt2pdf
 from gtts import gTTS, lang
 from json import dumps, load
 from time import sleep
+from string import hexdigits
 from string import punctuation
-from random import choice, randint
+from random import choice, randint, sample
 from pathlib import Path
 from threading import Thread
 from contextlib import suppress
@@ -18,7 +19,7 @@ from amino.client import Client
 from amino.sub_client import SubClient
 
 # Big optimisation thanks to SempreLEGIT#1378 ♥
-version = "1.3.1"
+version = "1.4.2"
 
 
 path_amino = 'utilities/amino_list'
@@ -89,6 +90,9 @@ class BotAmino:
         self.subclient.activity_status("on")
         new_users = self.subclient.get_all_users(start=0, size=30, type="recent")
         self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
+        if self.welcome_chat or self.message_bvn:
+            with suppress(Exception):
+                Thread(target=self.check_new_member).start()
 
     def create_community_file(self):
         with open(f'{path_amino}/{self.community_amino_id}.json', 'w', encoding='utf8') as file:
@@ -261,13 +265,13 @@ class BotAmino:
 
         while size > 100:
             users = self.subclient.get_all_users(start=st, size=100)
-            user_lvl_list = [user['uid'] for user in users.json['userProfileList'] if user['level'] <= lvl]
+            user_lvl_list = [user['uid'] for user in users.json['userProfileList'] if user['level'] == lvl]
             self.subclient.start_chat(userId=user_lvl_list, message=message)
             size -= 100
             st += 100
 
         users = self.subclient.get_all_users(start=0, size=size)
-        user_lvl_list = [user['uid'] for user in users.json['userProfileList'] if user['level'] <= lvl]
+        user_lvl_list = [user['uid'] for user in users.json['userProfileList'] if user['level'] == lvl]
         self.subclient.start_chat(userId=user_lvl_list, message=message)
 
     def ask_amino_staff(self, message):
@@ -297,17 +301,25 @@ class BotAmino:
                 self.subclient.leave_chat(elem)
 
     def check_new_member(self):
-        new_list = self.subclient.get_all_users()
-        new_member = [elem["uid"] for elem in new_list.json["userProfileList"]]
+        if not (self.message_bvn and self.welcome_chat):
+            return
+        new_list = self.subclient.get_all_users(start=0, size=25, type="recent")
+        new_member = [(elem["nickname"], elem["uid"]) for elem in new_list.json["userProfileList"]]
         for elem in new_member:
+            name, uid = elem[0], elem[1]
             try:
-                val = self.subclient.get_wall_comments(userId=elem, sorting='newest').commentId
+                val = self.subclient.get_wall_comments(userId=uid, sorting='newest').commentId
             except Exception:
                 val = True
 
-            if not val:
+            if not val and self.message_bvn:
                 with suppress(Exception):
-                    self.subclient.comment(message=self.message_bvn, userId=elem)
+                    self.subclient.comment(message=self.message_bvn, userId=uid)
+            if not val and self.welcome_chat:
+                self.send_message(chatId=self.welcome_chat, message=f"Welcome here ‎‏‎‏@{name}!‬‭", mentionUserIds=[uid])
+
+        new_users = self.subclient.get_all_users(start=0, size=30, type="recent")
+        self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
 
     def welcome_new_member(self):
         new_list = self.subclient.get_all_users(start=0, size=25, type="recent")
@@ -315,7 +327,17 @@ class BotAmino:
 
         for elem in new_member:
             name, uid = elem[0], elem[1]
-            if uid not in self.new_users:
+
+            try:
+                val = self.subclient.get_wall_comments(userId=uid, sorting='newest').commentId
+            except Exception:
+                val = True
+
+            if not val and uid not in self.new_users and self.message_bvn:
+                with suppress(Exception):
+                    self.subclient.comment(message=self.message_bvn, userId=uid)
+
+            if uid not in self.new_users and self.welcome_chat:
                 self.send_message(chatId=self.welcome_chat, message=f"Welcome here ‎‏‎‏@{name}!‬‭", mentionUserIds=[uid])
 
         new_users = self.subclient.get_all_users(start=0, size=30, type="recent")
@@ -328,13 +350,23 @@ class BotAmino:
         return self.subclient.get_user_info(userId=uid).level > self.lvl_min
 
     def get_member_titles(self, uid):
-        try:
+        with suppress(Exception):
             return self.subclient.get_user_info(userId=uid).customTitles
-        except Exception:
-            return False
+        return False
 
     def get_member_info(self, uid):
         return self.subclient.get_user_info(userId=uid)
+
+    def get_wallet_info(self):
+        return self.client.get_wallet_info().json
+
+    def get_wallet_amount(self):
+        return self.client.get_wallet_info().totalCoins
+
+    def pay(self, coins: int = 0, blogId: str = None, chatId: str = None, objectId: str = None, transactionId: str = None):
+        if not transactionId:
+            transactionId = f"{''.join(sample([lst for lst in hexdigits[:-6]], 8))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 12))}"
+        self.subclient.send_coins(coins=coins, blogId=blogId, chatId=chatId, objectId=objectId, transactionId=transactionId)
 
     def get_message_level(self, level: int):
         return f"You need the level {level} to do this command"
@@ -423,17 +455,13 @@ class BotAmino:
         return True
 
     def passive(self):
-        i = 59
+        i = 30
         o = 0
         activities = [f"{self.prefix}cookie for cookies", "Hello everyone!", f"{self.prefix}help for help"]
         while self.marche:
             if i >= 60:
-                if self.message_bvn:
-                    with suppress(Exception):
-                        self.check_new_member()
-                if self.welcome_chat:
-                    with suppress(Exception):
-                        self.welcome_new_member()
+                if self.welcome_chat or self.message_bvn:
+                    self.welcome_new_member()
                 with suppress(Exception):
                     self.subclient.activity_status('on')
                 self.subclient.edit_profile(content=activities[o])
@@ -577,9 +605,9 @@ def join(subClient=None, chatId=None, authorId=None, author=None, message=None, 
 
 
 def join_all(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
-    if subClient.is_in_staff(authorId) or is_it_me(authorId):
-        if subClient.join_all_chat():
-            subClient.send_message(chatId, "All chat joined")
+    if subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId):
+        subClient.join_all_chat()
+        subClient.send_message(chatId, "All chat joined")
 
 
 def leave_all(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
@@ -794,18 +822,12 @@ def prank(subClient=None, chatId=None, authorId=None, author=None, message=None,
         subClient.delete_message(chatId, messageId, asStaff=True)
 
     transactionId = "5b3964da-a83d-c4d0-daf3-6e259d10fbc3"
-    old_chat = None
     if message and is_it_me(authorId):
         chat_ide = subClient.get_chat_id(message)
         if chat_ide:
-            old_chat = chatId
             chatId = chat_ide
     for _ in range(10):
         subClient.subclient.send_coins(coins=500, chatId=chatId, transactionId=transactionId)
-
-    if old_chat:
-        chatId = old_chat
-    subClient.send_message(chatId, "Done")
 
 
 def image(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
@@ -1122,7 +1144,7 @@ def ask_thing(subClient=None, chatId=None, authorId=None, author=None, message=N
         except ValueError:
             lvl = 20
 
-        subClient.ask_all_members(message, lvl)
+        subClient.ask_all_members(message+f"\n[CUI]This message was sent by {author}\n[CUI]I am a bot and have a nice day^^", lvl)
         subClient.send_message(chatId, "Asking...")
 
 
@@ -1214,18 +1236,35 @@ def read_only(subClient=None, chatId=None, authorId=None, author=None, message=N
 
 
 def welcome_channel(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
-    subClient.set_welcome_chat(chatId)
-    subClient.send_message(chatId, "Welcome channel set!")
+    if subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId):
+        subClient.set_welcome_chat(chatId)
+        subClient.send_message(chatId, "Welcome channel set!")
 
 
 def unwelcome_channel(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
-    subClient.unset_welcome_chat()
-    subClient.send_message(chatId, "Welcome channel unset!")
+    if subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId):
+        subClient.unset_welcome_chat()
+        subClient.send_message(chatId, "Welcome channel unset!")
+
+
+def taxe(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
+    if is_it_me(authorId) or is_it_admin(authorId):
+        coins = subClient.get_wallet_amount()
+        if coins >= 1:
+            amt = 0
+            while coins > 500:
+                subClient.pay(500, chatId=chatId)
+                coins -= 500
+                amt += 500
+            subClient.pay(int(coins), chatId=chatId)
+            subClient.send_message(chatId, f"Sending {coins+amt} coins...")
+        else:
+            subClient.send_message(chatId, "Account is empty!")
 
 
 commands_dict = {"help": helper, "title": title, "dice": dice, "join": join, "ramen": ramen,
                  "cookie": cookie, "leave": leave, "abw": add_banned_word, "rbw": remove_banned_word,
-                 "bwl": banned_word_list, "llock": locked_command_list, "view": read_only,
+                 "bwl": banned_word_list, "llock": locked_command_list, "view": read_only, "taxe": taxe,
                  "clear": clear, "joinall": join_all, "leaveall": leave_all, "reboot": reboot,
                  "stop": stop, "spam": spam, "mention": mention, "msg": msg, "alock": admin_lock_command,
                  "uinfo": uinfo, "cinfo": cinfo, "joinamino": join_amino, "chatlist": get_chats, "sw": sw,
@@ -1238,7 +1277,7 @@ commands_dict = {"help": helper, "title": title, "dice": dice, "join": join, "ra
 
 
 helpMsg = f"""
-[CB]--- COMMON COMMAND ---
+[CB]-- COMMON COMMAND --
 
 • help (command)\t:  show this or the help associated to the command
 • title (title)\t:  edit titles*
@@ -1261,7 +1300,7 @@ helpMsg = f"""
 • ramen\t:  give ramens!
 • cookie\t:  give a cookie!
 \n
-[CB]--- STAFF COMMAND ---
+[CB]-- STAFF COMMAND --
 
 • accept\t: accept the staff role
 • abw (word list)\t:  add a banned word to the list*
@@ -1269,7 +1308,7 @@ helpMsg = f"""
 • sw (message)\t:  set the welcome message for new members (will start as soon as the welcome message is set)
 • welcome\t:  set the welcome channel**
 • unwelcome\t:  unset the welcome channel**
-• ask (message)(lvl=)\t: ask to all level (lvl) and inferior something**
+• ask (message)(lvl=)\t: ask to all level (lvl) something**
 • clear (amount)\t:  clear the specified amount of message from the chat (max 50)*
 • joinall\t:  join all public channels
 • leaveall\t:  leave all public channels
@@ -1280,7 +1319,7 @@ helpMsg = f"""
 • view\t: set or unset the current channel to read-only
 • prefix (prefix)\t: set the prefix for the amino
 \n
-[CB]--- SPECIAL ---
+[CB]-- SPECIAL --
 
 • joinamino (amino id): join the amino (you need to be in the amino's staff)**
 • uinfo (user): will give informations about the user²
@@ -1289,7 +1328,7 @@ helpMsg = f"""
 • alock (command): lock or unlock the command for everyone except the owenr of the bot²
 • allock\t: the list of the admin locked commands²
 
-[CB]--- NOTE ---
+[CB]-- NOTE --
 
 *(only work if bot is in staff)
 **(In developpement)
@@ -1446,6 +1485,40 @@ def on_text_message(data):
 
     with suppress(Exception):
         [Thread(target=values, args=[subClient, chatId, authorId, author, message, messageId]).start() for key, values in commands_dict.items() if commande == key.lower()]
+
+
+@client.callbacks.event("on_image_message")
+def on_image_message(data):
+    try:
+        commuId = data.json["ndcId"]
+        subClient = communaute[commuId]
+    except Exception:
+        return
+
+    chatId = data.message.chatId
+    authorId = data.message.author.userId
+    messageId = data.message.messageId
+
+    if chatId in subClient.only_view and not (subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId)) and subClient.is_in_staff(botId):
+        subClient.delete_message(chatId, messageId, "Read-only chat", asStaff=True)
+        return
+
+
+@client.callbacks.event("on_voice_message")
+def on_voice_message(data):
+    try:
+        commuId = data.json["ndcId"]
+        subClient = communaute[commuId]
+    except Exception:
+        return
+
+    chatId = data.message.chatId
+    authorId = data.message.author.userId
+    messageId = data.message.messageId
+
+    if chatId in subClient.only_view and not (subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId)) and subClient.is_in_staff(botId):
+        subClient.delete_message(chatId, messageId, "Read-only chat", asStaff=True)
+        return
 
 
 @client.callbacks.event("on_chat_invite")
