@@ -19,7 +19,7 @@ from amino.client import Client
 from amino.sub_client import SubClient
 
 # Big optimisation thanks to SempreLEGIT#1378 ♥
-version = "1.4.2"
+version = "1.5.0"
 
 
 path_amino = 'utilities/amino_list'
@@ -87,6 +87,7 @@ class BotAmino:
         self.welcome_chat = self.get_welcome_chat()
         self.only_view = self.get_only_view()
         self.prefix = self.get_prefix()
+        self.level = self.get_level()
         self.subclient.activity_status("on")
         new_users = self.subclient.get_all_users(start=0, size=30, type="recent")
         self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
@@ -100,10 +101,10 @@ class BotAmino:
             file.write(dumps(dict, sort_keys=False, indent=4))
 
     def create_dict(self):
-        return {"welcome": "", "banned_words": [], "locked_command": [], "admin_locked_command": [], "prefix": "!", "only_view": [], "welcome_chat": ""}
+        return {"welcome": "", "banned_words": [], "locked_command": [], "admin_locked_command": [], "prefix": "!", "only_view": [], "welcome_chat": "", "level": 0}
 
     def get_dict(self):
-        return {"welcome": self.message_bvn, "banned_words": self.banned_words, "locked_command": self.locked_command, "admin_locked_command": self.admin_locked_command, "prefix": self.prefix, "only_view": self.only_view, "welcome_chat": self.welcome_chat}
+        return {"welcome": self.message_bvn, "banned_words": self.banned_words, "locked_command": self.locked_command, "admin_locked_command": self.admin_locked_command, "prefix": self.prefix, "only_view": self.only_view, "welcome_chat": self.welcome_chat, "level": self.level}
 
     def update_file(self, dict=None):
         if not dict:
@@ -125,6 +126,9 @@ class BotAmino:
     def get_prefix(self):
         return self.get_file_info("prefix")
 
+    def get_level(self):
+        return self.get_file_info("level")
+
     def get_locked_command(self):
         return self.get_file_info("locked_command")
 
@@ -142,6 +146,10 @@ class BotAmino:
 
     def set_prefix(self, prefix: str):
         self.prefix = prefix
+        self.update_file()
+
+    def set_level(self, level: int):
+        self.level = level
         self.update_file()
 
     def set_welcome_message(self, message: str):
@@ -347,7 +355,7 @@ class BotAmino:
         return self.subclient.get_user_info(userId=uid).level
 
     def is_level_good(self, uid):
-        return self.subclient.get_user_info(userId=uid).level > self.lvl_min
+        return self.subclient.get_user_info(userId=uid).level >= self.level
 
     def get_member_titles(self, uid):
         with suppress(Exception):
@@ -425,7 +433,7 @@ class BotAmino:
     def unfollow_user(self, uid):
         self.subclient.unfollow(userId=uid)
 
-    def add_title(self, uid, title: str, color: str = "#999999"):
+    def add_title(self, uid, title: str, color: str = None):
         member = self.get_member_titles(uid)
         tlist = []
         clist = []
@@ -456,12 +464,13 @@ class BotAmino:
 
     def passive(self):
         i = 30
+        j = 270
         o = 0
         activities = [f"{self.prefix}cookie for cookies", "Hello everyone!", f"{self.prefix}help for help"]
         while self.marche:
             if i >= 60:
                 if self.welcome_chat or self.message_bvn:
-                    self.welcome_new_member()
+                    Thread(target=self.welcome_new_member).start()
                 with suppress(Exception):
                     self.subclient.activity_status('on')
                 self.subclient.edit_profile(content=activities[o])
@@ -469,6 +478,11 @@ class BotAmino:
                 o += 1
                 if o > len(activities)-1:
                     o = 0
+            if j >= 300:
+                if self.welcome_chat or self.message_bvn:
+                    Thread(target=self.check_new_member).start()
+                j = 0
+            j += 1
             i += 1
             sleep(1)
 
@@ -722,7 +736,7 @@ def msg(subClient=None, chatId=None, authorId=None, author=None, message=None, m
     size = 1
     ment = None
     with suppress(Exception):
-        subClient.delete_message(chatId, messageId, asStaff=True)
+        subClient.delete_message(chatId, messageId, asStaff=False)
 
     if "chat=" in message and (is_it_me(authorId) or is_it_admin(authorId)):
         chat_name = message.rsplit("chat=", 1).pop()
@@ -1232,7 +1246,8 @@ def read_only(subClient=None, chatId=None, authorId=None, author=None, message=N
             subClient.remove_only_view(chatId)
             subClient.send_message(chatId, "This chat is no longer in only-view mode")
         return
-    subClient.send_message(chatId, "The bot need to be in the staff!")
+    elif not subClient.is_in_staff(botId):
+        subClient.send_message(chatId, "The bot need to be in the staff!")
 
 
 def welcome_channel(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
@@ -1245,6 +1260,21 @@ def unwelcome_channel(subClient=None, chatId=None, authorId=None, author=None, m
     if subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId):
         subClient.unset_welcome_chat()
         subClient.send_message(chatId, "Welcome channel unset!")
+
+
+def level(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
+    if subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId):
+        try:
+            message = int(message)
+        except Exception:
+            subClient.send_message(chatId, "Error, wrong level")
+            return
+        if message > 20:
+            message = 20
+        if message < 0:
+            message = 0
+        subClient.set_level(message)
+        subClient.send_message(chatId, f"Level set to {message}!")
 
 
 def taxe(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
@@ -1262,7 +1292,7 @@ def taxe(subClient=None, chatId=None, authorId=None, author=None, message=None, 
             subClient.send_message(chatId, "Account is empty!")
 
 
-commands_dict = {"help": helper, "title": title, "dice": dice, "join": join, "ramen": ramen,
+commands_dict = {"help": helper, "title": title, "dice": dice, "join": join, "ramen": ramen, "level": level,
                  "cookie": cookie, "leave": leave, "abw": add_banned_word, "rbw": remove_banned_word,
                  "bwl": banned_word_list, "llock": locked_command_list, "view": read_only, "taxe": taxe,
                  "clear": clear, "joinall": join_all, "leaveall": leave_all, "reboot": reboot,
@@ -1318,6 +1348,7 @@ helpMsg = f"""
 • unlock (command)\t: remove the lock for the command
 • view\t: set or unset the current channel to read-only
 • prefix (prefix)\t: set the prefix for the amino
+• level (level)\t: set the level required for the commands
 \n
 [CB]-- SPECIAL --
 
@@ -1440,6 +1471,12 @@ def threadLaunch(commu):
 taille_commu = len([Thread(target=threadLaunch, args=[commu]).start() for commu in amino_list.comId])
 
 
+def filtre_message(message, code):
+    para = normalize('NFD', message).encode(code, 'ignore').decode("utf8").strip().lower()
+    para = para.translate(str.maketrans("", "", punctuation))
+    return para
+
+
 @client.callbacks.event("on_text_message")
 def on_text_message(data):
     try:
@@ -1458,11 +1495,19 @@ def on_text_message(data):
         subClient.delete_message(chatId, messageId, "Read-only chat", asStaff=True)
         return
 
-    if not is_it_bot(authorId) and not subClient.is_in_staff(authorId):
+    if not (is_it_me(authorId) or is_it_admin(authorId) or is_it_bot(authorId)) and not subClient.is_in_staff(authorId) and subClient.banned_words:
         with suppress(Exception):
-            para = normalize('NFD', message).encode('ascii', 'ignore').decode("utf8").strip().lower()
-            para = para.translate(str.maketrans("", "", punctuation))
-            para = para.split()
+            para = filtre_message(message, "ascii").split()
+
+            if para != [""]:
+                for elem in para:
+                    if elem in subClient.banned_words:
+                        subClient.delete_message(chatId, messageId, "Banned word", asStaff=True)
+                        return
+
+        with suppress(Exception):
+            para = filtre_message(message, "utf8").split()
+
             if para != [""]:
                 for elem in para:
                     if elem in subClient.banned_words:
@@ -1475,6 +1520,11 @@ def on_text_message(data):
         message = str(message).strip().split(communaute[commuId].prefix, 1).pop()
         commande = str(message).strip().split(" ", 1)[0].lower()
         if commande in subClient.locked_command and not (subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId)):
+            return
+        if commande in subClient.admin_locked_command and not (is_it_me(authorId) or is_it_admin(authorId)):
+            return
+        if not subClient.is_level_good(authorId) and not (subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId)):
+            subClient.send_message(chatId, f"You don't have the level for that ({subClient.level})")
             return
         try:
             message = str(message).strip().split(" ", 1)[1]
@@ -1521,6 +1571,22 @@ def on_voice_message(data):
         return
 
 
+@client.callbacks.event("on_sticker_message")
+def on_sticker_message(data):
+    try:
+        commuId = data.json["ndcId"]
+        subClient = communaute[commuId]
+    except Exception:
+        return
+
+    chatId = data.message.chatId
+    authorId = data.message.author.userId
+    messageId = data.message.messageId
+
+    if chatId in subClient.only_view and not (subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId)) and subClient.is_in_staff(botId):
+        subClient.delete_message(chatId, messageId, "Read-only chat", asStaff=True)
+
+
 @client.callbacks.event("on_chat_invite")
 def on_chat_invite(data):
     try:
@@ -1532,7 +1598,7 @@ def on_chat_invite(data):
     chatId = data.message.chatId
 
     subClient.join_chat(chatId=chatId)
-    subClient.send_message(chatId, "Hello!\nI am a bot, if you have any question ask a staff member!^^\nHow can I help you? (you can do !help for help)")
+    subClient.send_message(chatId, f"Hello!\nI am a bot, if you have any question ask a staff member!^^\nHow can I help you? (you can do {subClient.prefix}help for help)")
 
 
 print("Ready")
