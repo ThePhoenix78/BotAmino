@@ -23,8 +23,8 @@ version = "1.5.0"
 
 
 path_amino = 'utilities/amino_list'
-path_picture = 'pictures'
-path_sound = 'sound'
+path_picture = 'utilities/pictures'
+path_sound = 'utilities/sound'
 path_download = 'download'
 
 for i in ("utilities", path_picture, path_sound, path_download, path_amino):
@@ -214,11 +214,10 @@ class BotAmino:
         with suppress(Exception):
             self.subclient.accept_host(cid)
             return True
-        try:
+        with suppress(Exception):
             self.subclient.promotion(noticeId=rid)
             return True
-        except Exception:
-            return False
+        return False
 
     def get_staff(self, community):
         if isinstance(community, int):
@@ -243,28 +242,36 @@ class BotAmino:
 
     def get_user_id(self, user_name):
         size = self.subclient.get_all_users(start=0, size=1, type="recent").json['userProfileCount']
+        size2 = size
+
         st = 0
-        while size > 100:
-            users = self.subclient.get_all_users(start=st, size=100)
+        while size > 0:
+            value = size
+            if value > 100:
+                value = 100
+
+            users = self.subclient.get_all_users(start=st, size=value)
             for user in users.json['userProfileList']:
                 if user_name == user['nickname'] or user_name == user['uid']:
                     return (user["nickname"], user['uid'])
+            size -= 100
+            st += 100
 
+        size = size2
+
+        st = 0
+        while size > 0:
+            value = size
+            if value > 100:
+                value = 100
+
+            users = self.subclient.get_all_users(start=st, size=value)
             for user in users.json['userProfileList']:
                 if user_name.lower() in user['nickname'].lower():
                     return (user["nickname"], user['uid'])
             size -= 100
             st += 100
 
-        users = self.subclient.get_all_users(start=0, size=size)
-
-        for user in users.json['userProfileList']:
-            if user_name == user['nickname'] or user_name == user['uid']:
-                return (user["nickname"], user['uid'])
-
-        for user in users.json['userProfileList']:
-            if user_name.lower() in user['nickname'].lower():
-                return (user["nickname"], user['uid'])
         return False
 
     def ask_all_members(self, message, lvl: int):
