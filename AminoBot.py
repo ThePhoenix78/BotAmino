@@ -19,13 +19,13 @@ from amino.client import Client
 from amino.sub_client import SubClient
 
 # Big optimisation thanks to SempreLEGIT#1378 ♥
-version = "1.5.0"
-
+version = "1.6.2"
+print(f"version : {version}")
 
 path_amino = 'utilities/amino_list'
 path_picture = 'utilities/pictures'
 path_sound = 'utilities/sound'
-path_download = 'download'
+path_download = 'utilities/download'
 
 for i in ("utilities", path_picture, path_sound, path_download, path_amino):
     Path(i).mkdir(exist_ok=True)
@@ -88,6 +88,8 @@ class BotAmino:
         self.only_view = self.get_only_view()
         self.prefix = self.get_prefix()
         self.level = self.get_level()
+        self.favorite_users = self.get_favorite_users()
+        self.favorite_chats = self.get_favorite_chats()
         self.subclient.activity_status("on")
         new_users = self.subclient.get_all_users(start=0, size=30, type="recent")
         self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
@@ -101,10 +103,10 @@ class BotAmino:
             file.write(dumps(dict, sort_keys=False, indent=4))
 
     def create_dict(self):
-        return {"welcome": "", "banned_words": [], "locked_command": [], "admin_locked_command": [], "prefix": "!", "only_view": [], "welcome_chat": "", "level": 0}
+        return {"welcome": "", "banned_words": [], "locked_command": [], "admin_locked_command": [], "prefix": "!", "only_view": [], "welcome_chat": "", "level": 0, "favorite_users": [], "favorite_chats": []}
 
     def get_dict(self):
-        return {"welcome": self.message_bvn, "banned_words": self.banned_words, "locked_command": self.locked_command, "admin_locked_command": self.admin_locked_command, "prefix": self.prefix, "only_view": self.only_view, "welcome_chat": self.welcome_chat, "level": self.level}
+        return {"welcome": self.message_bvn, "banned_words": self.banned_words, "locked_command": self.locked_command, "admin_locked_command": self.admin_locked_command, "prefix": self.prefix, "only_view": self.only_view, "welcome_chat": self.welcome_chat, "level": self.level, "favorite_users": self.favorite_users, "favorite_chats": self.favorite_chats}
 
     def update_file(self, dict=None):
         if not dict:
@@ -144,6 +146,12 @@ class BotAmino:
     def get_welcome_chat(self):
         return self.get_file_info("welcome_chat")
 
+    def get_favorite_users(self):
+        return self.get_file_info("favorite_users")
+
+    def get_favorite_chats(self):
+        return self.get_file_info("favorite_chats")
+
     def set_prefix(self, prefix: str):
         self.prefix = prefix
         self.update_file()
@@ -176,6 +184,14 @@ class BotAmino:
         self.only_view.append(chatId)
         self.update_file()
 
+    def add_favorite_users(self, value: str):
+        self.favorite_users.append(value)
+        self.update_file()
+
+    def add_favorite_chats(self, value: str):
+        self.favorite_chats.append(value)
+        self.update_file()
+
     def remove_locked_command(self, liste: list):
         [self.locked_command.remove(elem) for elem in liste if elem in self.locked_command]
         self.update_file()
@@ -185,9 +201,17 @@ class BotAmino:
         self.update_file()
 
     def remove_banned_words(self, liste: list):
-        for elem in liste:
-            if elem in self.banned_words:
-                self.banned_words.remove(elem)
+        [self.banned_words.remove(elem) for elem in liste if elem in self.banned_words]
+        self.update_file()
+
+    def remove_favorite_users(self, value: str):
+        liste = [value]
+        [self.favorite_users.remove(elem) for elem in liste if elem in self.favorite_users]
+        self.update_file()
+
+    def remove_favorite_chats(self, value: str):
+        liste = [value]
+        [self.favorite_chats.remove(elem) for elem in liste if elem in self.favorite_chats]
         self.update_file()
 
     def remove_only_view(self, chatId: str):
@@ -331,7 +355,8 @@ class BotAmino:
                 with suppress(Exception):
                     self.subclient.comment(message=self.message_bvn, userId=uid)
             if not val and self.welcome_chat:
-                self.send_message(chatId=self.welcome_chat, message=f"Welcome here ‎‏‎‏@{name}!‬‭", mentionUserIds=[uid])
+                with suppress(Exception):
+                    self.send_message(chatId=self.welcome_chat, message=f"Welcome here ‎‏‎‏@{name}!‬‭", mentionUserIds=[uid])
 
         new_users = self.subclient.get_all_users(start=0, size=30, type="recent")
         self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
@@ -353,10 +378,23 @@ class BotAmino:
                     self.subclient.comment(message=self.message_bvn, userId=uid)
 
             if uid not in self.new_users and self.welcome_chat:
-                self.send_message(chatId=self.welcome_chat, message=f"Welcome here ‎‏‎‏@{name}!‬‭", mentionUserIds=[uid])
+                with suppress(Exception):
+                    self.send_message(chatId=self.welcome_chat, message=f"Welcome here ‎‏‎‏@{name}!‬‭", mentionUserIds=[uid])
 
         new_users = self.subclient.get_all_users(start=0, size=30, type="recent")
         self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
+
+    def feature_chats(self):
+        for elem in self.favorite_chats:
+            with suppress(Exception):
+                self.favorite(time=1, userId=elem)
+
+    def feature_users(self):
+        featured = [elem["uid"] for elem in self.subclient.get_featured_users().json["userProfileList"]]
+        for elem in self.favorite_users:
+            if elem not in featured:
+                with suppress(Exception):
+                    self.favorite(time=1, userId=elem)
 
     def get_member_level(self, uid):
         return self.subclient.get_user_info(userId=uid).level
@@ -391,6 +429,12 @@ class BotAmino:
 
     def send_message(self, chatId: str = None, message: str = "None", messageType: str = None, file: str = None, fileType: str = None, replyTo: str = None, mentionUserIds: str = None):
         self.subclient.send_message(chatId=chatId, message=message, file=file, fileType=fileType, replyTo=replyTo, messageType=messageType, mentionUserIds=mentionUserIds)
+
+    def favorite(self, time: int = 1, userId: str = None, chatId: str = None, blogId: str = None, wikiId: str = None):
+        self.subclient.feature(time=time, userId=userId, chatId=chatId, blogId=blogId, wikiId=wikiId)
+
+    def unfavorite(self, userId: str = None, chatId: str = None, blogId: str = None, wikiId: str = None):
+        self.subclient.unfeature(userId=userId, chatId=chatId, blogId=blogId, wikiId=wikiId)
 
     def join_chat(self, chat: str, chatId: str = None):
         chat = chat.replace("http:aminoapps.com/p/", "")
@@ -470,31 +514,49 @@ class BotAmino:
         return True
 
     def passive(self):
-        i = 30
-        j = 270
+        i = 0
+        j = 470
         o = 0
         activities = [f"{self.prefix}cookie for cookies", "Hello everyone!", f"{self.prefix}help for help"]
         while self.marche:
-            if i >= 60:
+            if i >= 90:
                 if self.welcome_chat or self.message_bvn:
                     Thread(target=self.welcome_new_member).start()
                 with suppress(Exception):
                     self.subclient.activity_status('on')
-                self.subclient.edit_profile(content=activities[o])
+                    self.subclient.edit_profile(content=activities[o])
                 i = 0
                 o += 1
                 if o > len(activities)-1:
                     o = 0
-            if j >= 300:
+            if j >= 500:
                 if self.welcome_chat or self.message_bvn:
                     Thread(target=self.check_new_member).start()
                 j = 0
-            j += 1
-            i += 1
-            sleep(1)
+            j += 5
+            i += 5
+            sleep(5)
+
+    def keep_favorite(self):
+        i = 3570
+        j = 86370
+        while self.marche:
+            if i >= 3600 and self.favorite_chats:
+                with suppress(Exception):
+                    Thread(target=self.feature_chats).start()
+
+            if j >= 86400 and self.favorite_users:
+                with suppress(Exception):
+                    Thread(target=self.feature_users).start()
+                j = 0
+            j += 5
+            i += 5
+            sleep(5)
 
     def run(self):
         Thread(target=self.passive).start()
+        sleep(7)
+        Thread(target=self.keep_favorite).start()
 
 
 def is_it_bot(uid):
@@ -1257,6 +1319,88 @@ def read_only(subClient=None, chatId=None, authorId=None, author=None, message=N
         subClient.send_message(chatId, "The bot need to be in the staff!")
 
 
+def keep_favorite_users(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
+    if subClient.is_in_staff(botId) and (subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId)):
+        users = subClient.favorite_users
+        try:
+            val = subClient.get_user_id(message)
+            user, userId = val[0], val[1]
+        except Exception:
+            subClient.send_message(chatId, "Error, user not found!")
+            return
+        if userId not in users:
+            subClient.add_favorite_users(userId)
+            subClient.send_message(chatId, f"Added {user} to favorite users")
+            with suppress(Exception):
+                subClient.favorite(time=1, userId=userId)
+        return
+    elif not subClient.is_in_staff(botId):
+        subClient.send_message(chatId, "The bot need to be in the staff!")
+
+
+def unkeep_favorite_users(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
+    if subClient.is_in_staff(botId) and (subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId)):
+        users = subClient.favorite_users
+        try:
+            val = subClient.get_user_id(message)
+            user, userId = val[0], val[1]
+        except Exception:
+            subClient.send_message(chatId, "Error, user not found!")
+            return
+        if userId in users:
+            subClient.remove_favorite_users(userId)
+            subClient.send_message(chatId, f"Removed {user} to favorite users")
+            with suppress(Exception):
+                subClient.unfavorite(userId=userId)
+        return
+    elif not subClient.is_in_staff(botId):
+        subClient.send_message(chatId, "The bot need to be in the staff!")
+
+
+def keep_favorite_chats(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
+    if subClient.is_in_staff(botId) and (subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId)):
+        chats = subClient.favorite_chats
+        val = subClient.get_chats()
+
+        for title, chatId in zip(val.title, val.chatId):
+            if message == title and chatId not in chats:
+                subClient.add_favorite_chats(chatId)
+                subClient.send_message(chatId, f"Added {title} to favorite chats")
+                with suppress(Exception):
+                    subClient.favorite(time=1, chatId=chatId)
+                return
+
+        for title, chatId in zip(val.title, val.chatId):
+            if message.lower() in title.lower() and chatId not in chats:
+                subClient.add_favorite_chats(chatId)
+                subClient.send_message(chatId, f"Added {title} to favorite chats")
+                with suppress(Exception):
+                    subClient.favorite(time=1, chatId=chatId)
+                return
+    elif not subClient.is_in_staff(botId):
+        subClient.send_message(chatId, "The bot need to be in the staff!")
+
+
+def unkeep_favorite_chats(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
+    if subClient.is_in_staff(botId) and (subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId)):
+        chats = subClient.favorite_chats
+        val = subClient.get_chats()
+
+        for title, chatid in zip(val.title, val.chatId):
+            if message == title and chatid in chats:
+                subClient.remove_favorite_chats(chatid)
+                subClient.unfavorite(chatId=chatid)
+                subClient.send_message(chatId, f"Removed {title} to favorite chats")
+                return
+
+        for title, chatid in zip(val.title, val.chatId):
+            if message.lower() in title.lower() and chatid in chats:
+                subClient.remove_favorite_chats(chatid)
+                subClient.unfavorite(chatId=chatid)
+                subClient.send_message(chatId, f"Removed {title} to favorite chats")
+                return
+
+
 def welcome_channel(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId):
         subClient.set_welcome_chat(chatId)
@@ -1310,7 +1454,8 @@ commands_dict = {"help": helper, "title": title, "dice": dice, "join": join, "ra
                  "block": block, "unblock": unblock, "follow": follow, "unfollow": unfollow, "unwelcome": unwelcome_channel,
                  "stop_amino": stop_amino, "block": block, "unblock": unblock, "welcome": welcome_channel,
                  "ask": ask_thing, "askstaff": ask_staff, "lock": lock_command, "unlock": unlock_command,
-                 "global": get_global, "audio": audio, "convert": convert, "say": say}
+                 "global": get_global, "audio": audio, "convert": convert, "say": say,
+                 "keepu": keep_favorite_users, "unkeepu": unkeep_favorite_users, "keepc": keep_favorite_chats, "unkeepc": unkeep_favorite_chats}
 
 
 helpMsg = f"""
@@ -1356,6 +1501,10 @@ helpMsg = f"""
 • view\t: set or unset the current channel to read-only
 • prefix (prefix)\t: set the prefix for the amino
 • level (level)\t: set the level required for the commands
+• keepu (user)\t: keep in favorite an user*
+• unkeepu (user)\t: remove from favorite an user*
+• keepc (chat)\t: keep in favorite a chat*
+• unkeepc (chat)\t: remove from favorite a chat*
 \n
 [CB]-- SPECIAL --
 
@@ -1413,13 +1562,13 @@ Example :
 """
 
 try:
-    with open("config.json", "r") as file:
+    with open("utilities/config.json", "r") as file:
         data = load(file)
         perms_list = data["admin"]
         command_lock = data["lock"]
         del data
 except FileNotFoundError:
-    with open('config.json', 'w') as file:
+    with open('utilities/config.json', 'w') as file:
         file.write(dumps({"admin": [], "lock": []}, indent=4))
     print("Created config.json!\nYou should put your Amino Id in the list admin\nand the commands you don't want to use in lock")
     perms_list = []
