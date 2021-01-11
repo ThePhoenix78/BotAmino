@@ -493,6 +493,8 @@ class BotAmino:
     def passive(self):
         i = 30
         j = 470
+        k = 7170
+        m = 86370
         o = 0
         activities = [f"{self.prefix}cookie for cookies", "Hello everyone!", f"{self.prefix}help for help"]
         while self.marche:
@@ -508,33 +510,29 @@ class BotAmino:
                     o = 0
             if j >= 500:
                 if self.welcome_chat or self.message_bvn:
-                    Thread(target=self.check_new_member).start()
+                    with suppress(Exception):
+                        Thread(target=self.check_new_member).start()
                 j = 0
-            j += 10
-            i += 10
-            sleep(10)
 
-    def keep_favorite(self):
-        i = 7170
-        j = 86370
-        while self.marche:
-            if i >= 7200 and self.favorite_chats:
+            if k >= 7200 and self.favorite_chats:
                 with suppress(Exception):
                     Thread(target=self.feature_chats).start()
+                k = 0
 
-            if j >= 86400 and self.favorite_users:
+            if m >= 86400 and self.favorite_users:
                 with suppress(Exception):
                     Thread(target=self.feature_users).start()
-                j = 0
+                m = 0
+
+            k += 10
+            m += 10
             j += 10
             i += 10
+
             sleep(10)
 
     def run(self):
         Thread(target=self.passive).start()
-        sleep(7)
-        Thread(target=self.keep_favorite).start()
-
 
 def is_it_bot(uid):
     return uid == botId
