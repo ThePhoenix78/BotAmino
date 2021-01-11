@@ -22,12 +22,15 @@ from amino.sub_client import SubClient
 version = "1.6.2"
 print(f"version : {version}")
 
-path_amino = 'utilities/amino_list'
-path_picture = 'utilities/pictures'
-path_sound = 'utilities/sound'
-path_download = 'utilities/download'
+path_utilities = "../utilities"
+path_amino = '../utilities/amino_list'
+path_picture = '../utilities/pictures'
+path_sound = '../utilities/sound'
+path_download = '../utilities/download'
+path_config = "../utilities/config.json"
+path_client = "../client.txt"
 
-for i in ("utilities", path_picture, path_sound, path_download, path_amino):
+for i in (path_utilities, path_picture, path_sound, path_download, path_amino):
     Path(i).mkdir(exist_ok=True)
 
 
@@ -80,16 +83,16 @@ class BotAmino:
         self.update_file(old_dict)
 
         self.subclient = SubClient(comId=self.community_id, profile=client.profile)
-        self.banned_words = self.get_banned_words()
-        self.message_bvn = self.get_welcome_message()
-        self.locked_command = self.get_locked_command()
-        self.admin_locked_command = self.get_admin_locked_command()
-        self.welcome_chat = self.get_welcome_chat()
-        self.only_view = self.get_only_view()
-        self.prefix = self.get_prefix()
-        self.level = self.get_level()
-        self.favorite_users = self.get_favorite_users()
-        self.favorite_chats = self.get_favorite_chats()
+        self.banned_words = self.get_file_info("banned_words")
+        self.message_bvn = self.get_file_info("welcome")
+        self.locked_command = self.get_file_info("locked_command")
+        self.admin_locked_command = self.get_file_info("admin_locked_command")
+        self.welcome_chat = self.get_file_info("welcome_chat")
+        self.only_view = self.get_file_info("only_view")
+        self.prefix = self.get_file_info("prefix")
+        self.level = self.get_file_info("level")
+        self.favorite_users = self.get_file_info("favorite_users")
+        self.favorite_chats = self.get_file_info("favorite_chats")
         self.subclient.activity_status("on")
         new_users = self.subclient.get_all_users(start=0, size=30, type="recent")
         self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
@@ -121,36 +124,6 @@ class BotAmino:
     def get_file_dict(self, info: str = None):
         with open(f"{path_amino}/{self.community_amino_id}.json", "r", encoding="utf8") as file:
             return load(file)
-
-    def get_welcome_message(self):
-        return self.get_file_info("welcome")
-
-    def get_prefix(self):
-        return self.get_file_info("prefix")
-
-    def get_level(self):
-        return self.get_file_info("level")
-
-    def get_locked_command(self):
-        return self.get_file_info("locked_command")
-
-    def get_admin_locked_command(self):
-        return self.get_file_info("admin_locked_command")
-
-    def get_banned_words(self):
-        return self.get_file_info("banned_words")
-
-    def get_only_view(self):
-        return self.get_file_info("only_view")
-
-    def get_welcome_chat(self):
-        return self.get_file_info("welcome_chat")
-
-    def get_favorite_users(self):
-        return self.get_file_info("favorite_users")
-
-    def get_favorite_chats(self):
-        return self.get_file_info("favorite_chats")
 
     def set_prefix(self, prefix: str):
         self.prefix = prefix
@@ -236,7 +209,7 @@ class BotAmino:
 
     def accept_role(self, rid: str = None, cid: str = None):
         with suppress(Exception):
-            self.subclient.accept_host(cid)
+            self.subclient.accept_organizer(cid)
             return True
         with suppress(Exception):
             self.subclient.promotion(noticeId=rid)
@@ -298,20 +271,24 @@ class BotAmino:
 
         return False
 
-    def ask_all_members(self, message, lvl: int):
+    def ask_all_members(self, message, lvl: int = 20, type_bool: int = 1):
         size = self.subclient.get_all_users(start=0, size=1, type="recent").json['userProfileCount']
         st = 0
 
-        while size > 100:
-            users = self.subclient.get_all_users(start=st, size=100)
-            user_lvl_list = [user['uid'] for user in users.json['userProfileList'] if user['level'] == lvl]
+        while size > 0:
+            value = size
+            if value > 100:
+                value = 100
+            users = self.subclient.get_all_users(start=st, size=value)
+            if type_bool == 1:
+                user_lvl_list = [user['uid'] for user in users.json['userProfileList'] if user['level'] == lvl]
+            elif type_bool == 2:
+                user_lvl_list = [user['uid'] for user in users.json['userProfileList'] if user['level'] <= lvl]
+            elif type_bool == 3:
+                user_lvl_list = [user['uid'] for user in users.json['userProfileList'] if user['level'] >= lvl]
             self.subclient.start_chat(userId=user_lvl_list, message=message)
             size -= 100
             st += 100
-
-        users = self.subclient.get_all_users(start=0, size=size)
-        user_lvl_list = [user['uid'] for user in users.json['userProfileList'] if user['level'] == lvl]
-        self.subclient.start_chat(userId=user_lvl_list, message=message)
 
     def ask_amino_staff(self, message):
         self.subclient.start_chat(userId=self.community_staff, message=message)
@@ -387,7 +364,7 @@ class BotAmino:
     def feature_chats(self):
         for elem in self.favorite_chats:
             with suppress(Exception):
-                self.favorite(time=1, userId=elem)
+                self.favorite(time=2, userId=elem)
 
     def feature_users(self):
         featured = [elem["uid"] for elem in self.subclient.get_featured_users().json["userProfileList"]]
@@ -514,12 +491,12 @@ class BotAmino:
         return True
 
     def passive(self):
-        i = 0
+        i = 30
         j = 470
         o = 0
         activities = [f"{self.prefix}cookie for cookies", "Hello everyone!", f"{self.prefix}help for help"]
         while self.marche:
-            if i >= 90:
+            if i >= 60:
                 if self.welcome_chat or self.message_bvn:
                     Thread(target=self.welcome_new_member).start()
                 with suppress(Exception):
@@ -533,15 +510,15 @@ class BotAmino:
                 if self.welcome_chat or self.message_bvn:
                     Thread(target=self.check_new_member).start()
                 j = 0
-            j += 5
-            i += 5
-            sleep(5)
+            j += 10
+            i += 10
+            sleep(10)
 
     def keep_favorite(self):
-        i = 3570
+        i = 7170
         j = 86370
         while self.marche:
-            if i >= 3600 and self.favorite_chats:
+            if i >= 7200 and self.favorite_chats:
                 with suppress(Exception):
                     Thread(target=self.feature_chats).start()
 
@@ -549,9 +526,9 @@ class BotAmino:
                 with suppress(Exception):
                     Thread(target=self.feature_users).start()
                 j = 0
-            j += 5
-            i += 5
-            sleep(5)
+            j += 10
+            i += 10
+            sleep(10)
 
     def run(self):
         Thread(target=self.passive).start()
@@ -1219,15 +1196,24 @@ def say(subClient=None, chatId=None, authorId=None, author=None, message=None, m
 def ask_thing(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId):
         lvl = ""
+        boolean = 1
         if "lvl=" in message:
             lvl = message.rsplit("lvl=", 1)[1].strip().split(" ", 1)[0]
             message = message.replace("lvl="+lvl, "").strip()
+        elif "lvl<" in message:
+            lvl = message.rsplit("lvl<", 1)[1].strip().split(" ", 1)[0]
+            message = message.replace("lvl<"+lvl, "").strip()
+            boolean = 2
+        elif "lvl>" in message:
+            lvl = message.rsplit("lvl>", 1)[1].strip().split(" ", 1)[0]
+            message = message.replace("lvl>"+lvl, "").strip()
+            boolean = 3
         try:
             lvl = int(lvl)
         except ValueError:
             lvl = 20
 
-        subClient.ask_all_members(message+f"\n[CUI]This message was sent by {author}\n[CUI]I am a bot and have a nice day^^", lvl)
+        subClient.ask_all_members(message+f"\n[CUI]This message was sent by {author}\n[CUI]I am a bot and have a nice day^^", lvl, boolean)
         subClient.send_message(chatId, "Asking...")
 
 
@@ -1307,7 +1293,7 @@ def locked_admin_command_list(subClient=None, chatId=None, authorId=None, author
 
 def read_only(subClient=None, chatId=None, authorId=None, author=None, message=None, messageId=None):
     if subClient.is_in_staff(botId) and (subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId)):
-        chats = subClient.get_only_view()
+        chats = subClient.only_view
         if chatId not in chats:
             subClient.add_only_view(chatId)
             subClient.send_message(chatId, "This chat is now in only-view mode")
@@ -1562,23 +1548,23 @@ Example :
 """
 
 try:
-    with open("utilities/config.json", "r") as file:
+    with open(path_config, "r") as file:
         data = load(file)
         perms_list = data["admin"]
         command_lock = data["lock"]
         del data
 except FileNotFoundError:
-    with open('utilities/config.json', 'w') as file:
+    with open(path_config, 'w') as file:
         file.write(dumps({"admin": [], "lock": []}, indent=4))
     print("Created config.json!\nYou should put your Amino Id in the list admin\nand the commands you don't want to use in lock")
     perms_list = []
     command_lock = []
 
 try:
-    with open("client.txt", "r") as file_:
+    with open(path_client, "r") as file_:
         login = file_.readlines()
 except FileNotFoundError:
-    with open('client.txt', 'w') as file_:
+    with open(path_client, 'w') as file_:
         file_.write('email\npassword')
     print("Please enter your email and password in the file client.txt")
     print("-----end-----")
@@ -1645,7 +1631,6 @@ def on_text_message(data):
     chatId = data.message.chatId
     authorId = data.message.author.userId
     messageId = data.message.messageId
-    print(f"{data.message.author.nickname}:{message}")
 
     if chatId in subClient.only_view and not (subClient.is_in_staff(authorId) or is_it_me(authorId) or is_it_admin(authorId)) and subClient.is_in_staff(botId):
         subClient.delete_message(chatId, messageId, "Read-only chat", asStaff=True)
