@@ -1,13 +1,11 @@
 import sys
 import os
 import txt2pdf
-
 from gtts import gTTS, lang
+
 from json import dumps, load
-from time import sleep
-from string import hexdigits
 from string import punctuation
-from random import choice, randint, sample
+from random import choice, randint
 from pathlib import Path
 from threading import Thread
 from contextlib import suppress
@@ -16,536 +14,21 @@ from unicodedata import normalize
 from pdf2image import convert_from_path
 from youtube_dl import YoutubeDL
 from amino.client import Client
-from amino.sub_client import SubClient
+from BotAmino import *
 
 # Big optimisation thanks to SempreLEGIT#1378 ♥
 
-version = "1.7.0"
+
+os.system("move /Y {} {}".format("device.json", "device3.json"))
+os.system("move /Y {} {}".format("device1.json", "device.json"))
+os.system("move /Y {} {}".format("device2.json", "device1.json"))
+os.system("move /Y {} {}".format("device3.json", "device2.json"))
+
+version = "1.7.2"
 print(f"version : {version}")
 
-path_utilities = "utilities"
-path_amino = f'{path_utilities}/amino_list'
-path_picture = f'{path_utilities}/pictures'
-path_sound = f'{path_utilities}/sound'
-path_download = f'{path_utilities}/download'
-path_config = f"{path_utilities}/config.json"
 path_eljson1 = f"{path_utilities}/elJson.json"
 path_eljson2 = f"{path_utilities}/elJson2.json"
-path_client = "client.txt"
-
-for i in (path_utilities, path_picture, path_sound, path_download, path_amino):
-    Path(i).mkdir(exist_ok=True)
-
-
-class Parameters:
-    __slots__ = ("subClient", "chatId", "authorId", "author", "message", "messageId")
-
-    def __init__(self, data):
-        self.subClient = communaute[data.json["ndcId"]]
-        self.chatId = data.message.chatId
-        self.authorId = data.message.author.userId
-        self.author = data.message.author.nickname
-        self.message = data.message.content
-        self.messageId = data.message.messageId
-
-
-class BotAmino:
-    def __init__(self, client, community, inv: str = None):
-        self.client = client
-        self.marche = True
-
-        if isinstance(community, int):
-            self.community_id = community
-            self.community = self.client.get_community_info(comId=self.community_id)
-            self.community_amino_id = self.community.aminoId
-        else:
-            self.community_amino_id = community
-            self.informations = self.client.get_from_code(f"http://aminoapps.com/c/{community}")
-            self.community_id = self.informations.json["extensions"]["community"]["ndcId"]
-            self.community = self.client.get_community_info(comId=self.community_id)
-
-        self.community_name = self.community.name
-        try:
-            self.community_leader_agent_id = self.community.json["agent"]["uid"]
-        except Exception:
-            self.community_leader_agent_id = "-"
-
-        try:
-            self.community_staff_list = self.community.json["communityHeadList"]
-        except Exception:
-            self.community_staff_list = ""
-
-        if self.community_staff_list:
-            self.community_leaders = [elem["uid"] for elem in self.community_staff_list if elem["role"] in (100, 102)]
-            self.community_curators = [elem["uid"] for elem in self.community_staff_list if elem["role"] == 101]
-            self.community_staff = [elem["uid"] for elem in self.community_staff_list]
-
-        if not Path(f'{path_amino}/{self.community_amino_id}.json').exists():
-            self.create_community_file()
-
-        old_dict = self.get_file_dict()
-        new_dict = self.create_dict()
-
-        for key, value in new_dict.items():
-            if key not in old_dict:
-                old_dict[key] = value
-
-        for key, value in old_dict.items():
-            if key not in new_dict:
-                del old_dict[key]
-
-        self.update_file(old_dict)
-
-        self.subclient = SubClient(comId=self.community_id, profile=client.profile)
-        self.banned_words = self.get_file_info("banned_words")
-        self.message_bvn = self.get_file_info("welcome")
-        self.locked_command = self.get_file_info("locked_command")
-        self.admin_locked_command = self.get_file_info("admin_locked_command")
-        self.welcome_chat = self.get_file_info("welcome_chat")
-        self.only_view = self.get_file_info("only_view")
-        self.prefix = self.get_file_info("prefix")
-        self.level = self.get_file_info("level")
-        self.favorite_users = self.get_file_info("favorite_users")
-        self.favorite_chats = self.get_file_info("favorite_chats")
-        self.subclient.activity_status("on")
-        new_users = self.subclient.get_all_users(start=0, size=30, type="recent")
-        self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
-        if self.welcome_chat or self.message_bvn:
-            with suppress(Exception):
-                Thread(target=self.check_new_member).start()
-
-    def create_community_file(self):
-        with open(f'{path_amino}/{self.community_amino_id}.json', 'w', encoding='utf8') as file:
-            dict = self.create_dict()
-            file.write(dumps(dict, sort_keys=False, indent=4))
-
-    def create_dict(self):
-        return {"welcome": "", "banned_words": [], "locked_command": [], "admin_locked_command": [], "prefix": "!", "only_view": [], "welcome_chat": "", "level": 0, "favorite_users": [], "favorite_chats": []}
-
-    def get_dict(self):
-        return {"welcome": self.message_bvn, "banned_words": self.banned_words, "locked_command": self.locked_command, "admin_locked_command": self.admin_locked_command, "prefix": self.prefix, "only_view": self.only_view, "welcome_chat": self.welcome_chat, "level": self.level, "favorite_users": self.favorite_users, "favorite_chats": self.favorite_chats}
-
-    def update_file(self, dict=None):
-        if not dict:
-            dict = self.get_dict()
-        with open(f"{path_amino}/{self.community_amino_id}.json", "w", encoding="utf8") as file:
-            file.write(dumps(dict, sort_keys=False, indent=4))
-
-    def get_file_info(self, info: str = None):
-        with open(f"{path_amino}/{self.community_amino_id}.json", "r", encoding="utf8") as file:
-            return load(file)[info]
-
-    def get_file_dict(self, info: str = None):
-        with open(f"{path_amino}/{self.community_amino_id}.json", "r", encoding="utf8") as file:
-            return load(file)
-
-    def set_prefix(self, prefix: str):
-        self.prefix = prefix
-        self.update_file()
-
-    def set_level(self, level: int):
-        self.level = level
-        self.update_file()
-
-    def set_welcome_message(self, message: str):
-        self.message_bvn = message.replace('"', '“')
-        self.update_file()
-
-    def set_welcome_chat(self, chatId: str):
-        self.welcome_chat = chatId
-        self.update_file()
-
-    def add_locked_command(self, liste: list):
-        self.locked_command.extend(liste)
-        self.update_file()
-
-    def add_admin_locked_command(self, liste: list):
-        self.admin_locked_command.extend(liste)
-        self.update_file()
-
-    def add_banned_words(self, liste: list):
-        self.banned_words.extend(liste)
-        self.update_file()
-
-    def add_only_view(self, chatId: str):
-        self.only_view.append(chatId)
-        self.update_file()
-
-    def add_favorite_users(self, value: str):
-        self.favorite_users.append(value)
-        self.update_file()
-
-    def add_favorite_chats(self, value: str):
-        self.favorite_chats.append(value)
-        self.update_file()
-
-    def remove_locked_command(self, liste: list):
-        [self.locked_command.remove(elem) for elem in liste if elem in self.locked_command]
-        self.update_file()
-
-    def remove_admin_locked_command(self, liste: list):
-        [self.admin_locked_command.remove(elem) for elem in liste if elem in self.admin_locked_command]
-        self.update_file()
-
-    def remove_banned_words(self, liste: list):
-        [self.banned_words.remove(elem) for elem in liste if elem in self.banned_words]
-        self.update_file()
-
-    def remove_favorite_users(self, value: str):
-        liste = [value]
-        [self.favorite_users.remove(elem) for elem in liste if elem in self.favorite_users]
-        self.update_file()
-
-    def remove_favorite_chats(self, value: str):
-        liste = [value]
-        [self.favorite_chats.remove(elem) for elem in liste if elem in self.favorite_chats]
-        self.update_file()
-
-    def remove_only_view(self, chatId: str):
-        self.only_view.remove(chatId)
-        self.update_file()
-
-    def unset_welcome_chat(self):
-        self.welcome_chat = ""
-        self.update_file()
-
-    def is_in_staff(self, uid):
-        return uid in self.community_staff
-
-    def is_leader(self, uid):
-        return uid in self.community_leaders
-
-    def is_curator(self, uid):
-        return uid in self.community_curators
-
-    def is_agent(self, uid):
-        return uid == self.community_leader_agent_id
-
-    def accept_role(self, rid: str = None, cid: str = None):
-        with suppress(Exception):
-            self.subclient.accept_organizer(cid)
-            return True
-        with suppress(Exception):
-            self.subclient.promotion(noticeId=rid)
-            return True
-        return False
-
-    def get_staff(self, community):
-        if isinstance(community, int):
-            with suppress(Exception):
-                community = self.client.get_community_info(com_id=community)
-        else:
-            try:
-                informations = self.client.get_from_code(f"http://aminoapps.com/c/{community}")
-            except Exception:
-                return False
-
-            community_id = informations.json["extensions"]["community"]["ndcId"]
-            community = self.client.get_community_info(comId=community_id)
-
-        try:
-            community_staff_list = community.json["communityHeadList"]
-            community_staff = [elem["uid"] for elem in community_staff_list]
-        except Exception:
-            community_staff_list = ""
-        else:
-            return community_staff
-
-    def get_user_id(self, user_name):
-        size = self.subclient.get_all_users(start=0, size=1, type="recent").json['userProfileCount']
-        size2 = size
-
-        st = 0
-        while size > 0:
-            value = size
-            if value > 100:
-                value = 100
-
-            users = self.subclient.get_all_users(start=st, size=value)
-            for user in users.json['userProfileList']:
-                if user_name == user['nickname'] or user_name == user['uid']:
-                    return (user["nickname"], user['uid'])
-            size -= 100
-            st += 100
-
-        size = size2
-
-        st = 0
-        while size > 0:
-            value = size
-            if value > 100:
-                value = 100
-
-            users = self.subclient.get_all_users(start=st, size=value)
-            for user in users.json['userProfileList']:
-                if user_name.lower() in user['nickname'].lower():
-                    return (user["nickname"], user['uid'])
-            size -= 100
-            st += 100
-
-        return False
-
-    def ask_all_members(self, message, lvl: int = 20, type_bool: int = 1):
-        size = self.subclient.get_all_users(start=0, size=1, type="recent").json['userProfileCount']
-        st = 0
-
-        while size > 0:
-            value = size
-            if value > 100:
-                value = 100
-            users = self.subclient.get_all_users(start=st, size=value)
-            if type_bool == 1:
-                user_lvl_list = [user['uid'] for user in users.json['userProfileList'] if user['level'] == lvl]
-            elif type_bool == 2:
-                user_lvl_list = [user['uid'] for user in users.json['userProfileList'] if user['level'] <= lvl]
-            elif type_bool == 3:
-                user_lvl_list = [user['uid'] for user in users.json['userProfileList'] if user['level'] >= lvl]
-            self.subclient.start_chat(userId=user_lvl_list, message=message)
-            size -= 100
-            st += 100
-
-    def ask_amino_staff(self, message):
-        self.subclient.start_chat(userId=self.community_staff, message=message)
-
-    def get_chat_id(self, chat: str = None):
-        with suppress(Exception):
-            return self.subclient.get_from_code(f"http://aminoapps.com/c/{chat}").objectId
-
-        val = self.subclient.get_public_chat_threads()
-        for title, chat_id in zip(val.title, val.chatId):
-            if chat == title:
-                return chat_id
-
-        for title, chat_id in zip(val.title, val.chatId):
-            if chat.lower() in title.lower() or chat == chat_id:
-                return chat_id
-        return False
-
-    def stop_instance(self):
-        self.marche = False
-
-    def leave_community(self):
-        self.client.leave_community(comId=self.community_id)
-        self.marche = False
-        for elem in self.subclient.get_public_chat_threads().chatId:
-            with suppress(Exception):
-                self.subclient.leave_chat(elem)
-
-    def check_new_member(self):
-        if not (self.message_bvn and self.welcome_chat):
-            return
-        new_list = self.subclient.get_all_users(start=0, size=25, type="recent")
-        new_member = [(elem["nickname"], elem["uid"]) for elem in new_list.json["userProfileList"]]
-        for elem in new_member:
-            name, uid = elem[0], elem[1]
-            try:
-                val = self.subclient.get_wall_comments(userId=uid, sorting='newest').commentId
-            except Exception:
-                val = True
-
-            if not val and self.message_bvn:
-                with suppress(Exception):
-                    self.subclient.comment(message=self.message_bvn, userId=uid)
-            if not val and self.welcome_chat:
-                with suppress(Exception):
-                    self.send_message(chatId=self.welcome_chat, message=f"Welcome here ‎‏‎‏@{name}!‬‭", mentionUserIds=[uid])
-
-        new_users = self.subclient.get_all_users(start=0, size=30, type="recent")
-        self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
-
-    def welcome_new_member(self):
-        new_list = self.subclient.get_all_users(start=0, size=25, type="recent")
-        new_member = [(elem["nickname"], elem["uid"]) for elem in new_list.json["userProfileList"]]
-
-        for elem in new_member:
-            name, uid = elem[0], elem[1]
-
-            try:
-                val = self.subclient.get_wall_comments(userId=uid, sorting='newest').commentId
-            except Exception:
-                val = True
-
-            if not val and uid not in self.new_users and self.message_bvn:
-                with suppress(Exception):
-                    self.subclient.comment(message=self.message_bvn, userId=uid)
-
-            if uid not in self.new_users and self.welcome_chat:
-                with suppress(Exception):
-                    self.send_message(chatId=self.welcome_chat, message=f"Welcome here ‎‏‎‏@{name}!‬‭", mentionUserIds=[uid])
-
-        new_users = self.subclient.get_all_users(start=0, size=30, type="recent")
-        self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
-
-    def feature_chats(self):
-        for elem in self.favorite_chats:
-            with suppress(Exception):
-                self.favorite(time=2, chatId=elem)
-
-    def feature_users(self):
-        featured = [elem["uid"] for elem in self.subclient.get_featured_users().json["userProfileList"]]
-        for elem in self.favorite_users:
-            if elem not in featured:
-                with suppress(Exception):
-                    self.favorite(time=1, userId=elem)
-
-    def get_member_level(self, uid):
-        return self.subclient.get_user_info(userId=uid).level
-
-    def is_level_good(self, uid):
-        return self.subclient.get_user_info(userId=uid).level >= self.level
-
-    def get_member_titles(self, uid):
-        with suppress(Exception):
-            return self.subclient.get_user_info(userId=uid).customTitles
-        return False
-
-    def get_member_info(self, uid):
-        return self.subclient.get_user_info(userId=uid)
-
-    def get_wallet_info(self):
-        return self.client.get_wallet_info().json
-
-    def get_wallet_amount(self):
-        return self.client.get_wallet_info().totalCoins
-
-    def pay(self, coins: int = 0, blogId: str = None, chatId: str = None, objectId: str = None, transactionId: str = None):
-        if not transactionId:
-            transactionId = f"{''.join(sample([lst for lst in hexdigits[:-6]], 8))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 12))}"
-        self.subclient.send_coins(coins=coins, blogId=blogId, chatId=chatId, objectId=objectId, transactionId=transactionId)
-
-    def delete_message(self, chatId: str, messageId: str, reason: str = "Clear", asStaff: bool = False):
-        self.subclient.delete_message(chatId, messageId, asStaff, reason)
-
-    def send_message(self, chatId: str = None, message: str = "None", messageType: str = None, file: str = None, fileType: str = None, replyTo: str = None, mentionUserIds: str = None):
-        self.subclient.send_message(chatId=chatId, message=message, file=file, fileType=fileType, replyTo=replyTo, messageType=messageType, mentionUserIds=mentionUserIds)
-
-    def favorite(self, time: int = 1, userId: str = None, chatId: str = None, blogId: str = None, wikiId: str = None):
-        self.subclient.feature(time=time, userId=userId, chatId=chatId, blogId=blogId, wikiId=wikiId)
-
-    def unfavorite(self, userId: str = None, chatId: str = None, blogId: str = None, wikiId: str = None):
-        self.subclient.unfeature(userId=userId, chatId=chatId, blogId=blogId, wikiId=wikiId)
-
-    def join_chat(self, chat: str = None, chatId: str = None):
-        if chat:
-            chat = chat.replace("http:aminoapps.com/p/", "")
-        else:
-            with suppress(Exception):
-                self.subclient.join_chat(chatId)
-                return ""
-
-            with suppress(Exception):
-                chati = self.subclient.get_from_code(f"http://aminoapps.com/c/{chat}").objectId
-                self.subclient.join_chat(chati)
-                return chat
-
-        chats = self.subclient.get_public_chat_threads()
-        for title, chat_id in zip(chats.title, chats.chatId):
-            if chat == title:
-                self.subclient.join_chat(chat_id)
-                return title
-
-        chats = self.subclient.get_public_chat_threads()
-        for title, chat_id in zip(chats.title, chats.chatId):
-            if chat.lower() in title.lower() or chat == chat_id:
-                self.subclient.join_chat(chat_id)
-                return title
-
-        return False
-
-    def get_chats(self):
-        return self.subclient.get_public_chat_threads()
-
-    def join_all_chat(self):
-        for elem in self.subclient.get_public_chat_threads().chatId:
-            with suppress(Exception):
-                self.subclient.join_chat(elem)
-
-    def leave_chat(self, chat: str):
-        self.subclient.leave_chat(chat)
-
-    def leave_all_chats(self):
-        for elem in self.subclient.get_public_chat_threads().chatId:
-            with suppress(Exception):
-                self.subclient.leave_chat(elem)
-
-    def follow_user(self, uid):
-        self.subclient.follow(userId=[uid])
-
-    def unfollow_user(self, uid):
-        self.subclient.unfollow(userId=uid)
-
-    def add_title(self, uid, title: str, color: str = None):
-        member = self.get_member_titles(uid)
-        tlist = []
-        clist = []
-        with suppress(Exception):
-            tlist = [elem['title'] for elem in member]
-            clist = [elem['color'] for elem in member]
-        tlist.append(title)
-        clist.append(color)
-
-        with suppress(Exception):
-            self.subclient.edit_titles(uid, tlist, clist)
-        return True
-
-    def remove_title(self, uid, title: str):
-        member = self.get_member_titles(uid)
-        tlist = []
-        clist = []
-        for elem in member:
-            tlist.append(elem["title"])
-            clist.append(elem["color"])
-
-        if title in tlist:
-            nb = tlist.index(title)
-            tlist.pop(nb)
-            clist.pop(nb)
-            self.subclient.edit_titles(uid, tlist, clist)
-        return True
-
-    def passive(self):
-        i = 30
-        j = 470
-        k = 7170
-        m = 86370
-        o = 0
-        activities = [f"{self.prefix}cookie for cookies", "Hello everyone!", f"{self.prefix}help for help"]
-        while self.marche:
-            if i >= 60:
-                if self.welcome_chat or self.message_bvn:
-                    Thread(target=self.welcome_new_member).start()
-                with suppress(Exception):
-                    self.subclient.activity_status('on')
-                    self.subclient.edit_profile(content=activities[o])
-                i = 0
-                o += 1
-                if o > len(activities)-1:
-                    o = 0
-            if j >= 500:
-                if self.welcome_chat or self.message_bvn:
-                    with suppress(Exception):
-                        Thread(target=self.check_new_member).start()
-                j = 0
-
-            if k >= 7200 and self.favorite_chats:
-                with suppress(Exception):
-                    Thread(target=self.feature_chats).start()
-                k = 0
-
-            if m >= 86400 and self.favorite_users:
-                with suppress(Exception):
-                    Thread(target=self.feature_users).start()
-                m = 0
-
-            k += 10
-            m += 10
-            j += 10
-            i += 10
-
-            sleep(10)
-
-    def run(self):
-        Thread(target=self.passive).start()
 
 
 def print_exception(exc):
@@ -565,6 +48,16 @@ def is_it_admin(uid):
     return uid in perms_list
 
 
+def check(args, *can):
+    foo = {'staff': args.subClient.is_in_staff,
+           'me': is_it_me,
+           'admin': is_it_admin}
+
+    for i in can:
+        if foo[i](args.authorId):
+            return True
+
+
 def join_community(comId: str = None, inv: str = None):
     if inv:
         try:
@@ -580,9 +73,9 @@ def join_community(comId: str = None, inv: str = None):
             print_exception(e)
 
 
-def join_amino(args: Parameters):
+def join_amino(args):
     invit = None
-    if taille_commu >= 20 and not (is_it_me(args.authorId) or is_it_admin(args.authorId)):
+    if taille_commu >= 20 and not check(args, 'me', 'admin'):
         args.subClient.send_message(args.chatId, "The bot has joined too many communities!")
         return
 
@@ -591,7 +84,7 @@ def join_amino(args: Parameters):
         args.subClient.send_message(args.chatId, "Wrong amino ID!")
         return
 
-    if args.authorId not in staff and not is_it_me(args.authorId):
+    if args.authorId not in staff and not check(args, 'me'):
         args.subClient.send_message(args.chatId, "You need to be in the community's staff!")
         return
 
@@ -613,7 +106,7 @@ def join_amino(args: Parameters):
     isJoined = val.json["extensions"]["isCurrentUserJoined"]
     if not isJoined:
         size = val.json['extensions']['community']['membersCount']
-        if size < 100 and not is_it_me(args.authorId):
+        if size < 100 and not check(args, 'me'):
             args.subClient.send_message(args.chatId, "Your community must have at least 100 members")
             return
 
@@ -636,7 +129,7 @@ def join_amino(args: Parameters):
     args.subClient.send_message(args.chatId, "Something went wrong!")
 
 
-def title(args: Parameters):
+def title(args):
     if args.subClient.is_in_staff(botId):
         color = None
         try:
@@ -652,15 +145,15 @@ def title(args: Parameters):
             args.subClient.send_message(args.chatId, f"The titles of {args.author} has changed")
 
 
-def cookie(args: Parameters):
+def cookie(args):
     args.subClient.send_message(args.chatId, f"Here is a cookie for {args.author} 🍪")
 
 
-def ramen(args: Parameters):
+def ramen(args):
     args.subClient.send_message(args.chatId, f"Here are some ramen for {args.author} 🍜")
 
 
-def dice(args: Parameters):
+def dice(args):
     if not args.message:
         args.subClient.send_message(args.chatId, f"🎲 -{randint(1, 20)},(1-20)- 🎲")
     else:
@@ -675,7 +168,7 @@ def dice(args: Parameters):
             print_exception(e)
 
 
-def join(args: Parameters):
+def join(args):
     val = args.subClient.join_chat(args.message, args.chatId)
     if val or val == "":
         args.subClient.send_message(args.chatId, f"Chat {val} joined".strip())
@@ -683,29 +176,29 @@ def join(args: Parameters):
         args.subClient.send_message(args.chatId, "No chat joined")
 
 
-def join_all(args: Parameters):
-    if args.subClient.is_in_staff(args.authorId) or is_it_me(args.authorId) or is_it_admin(args.authorId):
+def join_all(args):
+    if check(args, 'staff', 'me', 'admin'):
         args.subClient.join_all_chat()
         args.subClient.send_message(args.chatId, "All chat joined")
 
 
-def leave_all(args: Parameters):
-    if args.subClient.is_in_staff(args.authorId) or is_it_me(args.authorId) or is_it_admin(args.authorId):
+def leave_all(args):
+    if check(args, 'staff', 'me', 'admin'):
         args.subClient.send_message(args.chatId, "Leaving all chat...")
         args.subClient.leave_all_chats()
 
 
-def leave(args: Parameters):
-    if args.message and (is_it_me(args.authorId) or is_it_admin(args.authorId)):
+def leave(args):
+    if args.message and (check(args, 'me', 'admin')):
         chat_ide = args.subClient.get_chat_id(args.message)
         if chat_ide:
             args.chatId = chat_ide
     args.subClient.leave_chat(args.chatId)
 
 
-def clear(args: Parameters):
-    if (args.subClient.is_in_staff(args.authorId) or is_it_me(args.authorId) or is_it_admin(args.authorId)):
-        if args.subClient.is_in_staff(args.botId):
+def clear(args):
+    if check(args, 'staff' 'me', 'admin'):
+        if args.subClient.is_in_staff(botId):
             value = True
         else:
             value = False
@@ -713,7 +206,7 @@ def clear(args: Parameters):
         msg = ""
         val = ""
         args.subClient.delete_message(args.chatId, args.messageId, asStaff=True)
-        if "chat=" in args.message and is_it_me(args.authorId):
+        if "chat=" in args.message and check(args, 'me'):
             chat_name = args.message.rsplit("chat=", 1).pop()
             chat_ide = args.subClient.get_chat_id(chat_name)
             if chat_ide:
@@ -724,7 +217,7 @@ def clear(args: Parameters):
             size = int(args.message.strip().split(' ').pop())
             msg = ' '.join(args.message.strip().split(' ')[:-1])
 
-        if size > 50 and not is_it_me(args.authorId):
+        if size > 50 and not check(args, 'me'):
             size = 50
 
         if msg:
@@ -741,7 +234,7 @@ def clear(args: Parameters):
                     args.subClient.delete_message(args.chatId, message, asStaff=value)
 
 
-def spam(args: Parameters):
+def spam(args):
     try:
         size = int(args.message.strip().split().pop())
         msg = " ".join(args.message.strip().split()[:-1])
@@ -749,7 +242,7 @@ def spam(args: Parameters):
         size = 1
         msg = args.message
 
-    if size > 10 and not (is_it_me(args.authorId) or is_it_admin(args.authorId)):
+    if size > 10 and not (check(args, 'me', 'admin')):
         size = 10
 
     for _ in range(size):
@@ -757,7 +250,7 @@ def spam(args: Parameters):
             args.subClient.send_message(args.chatId, msg)
 
 
-def mention(args: Parameters):
+def mention(args):
     try:
         size = int(args.message.strip().split().pop())
         args.message = " ".join(args.message.strip().split()[:-1])
@@ -769,7 +262,7 @@ def mention(args: Parameters):
         args.subClient.send_message(chatId=args.chatId, message="Username not found")
         return
 
-    if size > 5 and not (is_it_me(args.authorId) or is_it_admin(args.authorId)):
+    if size > 5 and not (check(args, 'me', 'admin')):
         size = 5
 
     if val:
@@ -778,9 +271,9 @@ def mention(args: Parameters):
                 args.subClient.send_message(chatId=args.chatId, message=f"‎‏‎‏@{val[0]}‬‭", mentionUserIds=[val[1]])
 
 
-def mentionall(args: Parameters):
-    if args.subClient.is_in_staff(args.authorId) or is_it_me(args.authorId) or is_it_admin(args.authorId):
-        if args.message and is_it_me(args.authorId):
+def mentionall(args):
+    if check(args, 'staff', 'me', 'admin'):
+        if args.message and check(args, 'me'):
             chat_ide = args.subClient.get_chat_id(args.message)
             if chat_ide:
                 args.chatId = chat_ide
@@ -793,14 +286,14 @@ def mentionall(args: Parameters):
             args.subClient.send_message(chatId=args.chatId, message=f"@everyone{test}", mentionUserIds=mention)
 
 
-def msg(args: Parameters):
+def msg(args):
     value = 0
     size = 1
     ment = None
     with suppress(Exception):
         args.subClient.delete_message(args.chatId, args.messageId, asStaff=False)
 
-    if "chat=" in args.message and is_it_me(args.authorId):
+    if "chat=" in args.message and check(args, 'me'):
         chat_name = args.message.rsplit("chat=", 1).pop()
         chat_ide = args.subClient.get_chat_id(chat_name)
         if chat_ide:
@@ -824,7 +317,7 @@ def msg(args: Parameters):
         args.message = f"‎‏‎‏@{args.author}‬‭"
         ment = args.authorId
 
-    if size > 10 and not (is_it_me(args.authorId) or is_it_admin(args.authorId)):
+    if size > 10 and not (check(args, 'me', 'admin')):
         size = 10
 
     for _ in range(size):
@@ -832,8 +325,8 @@ def msg(args: Parameters):
             args.subClient.send_message(chatId=args.chatId, message=f"{args.message}", messageType=value, mentionUserIds=ment)
 
 
-def add_banned_word(args: Parameters):
-    if args.subClient.is_in_staff(args.authorId) or is_it_me(args.authorId) or is_it_admin(args.authorId):
+def add_banned_word(args):
+    if check(args, 'staff', 'me', 'admin'):
         if not args.message or args.message in args.subClient.banned_words:
             return
         try:
@@ -844,8 +337,8 @@ def add_banned_word(args: Parameters):
         args.subClient.send_message(args.chatId, "Banned word list updated")
 
 
-def remove_banned_word(args: Parameters):
-    if args.subClient.is_in_staff(args.authorId) or is_it_me(args.authorId) or is_it_admin(args.authorId):
+def remove_banned_word(args):
+    if check(args, 'staff', 'me', 'admin'):
         if not args.message:
             return
         try:
@@ -856,7 +349,7 @@ def remove_banned_word(args: Parameters):
         args.subClient.send_message(args.chatId, "Banned word list updated")
 
 
-def banned_word_list(args: Parameters):
+def banned_word_list(args):
     val = ""
     if args.subClient.banned_words:
         for elem in args.subClient.banned_words:
@@ -866,39 +359,39 @@ def banned_word_list(args: Parameters):
     args.subClient.send_message(args.chatId, val)
 
 
-def sw(args: Parameters):
-    if args.subClient.is_in_staff(args.authorId) or is_it_me(args.authorId) or is_it_admin(args.authorId):
+def sw(args):
+    if check(args, 'staff', 'me', 'admin'):
         args.subClient.set_welcome_message(args.message)
         args.subClient.send_message(args.chatId, "Welcome message changed")
 
 
-def get_chats(args: Parameters):
+def get_chats(args):
     val = args.subClient.get_chats()
     for title, _ in zip(val.title, val.chatId):
         args.subClient.send_message(args.chatId, title)
 
 
-def chat_id(args: Parameters):
-    if is_it_me(args.authorId) or is_it_admin(args.authorId):
+def chat_id(args):
+    if check(args, 'me', 'admin'):
         val = args.subClient.get_chats()
         for title, chat_id in zip(val.title, val.chatId):
             if args.message.lower() in title.lower():
                 args.subClient.send_message(args.chatId, f"{title} | {chat_id}")
 
 
-def leave_amino(args: Parameters):
-    if args.subClient.is_in_staff(args.authorId) or is_it_me(args.authorId) or is_it_admin(args.authorId):
+def leave_amino(args):
+    if check(args, 'staff', 'me', 'admin'):
         args.subClient.send_message(args.chatId, "Leaving the amino!")
         args.subClient.leave_community()
     del communaute[args.subClient.community_id]
 
 
-def prank(args: Parameters):
+def prank(args):
     with suppress(Exception):
         args.subClient.delete_message(args.chatId, args.messageId, asStaff=True)
 
     transactionId = "5b3964da-a83d-c4d0-daf3-6e259d10fbc3"
-    if args.message and is_it_me(args.authorId):
+    if args.message and check(args, 'me'):
         chat_ide = args.subClient.get_chat_id(args.message)
         if chat_ide:
             args.chatId = chat_ide
@@ -906,7 +399,7 @@ def prank(args: Parameters):
         args.subClient.pay(coins=500, chatId=args.chatId, transactionId=transactionId)
 
 
-def image(args: Parameters):
+def image(args):
     val = os.listdir("pictures")
     if val:
         file = choice(val)
@@ -917,7 +410,7 @@ def image(args: Parameters):
         args.subClient.send_message(args.chatId, "Error! No file")
 
 
-def audio(args: Parameters):
+def audio(args):
     val = os.listdir("sound")
     if val:
         file = choice(val)
@@ -989,7 +482,7 @@ def decoupe(musical, temps):
     return file_list
 
 
-def convert(args: Parameters):
+def convert(args):
     music, size = telecharger(args.message)
     if music:
         music = f"{path_download}/{music}"
@@ -1014,7 +507,7 @@ def convert(args: Parameters):
     args.subClient.send_message(args.chatId, "Error! Wrong link")
 
 
-def helper(args: Parameters):
+def helper(args):
     if not args.message:
         args.subClient.send_message(args.chatId, helpMsg)
     elif args.message == "msg":
@@ -1025,20 +518,20 @@ def helper(args: Parameters):
         args.subClient.send_message(args.chatId, "No help is available for this command")
 
 
-def reboot(args: Parameters):
-    if is_it_me(args.authorId) or is_it_admin(args.authorId):
+def reboot(args):
+    if check(args, 'me', 'admin'):
         args.subClient.send_message(args.chatId, "Restarting Bot")
         os.execv(sys.executable, ["None", os.path.basename(sys.argv[0])])
 
 
-def stop(args: Parameters):
-    if is_it_me(args.authorId) or is_it_admin(args.authorId):
+def stop(args):
+    if check(args, 'me', 'admin'):
         args.subClient.send_message(args.chatId, "Stopping Bot")
         os.execv(sys.executable, ["None", "None"])
 
 
-def uinfo(args: Parameters):
-    if is_it_me(args.authorId) or is_it_admin(args.authorId):
+def uinfo(args):
+    if check(args, 'me', 'admin'):
         val = ""
         val2 = ""
         uid = ""
@@ -1084,8 +577,8 @@ def uinfo(args: Parameters):
             args.subClient.send_message(args.chatId, "Error!")
 
 
-def cinfo(args: Parameters):
-    if is_it_me(args.authorId) or is_it_admin(args.authorId):
+def cinfo(args):
+    if check(args, 'me', 'admin'):
         val = ""
         with suppress(Exception):
             val = args.subClient.client.get_from_code(f"http://aminoapps.com/c/{args.message}")
@@ -1109,8 +602,8 @@ def cinfo(args: Parameters):
             args.subClient.send_message(args.chatId, "Error!")
 
 
-def sendinfo(args: Parameters):
-    if (is_it_admin(args.authorId) or is_it_me(args.authorId)) and args.message != "":
+def sendinfo(args):
+    if (check(args, 'me', 'admin')) and args.message != "":
         arguments = args.message.strip().split()
         for eljson in (path_eljson1, path_eljson2):
             if Path(eljson).exists():
@@ -1130,7 +623,7 @@ def sendinfo(args: Parameters):
                 args.subClient.send_message(args.chatId, memoire)
 
 
-def get_global(args: Parameters):
+def get_global(args):
     val = args.subClient.get_user_id(args.message)[1]
     if val:
         ide = args.subClient.client.get_user_info(val).aminoId
@@ -1139,32 +632,32 @@ def get_global(args: Parameters):
         args.subClient.send_message(args.chatId, "Error!")
 
 
-def follow(args: Parameters):
+def follow(args):
     args.subClient.follow_user(args.authorId)
     args.subClient.send_message(args.chatId, "Now following you!")
 
 
-def unfollow(args: Parameters):
+def unfollow(args):
     args.subClient.unfollow_user(args.authorId)
     args.subClient.send_message(args.chatId, "Unfollow!")
 
 
-def stop_amino(args: Parameters):
-    if is_it_me(args.authorId) or is_it_admin(args.authorId):
+def stop_amino(args):
+    if check(args, 'me', 'admin'):
         args.subClient.stop_instance()
         del communaute[args.subClient.community_id]
 
 
-def block(args: Parameters):
-    if is_it_me(args.authorId) or is_it_admin(args.authorId):
+def block(args):
+    if check(args, 'me', 'admin'):
         val = args.subClient.get_user_id(args.message)
         if val:
             args.subClient.client.block(val[1])
             args.subClient.send_message(args.chatId, f"User {val[0]} blocked!")
 
 
-def unblock(args: Parameters):
-    if is_it_me(args.authorId) or is_it_admin(args.authorId):
+def unblock(args):
+    if check(args, 'me', 'admin'):
         val = args.subClient.client.get_blocked_users()
         for aminoId, userId in zip(val.aminoId, val.userId):
             if args.message in aminoId:
@@ -1172,8 +665,8 @@ def unblock(args: Parameters):
                 args.subClient.send_message(args.chatId, f"User {aminoId} unblocked!")
 
 
-def accept(args: Parameters):
-    if args.subClient.is_in_staff(args.authorId) or is_it_me(args.authorId) or is_it_admin(args.authorId):
+def accept(args):
+    if check(args, 'staff', 'me', 'admin'):
         if args.subClient.accept_role("", args.chatId):
             args.subClient.send_message(args.chatId, "Accepted!")
             return
@@ -1195,7 +688,7 @@ def accept(args: Parameters):
             args.subClient.send_message(args.chatId, "Error!")
 
 
-def say(args: Parameters):
+def say(args):
     audio_file = f"{path_download}/ttp{randint(1,500)}.mp3"
     langue = list(lang.tts_langs().keys())
     if not args.message:
@@ -1209,8 +702,8 @@ def say(args: Parameters):
     os.remove(audio_file)
 
 
-def ask_thing(args: Parameters):
-    if args.subClient.is_in_staff(args.authorId) or is_it_me(args.authorId) or is_it_admin(args.authorId):
+def ask_thing(args):
+    if check(args, 'staff', 'me', 'admin'):
         lvl = ""
         boolean = 1
         if "lvl=" in args.message:
@@ -1233,22 +726,22 @@ def ask_thing(args: Parameters):
         args.subClient.send_message(args.chatId, "Asking...")
 
 
-def ask_staff(args: Parameters):
-    if is_it_me(args.authorId) or is_it_admin(args.authorId):
+def ask_staff(args):
+    if check(args, 'me', 'admin'):
         amino_list = client.sub_clients()
         for commu in amino_list.comId:
             communaute[commu].ask_amino_staff(message=args.message)
         args.subClient.send_message(args.chatId, "Asking...")
 
 
-def prefix(args: Parameters):
+def prefix(args):
     if args.message:
         args.subClient.set_prefix(args.message)
         args.subClient.send_message(args.chatId, f"prefix set as {args.message}")
 
 
-def lock_command(args: Parameters):
-    if args.subClient.is_in_staff(args.authorId) or is_it_me(args.authorId) or is_it_admin(args.authorId):
+def lock_command(args):
+    if check(args, 'staff', 'me', 'admin'):
         if not args.message or args.message in args.subClient.locked_command or args.message not in commands_dict.keys() or args.message in ("lock", "unlock"):
             return
         try:
@@ -1259,8 +752,8 @@ def lock_command(args: Parameters):
         args.subClient.send_message(args.chatId, "Locked command list updated")
 
 
-def unlock_command(args: Parameters):
-    if args.subClient.is_in_staff(args.authorId) or is_it_me(args.authorId) or is_it_admin(args.authorId):
+def unlock_command(args):
+    if check(args, 'staff', 'me', 'admin'):
         if args.message:
             try:
                 args.message = args.message.lower().strip().split()
@@ -1270,7 +763,7 @@ def unlock_command(args: Parameters):
             args.subClient.send_message(args.chatId, "Locked command list updated")
 
 
-def locked_command_list(args: Parameters):
+def locked_command_list(args):
     val = ""
     if args.subClient.locked_command:
         for elem in args.subClient.locked_command:
@@ -1280,8 +773,8 @@ def locked_command_list(args: Parameters):
     args.subClient.send_message(args.chatId, val)
 
 
-def admin_lock_command(args: Parameters):
-    if is_it_me(args.authorId) or is_it_admin(args.authorId):
+def admin_lock_command(args):
+    if check(args, 'me', 'admin'):
         if not args.message or args.message not in commands_dict.keys() or args.message == "alock":
             return
 
@@ -1296,8 +789,8 @@ def admin_lock_command(args: Parameters):
         args.subClient.send_message(args.chatId, "Locked command list updated")
 
 
-def locked_admin_command_list(args: Parameters):
-    if is_it_me(args.authorId) or is_it_admin(args.authorId):
+def locked_admin_command_list(args):
+    if check(args, 'me', 'admin'):
         val = ""
         if args.subClient.admin_locked_command:
             for elem in args.subClient.admin_locked_command:
@@ -1307,8 +800,8 @@ def locked_admin_command_list(args: Parameters):
         args.subClient.send_message(args.chatId, val)
 
 
-def read_only(args: Parameters):
-    if args.subClient.is_in_staff(args.botId) and (args.subClient.is_in_staff(args.authorId) or is_it_me(args.authorId) or is_it_admin(args.authorId)):
+def read_only(args):
+    if args.subClient.is_in_staff(botId) and check(args, 'staff', 'me', 'admin'):
         chats = args.subClient.only_view
         if args.chatId not in chats:
             args.subClient.add_only_view(args.chatId)
@@ -1321,8 +814,8 @@ def read_only(args: Parameters):
         args.subClient.send_message(args.chatId, "The bot need to be in the staff!")
 
 
-def keep_favorite_users(args: Parameters):
-    if args.subClient.is_in_staff(botId) and (args.subClient.is_in_staff(args.authorId) or is_it_me(args.authorId) or is_it_admin(args.authorId)):
+def keep_favorite_users(args):
+    if args.subClient.is_in_staff(botId) and check(args, 'staff', 'me', 'admin'):
         users = args.subClient.favorite_users
         try:
             val = args.subClient.get_user_id(args.message)
@@ -1340,8 +833,8 @@ def keep_favorite_users(args: Parameters):
         args.subClient.send_message(args.chatId, "The bot need to be in the staff!")
 
 
-def unkeep_favorite_users(args: Parameters):
-    if args.subClient.is_in_staff(botId) and (args.subClient.is_in_staff(args.authorId) or is_it_me(args.authorId) or is_it_admin(args.authorId)):
+def unkeep_favorite_users(args):
+    if args.subClient.is_in_staff(botId) and check(args, 'staff', 'me', 'admin'):
         users = args.subClient.favorite_users
         try:
             val = args.subClient.get_user_id(args.message)
@@ -1359,8 +852,8 @@ def unkeep_favorite_users(args: Parameters):
         args.subClient.send_message(args.chatId, "The bot need to be in the staff!")
 
 
-def keep_favorite_chats(args: Parameters):
-    if args.subClient.is_in_staff(botId) and (args.subClient.is_in_staff(args.authorId) or is_it_me(args.authorId) or is_it_admin(args.authorId)):
+def keep_favorite_chats(args):
+    if args.subClient.is_in_staff(botId) and check(args, 'staff', 'me', 'admin'):
         chats = args.subClient.favorite_chats
         val = args.subClient.get_chats()
 
@@ -1383,8 +876,8 @@ def keep_favorite_chats(args: Parameters):
         args.subClient.send_message(args.chatId, "The bot need to be in the staff!")
 
 
-def unkeep_favorite_chats(args: Parameters):
-    if args.subClient.is_in_staff(botId) and (args.subClient.is_in_staff(args.authorId) or is_it_me(args.authorId) or is_it_admin(args.authorId)):
+def unkeep_favorite_chats(args):
+    if args.subClient.is_in_staff(botId) and check(args, 'staff', 'me', 'admin'):
         chats = args.subClient.favorite_chats
         val = args.subClient.get_chats()
 
@@ -1402,24 +895,24 @@ def unkeep_favorite_chats(args: Parameters):
                 args.subClient.send_message(args.chatId, f"Removed {title} to favorite chats")
                 return
 
-    elif not args.subClient.is_in_staff(args.botId):
+    elif not args.subClient.is_in_staff(botId):
         args.subClient.send_message(args.chatId, "The bot need to be in the staff!")
 
 
-def welcome_channel(args: Parameters):
-    if args.subClient.is_in_staff(args.authorId) or is_it_me(args.authorId) or is_it_admin(args.authorId):
+def welcome_channel(args):
+    if check(args, 'staff', 'me', 'admin'):
         args.subClient.set_welcome_chat(args.chatId)
         args.subClient.send_message(args.chatId, "Welcome channel set!")
 
 
-def unwelcome_channel(args: Parameters):
-    if args.subClient.is_in_staff(args.authorId) or is_it_me(args.authorId) or is_it_admin(args.authorId):
+def unwelcome_channel(args):
+    if check(args, 'staff', 'me', 'admin'):
         args.subClient.unset_welcome_chat()
         args.subClient.send_message(args.chatId, "Welcome channel unset!")
 
 
-def level(args: Parameters):
-    if args.subClient.is_in_staff(args.authorId) or is_it_me(args.authorId) or is_it_admin(args.authorId):
+def level(args):
+    if check(args, 'staff', 'me', 'admin'):
         try:
             args.message = int(args.message)
         except Exception:
@@ -1433,8 +926,8 @@ def level(args: Parameters):
         args.subClient.send_message(args.chatId, f"Level set to {args.message}!")
 
 
-def taxe(args: Parameters):
-    if is_it_me(args.authorId) or is_it_admin(args.authorId):
+def taxe(args):
+    if check(args, 'me', 'admin'):
         coins = args.subClient.get_wallet_amount()
         if coins >= 1:
             amt = 0
@@ -1516,7 +1009,7 @@ helpMsg = f"""
 • joinamino (amino id): join the amino (you need to be in the amino's staff)**
 • uinfo (user): will give informations about the user²
 • cinfo (aminoId): will give informations about the community²
-• sendinfo (args: Parameters): send the info from uinfo or cinfo²
+• sendinfo (args): send the info from uinfo or cinfo²
 • alock (command): lock or unlock the command for everyone except the owenr of the bot²
 • allock\t: the list of the admin locked commands²
 
@@ -1649,14 +1142,14 @@ def on_text_message(data):
     except Exception:
         return
 
-    args = Parameters(data)
-    # print(f"{data.message.author.nickname} : {message}")
+    args = Parameters(data, communaute)
+    print(f"{args.author} : {args.message}")
 
-    if args.chatId in subClient.only_view and not (subClient.is_in_staff(args.authorId) or is_it_me(args.authorId) or is_it_admin(args.authorId)) and subClient.is_in_staff(botId):
+    if args.chatId in subClient.only_view and not (subClient.is_in_staff(args.authorId) or check(args, 'me', 'admin')) and subClient.is_in_staff(botId):
         subClient.delete_message(args.chatId, args.messageId, "Read-only chat", asStaff=True)
         return
 
-    if not (is_it_me(args.authorId) or is_it_admin(args.authorId) or is_it_bot(args.authorId)) and not subClient.is_in_staff(args.authorId) and subClient.banned_words:
+    if not (check(args, 'staff', 'me', 'admin') or is_it_bot(args.authorId)) and subClient.banned_words:
         with suppress(Exception):
             para = filtre_message(args.message, "ascii").split()
 
@@ -1682,11 +1175,11 @@ def on_text_message(data):
         command = args.message.split()[0][len(subClient.prefix):]
         args.message = ' '.join(args.message.split()[1:])
 
-        if command in subClient.locked_command and not (subClient.is_in_staff(args.authorId) or is_it_me(args.authorId) or is_it_admin(args.authorId)):
+        if command in subClient.locked_command and not check(args, 'staff', 'me', 'admin'):
             return
-        if command in subClient.admin_locked_command and not (is_it_me(args.authorId) or is_it_admin(args.authorId)):
+        if command in subClient.admin_locked_command and not (check(args, 'me', 'admin')):
             return
-        if not subClient.is_level_good(args.authorId) and not (subClient.is_in_staff(args.authorId) or is_it_me(args.authorId) or is_it_admin(args.authorId)):
+        if not subClient.is_level_good(args.authorId) and not check(args, 'staff', 'me', 'admin'):
             subClient.send_message(args.chatId, f"You don't have the level for that ({subClient.level})")
             return
     else:
