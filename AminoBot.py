@@ -1143,7 +1143,7 @@ def on_text_message(data):
         return
 
     args = Parameters(data, communaute)
-    print(f"{args.author} : {args.message}")
+    # print(f"{args.author} : {args.message}")
 
     if args.chatId in subClient.only_view and not (subClient.is_in_staff(args.authorId) or check(args, 'me', 'admin')) and subClient.is_in_staff(botId):
         subClient.delete_message(args.chatId, args.messageId, "Read-only chat", asStaff=True)
@@ -1248,7 +1248,7 @@ def on_chat_invite(data):
     chatId = data.message.chatId
 
     subClient.join_chat(chatId=chatId)
-    subClient.send_message(chatId, f"Hello!\nI am a bot, if you have any question ask a staff member!^^\nHow can I help you?\n(you can do {subClient.prefix}help for help)")
+    subClient.send_message(chatId, f"Hello!\n[B]I am a bot, if you have any question ask a staff member!^^\nHow can I help you?\n(you can do the command {subClient.prefix}help if you need help)")
 
 
 print("Ready")
