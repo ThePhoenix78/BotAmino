@@ -28,31 +28,6 @@ def print_exception(exc):
     print(repr(exc))
 
 
-def is_it_bot(uid):
-    return uid == communaute.botId
-
-
-def is_it_me(uid):
-    return uid in ('2137891f-82b5-4811-ac74-308d7a46345b', 'fa1f3678-df94-4445-8ec4-902651140841',
-                   'f198e2f4-603c-481a-ab74-efd0f688f666')
-
-
-def is_it_admin(uid):
-    return uid in communaute.perms_list
-
-
-def check(args, *can, id_=None):
-    id_ = id_ if id_ else args.authorId
-    foo = {'staff': args.subClient.is_in_staff,
-           'me': is_it_me,
-           'admin': is_it_admin,
-           'bot': is_it_bot}
-
-    for i in can:
-        if foo[i](id_):
-            return True
-
-
 def join_community(comId: str = None, inv: str = None):
     if inv:
         try:
@@ -71,13 +46,13 @@ def join_community(comId: str = None, inv: str = None):
 @communaute.command("joinamino")
 def join_amino(args):
     invit = None
-    if communaute.taille_commu >= 20 and not check(args, 'me', 'admin'):
+    if communaute.taille_commu >= 20 and not communaute.check(args, 'me', 'admin'):
         args.subClient.send_message(args.chatId, "The bot has joined too many communities!")
         return
 
     staff = args.subClient.get_staff(args.message)
 
-    if args.authorId not in staff and not check(args, 'me'):
+    if args.authorId not in staff and not communaute.communaute.check(args, 'me'):
         args.subClient.send_message(args.chatId, "You need to be in the community's staff!")
         return
 
@@ -103,7 +78,7 @@ def join_amino(args):
     isJoined = val.json["extensions"]["isCurrentUserJoined"]
     if not isJoined:
         size = val.json['extensions']['community']['membersCount']
-        if size < 100 and not check(args, 'me'):
+        if size < 100 and not communaute.communaute.check(args, 'me'):
             args.subClient.send_message(args.chatId, "Your community must have at least 100 members")
             return
 
@@ -128,7 +103,7 @@ def join_amino(args):
 
 @communaute.command("title")
 def title(args):
-    if check(args, 'staff', id_=communaute.botId):
+    if communaute.communaute.check(args, 'staff', id_=communaute.botId):
         color = None
         try:
             elem = args.message.strip().split("color=")
@@ -180,21 +155,21 @@ def join(args):
 
 @communaute.command("joinall")
 def join_all(args):
-    if check(args, 'staff', 'me', 'admin'):
+    if communaute.communaute.check(args, 'staff', 'me', 'admin'):
         args.subClient.join_all_chat()
         args.subClient.send_message(args.chatId, "All chat joined")
 
 
 @communaute.command("leaveall")
 def leave_all(args):
-    if check(args, 'staff', 'me', 'admin'):
+    if communaute.communaute.check(args, 'staff', 'me', 'admin'):
         args.subClient.send_message(args.chatId, "Leaving all chat...")
         args.subClient.leave_all_chats()
 
 
 @communaute.command("leave")
 def leave(args):
-    if args.message and (check(args, 'me', 'admin')):
+    if args.message and (communaute.communaute.check(args, 'me', 'admin')):
         chat_ide = args.subClient.get_chat_id(args.message)
         if chat_ide:
             args.chatId = chat_ide
@@ -203,15 +178,15 @@ def leave(args):
 
 @communaute.command("clear")
 def clear(args):
-    if check(args, 'staff', 'me', 'admin'):
-        if check(args, 'staff', id_=communaute.botId):
+    if communaute.communaute.check(args, 'staff', 'me', 'admin'):
+        if communaute.communaute.check(args, 'staff', id_=communaute.botId):
             value = True
         else:
             value = False
         size = 1
         args.subClient.delete_message(args.chatId, args.messageId, asStaff=True)
 
-        if size > 50 and not check(args, 'me'):
+        if size > 50 and not communaute.communaute.check(args, 'me'):
             size = 50
 
         messages = args.subClient.subclient.get_chat_messages(chatId=args.chatId, size=size).messageId
@@ -230,7 +205,7 @@ def spam(args):
         size = 1
         msg = args.message
 
-    if size > 10 and not (check(args, 'me', 'admin')):
+    if size > 10 and not (communaute.communaute.check(args, 'me', 'admin')):
         size = 10
 
     for _ in range(size):
@@ -251,7 +226,7 @@ def mention(args):
         args.subClient.send_message(chatId=args.chatId, message="Username not found")
         return
 
-    if size > 5 and not (check(args, 'me', 'admin')):
+    if size > 5 and not (communaute.communaute.check(args, 'me', 'admin')):
         size = 5
 
     if val:
@@ -262,8 +237,8 @@ def mention(args):
 
 @communaute.command("all")
 def mentionall(args):
-    if check(args, 'staff', 'me', 'admin'):
-        if args.message and check(args, 'me'):
+    if communaute.communaute.check(args, 'staff', 'me', 'admin'):
+        if args.message and communaute.communaute.check(args, 'me'):
             chat_ide = args.subClient.get_chat_id(args.message)
             if chat_ide:
                 args.chatId = chat_ide
@@ -284,7 +259,7 @@ def msg(args):
     with suppress(Exception):
         args.subClient.delete_message(args.chatId, args.messageId, asStaff=False)
 
-    if "chat=" in args.message and check(args, 'me'):
+    if "chat=" in args.message and communaute.communaute.check(args, 'me'):
         chat_name = args.message.rsplit("chat=", 1).pop()
         chat_ide = args.subClient.get_chat_id(chat_name)
         if chat_ide:
@@ -308,7 +283,7 @@ def msg(args):
         args.message = f"‎‏‎‏@{args.author}‬‭"
         ment = args.authorId
 
-    if size > 10 and not (check(args, 'me', 'admin')):
+    if size > 10 and not (communaute.check(args, 'me', 'admin')):
         size = 10
 
     for _ in range(size):
@@ -318,7 +293,7 @@ def msg(args):
 
 @communaute.command("abw")
 def add_banned_word(args):
-    if check(args, 'staff', 'me', 'admin'):
+    if communaute.check(args, 'staff', 'me', 'admin'):
         if not args.message or args.message in args.subClient.banned_words:
             return
         try:
@@ -331,7 +306,7 @@ def add_banned_word(args):
 
 @communaute.command("rbw")
 def remove_banned_word(args):
-    if check(args, 'staff', 'me', 'admin'):
+    if communaute.check(args, 'staff', 'me', 'admin'):
         if not args.message:
             return
         try:
@@ -355,7 +330,7 @@ def banned_word_list(args):
 
 @communaute.command("sw")
 def sw(args):
-    if check(args, 'staff', 'me', 'admin'):
+    if communaute.check(args, 'staff', 'me', 'admin'):
         args.subClient.set_welcome_message(args.message)
         args.subClient.send_message(args.chatId, "Welcome message changed")
 
@@ -369,7 +344,7 @@ def get_chats(args):
 
 @communaute.command("chatid")
 def chat_id(args):
-    if check(args, 'me', 'admin'):
+    if communaute.check(args, 'me', 'admin'):
         val = args.subClient.get_chats()
         for title, chat_id in zip(val.title, val.chatId):
             if args.message.lower() in title.lower():
@@ -378,7 +353,7 @@ def chat_id(args):
 
 @communaute.command("leaveamino")
 def leave_amino(args):
-    if check(args, 'staff', 'me', 'admin'):
+    if communaute.check(args, 'staff', 'me', 'admin'):
         args.subClient.send_message(args.chatId, "Leaving the amino!")
         args.subClient.leave_community()
     del communaute[args.subClient.community_id]
@@ -390,7 +365,7 @@ def prank(args):
         args.subClient.delete_message(args.chatId, args.messageId, asStaff=True)
 
     transactionId = "5b3964da-a83d-c4d0-daf3-6e259d10fbc3"
-    if args.message and check(args, 'me'):
+    if args.message and communaute.check(args, 'me'):
         chat_ide = args.subClient.get_chat_id(args.message)
         if chat_ide:
             args.chatId = chat_ide
@@ -523,20 +498,20 @@ def helper(args):
 
 @communaute.command("reboot")
 def reboot(args):
-    if check(args, 'me', 'admin'):
+    if communaute.check(args, 'me', 'admin'):
         args.subClient.send_message(args.chatId, "Restarting Bot")
         os.execv(sys.executable, ["None", os.path.basename(sys.argv[0])])
 
 
 def stop(args):
-    if check(args, 'me', 'admin'):
+    if communaute.check(args, 'me', 'admin'):
         args.subClient.send_message(args.chatId, "Stopping Bot")
         os.execv(sys.executable, ["None", "None"])
 
 
 @communaute.command("uinfo")
 def uinfo(args):
-    if check(args, 'me', 'admin'):
+    if communaute.check(args, 'me', 'admin'):
         val = ""
         val2 = ""
         uid = ""
@@ -584,7 +559,7 @@ def uinfo(args):
 
 @communaute.command("cinfo")
 def cinfo(args):
-    if check(args, 'me', 'admin'):
+    if communaute.check(args, 'me', 'admin'):
         val = ""
         with suppress(Exception):
             val = args.subClient.client.get_from_code(f"http://aminoapps.com/c/{args.message}")
@@ -610,7 +585,7 @@ def cinfo(args):
 
 @communaute.command("sendinfo")
 def sendinfo(args):
-    if (check(args, 'me', 'admin')) and args.message != "":
+    if (communaute.check(args, 'me', 'admin')) and args.message != "":
         arguments = args.message.strip().split()
         for eljson in (path_eljson1, path_eljson2):
             if Path(eljson).exists():
@@ -654,14 +629,14 @@ def unfollow(args):
 
 @communaute.command("stopamino")
 def stop_amino(args):
-    if check(args, 'me', 'admin'):
+    if communaute.check(args, 'me', 'admin'):
         args.subClient.stop_instance()
         del communaute[args.subClient.community_id]
 
 
 @communaute.command("block")
 def block(args):
-    if check(args, 'me', 'admin'):
+    if communaute.check(args, 'me', 'admin'):
         val = args.subClient.get_user_id(args.message)
         if val:
             args.subClient.client.block(val[1])
@@ -670,7 +645,7 @@ def block(args):
 
 @communaute.command("unblock")
 def unblock(args):
-    if check(args, 'me', 'admin'):
+    if communaute.check(args, 'me', 'admin'):
         val = args.subClient.client.get_blocked_users()
         for aminoId, userId in zip(val.aminoId, val.userId):
             if args.message in aminoId:
@@ -680,7 +655,7 @@ def unblock(args):
 
 @communaute.command("accept")
 def accept(args):
-    if check(args, 'staff', 'me', 'admin'):
+    if communaute.check(args, 'staff', 'me', 'admin'):
         if args.subClient.accept_role("", args.chatId):
             args.subClient.send_message(args.chatId, "Accepted!")
             return
@@ -719,7 +694,7 @@ def say(args):
 
 @communaute.command("ask")
 def ask_thing(args):
-    if check(args, 'staff', 'me', 'admin'):
+    if communaute.check(args, 'staff', 'me', 'admin'):
         lvl = ""
         boolean = 1
         if "lvl=" in args.message:
@@ -744,7 +719,7 @@ def ask_thing(args):
 
 @communaute.command("askstaff")
 def ask_staff(args):
-    if check(args, 'me', 'admin'):
+    if communaute.check(args, 'me', 'admin'):
         amino_list = communaute.client.sub_clients()
         for commu in amino_list.comId:
             communaute[commu].ask_amino_staff(message=args.message)
@@ -760,7 +735,7 @@ def prefix(args):
 
 @communaute.command("lock")
 def lock_command(args):
-    if check(args, 'staff', 'me', 'admin'):
+    if communaute.check(args, 'staff', 'me', 'admin'):
         if not args.message or args.message in args.subClient.locked_command or args.message not in communaute.get_commands_names() or args.message in ("lock", "unlock"):
             return
         try:
@@ -773,7 +748,7 @@ def lock_command(args):
 
 @communaute.command("unlock")
 def unlock_command(args):
-    if check(args, 'staff', 'me', 'admin'):
+    if communaute.check(args, 'staff', 'me', 'admin'):
         if args.message:
             try:
                 args.message = args.message.lower().strip().split()
@@ -796,7 +771,7 @@ def locked_command_list(args):
 
 @communaute.command("alock")
 def admin_lock_command(args):
-    if check(args, 'me', 'admin'):
+    if communaute.check(args, 'me', 'admin'):
         if not args.message or args.message not in communaute.get_commands_names() or args.message == "alock":
             return
 
@@ -813,7 +788,7 @@ def admin_lock_command(args):
 
 @communaute.command("allock")
 def locked_admin_command_list(args):
-    if check(args, 'me', 'admin'):
+    if communaute.check(args, 'me', 'admin'):
         val = ""
         if args.subClient.admin_locked_command:
             for elem in args.subClient.admin_locked_command:
@@ -825,7 +800,7 @@ def locked_admin_command_list(args):
 
 @communaute.command("view")
 def read_only(args):
-    if args.subClient.is_in_staff(communaute.botId) and check(args, 'staff', 'me', 'admin'):
+    if args.subClient.is_in_staff(communaute.botId) and communaute.check(args, 'staff', 'me', 'admin'):
         chats = args.subClient.only_view
         if args.chatId not in chats:
             args.subClient.add_only_view(args.chatId)
@@ -834,13 +809,13 @@ def read_only(args):
             args.subClient.remove_only_view(args.chatId)
             args.subClient.send_message(args.chatId, "This chat is no longer in only-view mode")
         return
-    elif not check(args, 'staff', id_=communaute.botId):
+    elif not communaute.check(args, 'staff', id_=communaute.botId):
         args.subClient.send_message(args.chatId, "The bot need to be in the staff!")
 
 
 @communaute.command("keepu")
 def keep_favorite_users(args):
-    if args.subClient.is_in_staff(communaute.botId) and check(args, 'staff', 'me', 'admin'):
+    if args.subClient.is_in_staff(communaute.botId) and communaute.check(args, 'staff', 'me', 'admin'):
         users = args.subClient.favorite_users
         try:
             val = args.subClient.get_user_id(args.message)
@@ -854,7 +829,7 @@ def keep_favorite_users(args):
             with suppress(Exception):
                 args.subClient.favorite(time=1, userId=userId)
         return
-    elif not check(args, 'staff', id_=communaute.botId):
+    elif not communaute.check(args, 'staff', id_=communaute.botId):
         args.subClient.send_message(args.chatId, "The bot need to be in the staff!")
     else:
         args.subClient.send_message(args.chatId, "Error!")
@@ -862,7 +837,7 @@ def keep_favorite_users(args):
 
 @communaute.command("unkeepu")
 def unkeep_favorite_users(args):
-    if args.subClient.is_in_staff(communaute.botId) and check(args, 'staff', 'me', 'admin'):
+    if args.subClient.is_in_staff(communaute.botId) and communaute.check(args, 'staff', 'me', 'admin'):
         users = args.subClient.favorite_users
         try:
             val = args.subClient.get_user_id(args.message)
@@ -876,7 +851,7 @@ def unkeep_favorite_users(args):
             with suppress(Exception):
                 args.subClient.unfavorite(userId=userId)
         return
-    elif not check(args, 'staff', id_=communaute.botId):
+    elif not communaute.check(args, 'staff', id_=communaute.botId):
         args.subClient.send_message(args.chatId, "The bot need to be in the staff!")
     else:
         args.subClient.send_message(args.chatId, "Error!")
@@ -884,7 +859,7 @@ def unkeep_favorite_users(args):
 
 @communaute.command("keepc")
 def keep_favorite_chats(args):
-    if args.subClient.is_in_staff(communaute.botId) and check(args, 'staff', 'me', 'admin'):
+    if args.subClient.is_in_staff(communaute.botId) and communaute.check(args, 'staff', 'me', 'admin'):
         chats = args.subClient.favorite_chats
         with suppress(Exception):
             chat = args.subClient.subclient.get_from_code(f"{args.message}")
@@ -910,7 +885,7 @@ def keep_favorite_chats(args):
                 with suppress(Exception):
                     args.subClient.favorite(time=1, chatId=chatId)
                 return
-    elif not check(args, 'staff', id_=communaute.botId):
+    elif not communaute.check(args, 'staff', id_=communaute.botId):
         args.subClient.send_message(args.chatId, "The bot need to be in the staff!")
     else:
         args.subClient.send_message(args.chatId, "Error!")
@@ -918,7 +893,7 @@ def keep_favorite_chats(args):
 
 @communaute.command("unkeepc")
 def unkeep_favorite_chats(args):
-    if args.subClient.is_in_staff(communaute.botId) and check(args, 'staff', 'me', 'admin'):
+    if args.subClient.is_in_staff(communaute.botId) and communaute.check(args, 'staff', 'me', 'admin'):
         chats = args.subClient.favorite_chats
 
         with suppress(Exception):
@@ -944,7 +919,7 @@ def unkeep_favorite_chats(args):
                 args.subClient.send_message(args.chatId, f"Removed {title} to favorite chats")
                 return
 
-    elif not check(args, 'staff', id_=communaute.botId):
+    elif not communaute.check(args, 'staff', id_=communaute.botId):
         args.subClient.send_message(args.chatId, "The bot need to be in the staff!")
     else:
         args.subClient.send_message(args.chatId, "Error!")
@@ -952,21 +927,21 @@ def unkeep_favorite_chats(args):
 
 @communaute.command("welcome")
 def welcome_channel(args):
-    if check(args, 'staff', 'me', 'admin'):
+    if communaute.check(args, 'staff', 'me', 'admin'):
         args.subClient.set_welcome_chat(args.chatId)
         args.subClient.send_message(args.chatId, "Welcome channel set!")
 
 
 @communaute.command("unwelcome")
 def unwelcome_channel(args):
-    if check(args, 'staff', 'me', 'admin'):
+    if communaute.check(args, 'staff', 'me', 'admin'):
         args.subClient.unset_welcome_chat()
         args.subClient.send_message(args.chatId, "Welcome channel unset!")
 
 
 @communaute.command("level")
 def level(args):
-    if check(args, 'staff', 'me', 'admin'):
+    if communaute.check(args, 'staff', 'me', 'admin'):
         try:
             args.message = int(args.message)
         except Exception:
@@ -982,7 +957,7 @@ def level(args):
 
 @communaute.command("taxe")
 def taxe(args):
-    if check(args, 'me', 'admin'):
+    if communaute.check(args, 'me', 'admin'):
         coins = args.subClient.get_wallet_amount()
         if coins >= 1:
             amt = 0
