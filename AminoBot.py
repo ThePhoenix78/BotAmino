@@ -52,7 +52,7 @@ def join_amino(args):
 
     staff = args.subClient.get_staff(args.message)
 
-    if args.authorId not in staff and not client.client.check(args, 'me'):
+    if args.authorId not in staff and not client.check(args, 'me'):
         args.subClient.send_message(args.chatId, "You need to be in the community's staff!")
         return
 
@@ -78,7 +78,7 @@ def join_amino(args):
     isJoined = val.json["extensions"]["isCurrentUserJoined"]
     if not isJoined:
         size = val.json['extensions']['community']['membersCount']
-        if size < 100 and not client.client.check(args, 'me'):
+        if size < 100 and not client.check(args, 'me'):
             args.subClient.send_message(args.chatId, "Your community must have at least 100 members")
             return
 
@@ -103,7 +103,7 @@ def join_amino(args):
 
 @client.command("title")
 def title(args):
-    if client.client.check(args, 'staff', id_=client.botId):
+    if client.check(args, 'staff', id_=client.botId):
         color = None
         try:
             elem = args.message.strip().split("color=")
@@ -155,21 +155,21 @@ def join(args):
 
 @client.command("joinall")
 def join_all(args):
-    if client.client.check(args, 'staff', 'me', 'admin'):
+    if client.check(args, 'staff', 'me', 'admin'):
         args.subClient.join_all_chat()
         args.subClient.send_message(args.chatId, "All chat joined")
 
 
 @client.command("leaveall")
 def leave_all(args):
-    if client.client.check(args, 'staff', 'me', 'admin'):
+    if client.check(args, 'staff', 'me', 'admin'):
         args.subClient.send_message(args.chatId, "Leaving all chat...")
         args.subClient.leave_all_chats()
 
 
 @client.command("leave")
 def leave(args):
-    if args.message and (client.client.check(args, 'me', 'admin')):
+    if args.message and (client.check(args, 'me', 'admin')):
         chat_ide = args.subClient.get_chat_id(args.message)
         if chat_ide:
             args.chatId = chat_ide
@@ -178,15 +178,15 @@ def leave(args):
 
 @client.command("clear")
 def clear(args):
-    if client.client.check(args, 'staff', 'me', 'admin'):
-        if client.client.check(args, 'staff', id_=client.botId):
+    if client.check(args, 'staff', 'me', 'admin'):
+        if client.check(args, 'staff', id_=client.botId):
             value = True
         else:
             value = False
         size = 1
         args.subClient.delete_message(args.chatId, args.messageId, asStaff=True)
 
-        if size > 50 and not client.client.check(args, 'me'):
+        if size > 50 and not client.check(args, 'me'):
             size = 50
 
         messages = args.subClient.subclient.get_chat_messages(chatId=args.chatId, size=size).messageId
@@ -205,7 +205,7 @@ def spam(args):
         size = 1
         msg = args.message
 
-    if size > 10 and not (client.client.check(args, 'me', 'admin')):
+    if size > 10 and not (client.check(args, 'me', 'admin')):
         size = 10
 
     for _ in range(size):
@@ -226,7 +226,7 @@ def mention(args):
         args.subClient.send_message(chatId=args.chatId, message="Username not found")
         return
 
-    if size > 5 and not (client.client.check(args, 'me', 'admin')):
+    if size > 5 and not (client.check(args, 'me', 'admin')):
         size = 5
 
     if val:
@@ -237,8 +237,8 @@ def mention(args):
 
 @client.command("all")
 def mentionall(args):
-    if client.client.check(args, 'staff', 'me', 'admin'):
-        if args.message and client.client.check(args, 'me'):
+    if client.check(args, 'staff', 'me', 'admin'):
+        if args.message and client.check(args, 'me'):
             chat_ide = args.subClient.get_chat_id(args.message)
             if chat_ide:
                 args.chatId = chat_ide
@@ -259,7 +259,7 @@ def msg(args):
     with suppress(Exception):
         args.subClient.delete_message(args.chatId, args.messageId, asStaff=False)
 
-    if "chat=" in args.message and client.client.check(args, 'me'):
+    if "chat=" in args.message and client.check(args, 'me'):
         chat_name = args.message.rsplit("chat=", 1).pop()
         chat_ide = args.subClient.get_chat_id(chat_name)
         if chat_ide:

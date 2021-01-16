@@ -307,13 +307,7 @@ class Bot():
         old_dict = self.get_file_dict()
         new_dict = self.create_dict()
 
-        for key, value in new_dict.items():
-            if key not in old_dict:
-                old_dict[key] = value
-
-        for key, value in old_dict.items():
-            if key not in new_dict:
-                del old_dict[key]
+        {**new_dict, **{i:e for i, e in old_dict.items() if i in new_dict}}
 
         self.update_file(old_dict)
 
