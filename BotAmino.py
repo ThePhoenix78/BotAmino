@@ -119,6 +119,7 @@ class BotAmino(Command):
         self.botId = client.userId
         self.len_community = 0
         self.perms_list = []
+        self.prefix = "!"
 
     def get_community(self, comId):
         return self.communaute[comId]
@@ -159,7 +160,7 @@ class BotAmino(Command):
         self.perms_list = tradlist(perms_list)
 
         amino_list = self.client.sub_clients()
-        self.len_community = len([Thread(target=self.threadLaunch, args=[commu]).start() for commu in amino_list.comId])
+        self.len_community = len([Thread(target=self.threadLaunch, args=[commu, self.prefix]).start() for commu in amino_list.comId])
 
         @client.callbacks.event("on_text_message")
         def on_text_message(data):
@@ -269,9 +270,10 @@ class BotAmino(Command):
 
 
 class Bot(SubClient):
-    def __init__(self, client, community, inv: str = None):
+    def __init__(self, client, community, prefix: str = "!"):
         self.client = client
         self.marche = True
+        self.prefix = prefix
 
         if isinstance(community, int):
             self.community_id = community
@@ -337,7 +339,7 @@ class Bot(SubClient):
             file.write(dumps(dict, sort_keys=False, indent=4))
 
     def create_dict(self):
-        return {"welcome": "", "banned_words": [], "locked_command": [], "admin_locked_command": [], "prefix": "!", "only_view": [], "welcome_chat": "", "level": 0, "favorite_users": [], "favorite_chats": []}
+        return {"welcome": "", "banned_words": [], "locked_command": [], "admin_locked_command": [], "prefix": self.prefix, "only_view": [], "welcome_chat": "", "level": 0, "favorite_users": [], "favorite_chats": []}
 
     def get_dict(self):
         return {"welcome": self.message_bvn, "banned_words": self.banned_words, "locked_command": self.locked_command, "admin_locked_command": self.admin_locked_command, "prefix": self.prefix, "only_view": self.only_view, "welcome_chat": self.welcome_chat, "level": self.level, "favorite_users": self.favorite_users, "favorite_chats": self.favorite_chats}
