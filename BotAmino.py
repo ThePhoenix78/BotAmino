@@ -270,7 +270,7 @@ class BotAmino(Command):
             subClient.send_message(args.chatId, f"Hello!\n[B]I am a bot, if you have any question ask a staff member!\nHow can I help you?\n(you can do {subClient.prefix}help if you need help)")
 
 
-class Bot():
+class Bot(SubClient):
     def __init__(self, client, community, inv: str = None):
         self.client = client
         self.marche = True
@@ -286,6 +286,9 @@ class Bot():
             self.community = self.client.get_community_info(comId=self.community_id)
 
         self.community_name = self.community.name
+
+        SubClient.__init__(self, self.community_id, client.profile)
+
         try:
             self.community_leader_agent_id = self.community.json["agent"]["uid"]
         except Exception:
@@ -312,6 +315,7 @@ class Bot():
         self.update_file(old_dict)
 
         self.subclient = SubClient(comId=self.community_id, profile=client.profile)
+
         self.banned_words = self.get_file_info("banned_words")
         self.message_bvn = self.get_file_info("welcome")
         self.locked_command = self.get_file_info("locked_command")
@@ -322,8 +326,8 @@ class Bot():
         self.level = self.get_file_info("level")
         self.favorite_users = self.get_file_info("favorite_users")
         self.favorite_chats = self.get_file_info("favorite_chats")
-        self.subclient.activity_status("on")
-        new_users = self.subclient.get_all_users(start=0, size=30, type="recent")
+        self.activity_status("on")
+        new_users = self.get_all_users(start=0, size=30, type="recent")
         self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
         if self.welcome_chat or self.message_bvn:
             with suppress(Exception):
@@ -438,10 +442,10 @@ class Bot():
 
     def accept_role(self, rid: str = None, cid: str = None):
         with suppress(Exception):
-            self.subclient.accept_organizer(cid)
+            self.accept_organizer(cid)
             return True
         with suppress(Exception):
-            self.subclient.promotion(noticeId=rid)
+            self.promotion(noticeId=rid)
             return True
         return False
 
@@ -467,12 +471,12 @@ class Bot():
             return community_staff
 
     def get_user_id(self, name_or_id):
-        members = self.subclient.get_all_users(size=1).json['userProfileCount']
+        members = self.get_all_users(size=1).json['userProfileCount']
         start = 0
         lower_name = None
 
         while start <= members:
-            users = self.subclient.get_all_users(start=start, size=100).json['userProfileList']
+            users = self.get_all_users(start=start, size=100).json['userProfileList']
             for user in users:
                 name = user['nickname']
                 uid = user['uid']
@@ -486,32 +490,32 @@ class Bot():
         return lower_name if lower_name else None
 
     def ask_all_members(self, message, lvl: int = 20, type_bool: int = 1):
-        size = self.subclient.get_all_users(start=0, size=1, type="recent").json['userProfileCount']
+        size = self.get_all_users(start=0, size=1, type="recent").json['userProfileCount']
         st = 0
 
         while size > 0:
             value = size
             if value > 100:
                 value = 100
-            users = self.subclient.get_all_users(start=st, size=value)
+            users = self.get_all_users(start=st, size=value)
             if type_bool == 1:
                 user_lvl_list = [user['uid'] for user in users.json['userProfileList'] if user['level'] == lvl]
             elif type_bool == 2:
                 user_lvl_list = [user['uid'] for user in users.json['userProfileList'] if user['level'] <= lvl]
             elif type_bool == 3:
                 user_lvl_list = [user['uid'] for user in users.json['userProfileList'] if user['level'] >= lvl]
-            self.subclient.start_chat(userId=user_lvl_list, message=message)
+            self.start_chat(userId=user_lvl_list, message=message)
             size -= 100
             st += 100
 
     def ask_amino_staff(self, message):
-        self.subclient.start_chat(userId=self.community_staff, message=message)
+        self.start_chat(userId=self.community_staff, message=message)
 
     def get_chat_id(self, chat: str = None):
         with suppress(Exception):
-            return self.subclient.get_from_code(f"http://aminoapps.com/c/{chat}").objectId
+            return self.get_from_code(f"http://aminoapps.com/c/{chat}").objectId
 
-        val = self.subclient.get_public_chat_threads()
+        val = self.get_public_chat_threads()
         for title, chat_id in zip(val.title, val.chatId):
             if chat == title:
                 return chat_id
@@ -527,53 +531,53 @@ class Bot():
     def leave_community(self):
         self.client.leave_community(comId=self.community_id)
         self.marche = False
-        for elem in self.subclient.get_public_chat_threads().chatId:
+        for elem in self.get_public_chat_threads().chatId:
             with suppress(Exception):
-                self.subclient.leave_chat(elem)
+                self.leave_chat(elem)
 
     def check_new_member(self):
         if not (self.message_bvn and self.welcome_chat):
             return
-        new_list = self.subclient.get_all_users(start=0, size=25, type="recent")
+        new_list = self.get_all_users(start=0, size=25, type="recent")
         new_member = [(elem["nickname"], elem["uid"]) for elem in new_list.json["userProfileList"]]
         for elem in new_member:
             name, uid = elem[0], elem[1]
             try:
-                val = self.subclient.get_wall_comments(userId=uid, sorting='newest').commentId
+                val = self.get_wall_comments(userId=uid, sorting='newest').commentId
             except Exception:
                 val = True
 
             if not val and self.message_bvn:
                 with suppress(Exception):
-                    self.subclient.comment(message=self.message_bvn, userId=uid)
+                    self.comment(message=self.message_bvn, userId=uid)
             if not val and self.welcome_chat:
                 with suppress(Exception):
                     self.send_message(chatId=self.welcome_chat, message=f"Welcome here ‎‏‎‏@{name}!‬‭", mentionUserIds=[uid])
 
-        new_users = self.subclient.get_all_users(start=0, size=30, type="recent")
+        new_users = self.get_all_users(start=0, size=30, type="recent")
         self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
 
     def welcome_new_member(self):
-        new_list = self.subclient.get_all_users(start=0, size=25, type="recent")
+        new_list = self.get_all_users(start=0, size=25, type="recent")
         new_member = [(elem["nickname"], elem["uid"]) for elem in new_list.json["userProfileList"]]
 
         for elem in new_member:
             name, uid = elem[0], elem[1]
 
             try:
-                val = self.subclient.get_wall_comments(userId=uid, sorting='newest').commentId
+                val = self.get_wall_comments(userId=uid, sorting='newest').commentId
             except Exception:
                 val = True
 
             if not val and uid not in self.new_users and self.message_bvn:
                 with suppress(Exception):
-                    self.subclient.comment(message=self.message_bvn, userId=uid)
+                    self.comment(message=self.message_bvn, userId=uid)
 
             if uid not in self.new_users and self.welcome_chat:
                 with suppress(Exception):
                     self.send_message(chatId=self.welcome_chat, message=f"Welcome here ‎‏‎‏@{name}!‬‭", mentionUserIds=[uid])
 
-        new_users = self.subclient.get_all_users(start=0, size=30, type="recent")
+        new_users = self.get_all_users(start=0, size=30, type="recent")
         self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
 
     def feature_chats(self):
@@ -582,25 +586,25 @@ class Bot():
                 self.favorite(time=2, chatId=elem)
 
     def feature_users(self):
-        featured = [elem["uid"] for elem in self.subclient.get_featured_users().json["userProfileList"]]
+        featured = [elem["uid"] for elem in self.get_featured_users().json["userProfileList"]]
         for elem in self.favorite_users:
             if elem not in featured:
                 with suppress(Exception):
                     self.favorite(time=1, userId=elem)
 
     def get_member_level(self, uid):
-        return self.subclient.get_user_info(userId=uid).level
+        return self.get_user_info(userId=uid).level
 
     def is_level_good(self, uid):
-        return self.subclient.get_user_info(userId=uid).level >= self.level
+        return self.get_user_info(userId=uid).level >= self.level
 
     def get_member_titles(self, uid):
         with suppress(Exception):
-            return self.subclient.get_user_info(userId=uid).customTitles
+            return self.get_user_info(userId=uid).customTitles
         return False
 
     def get_member_info(self, uid):
-        return self.subclient.get_user_info(userId=uid)
+        return self.get_user_info(userId=uid)
 
     def get_wallet_info(self):
         return self.client.get_wallet_info().json
@@ -611,66 +615,60 @@ class Bot():
     def pay(self, coins: int = 0, blogId: str = None, chatId: str = None, objectId: str = None, transactionId: str = None):
         if not transactionId:
             transactionId = f"{''.join(sample([lst for lst in hexdigits[:-6]], 8))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 12))}"
-        self.subclient.send_coins(coins=coins, blogId=blogId, chatId=chatId, objectId=objectId, transactionId=transactionId)
-
-    def delete_message(self, chatId: str, messageId: str, reason: str = "Clear", asStaff: bool = True):
-        self.subclient.delete_message(chatId, messageId, asStaff, reason)
-
-    def send_message(self, chatId: str = None, message: str = "None", messageType: str = None, file: str = None, fileType: str = None, replyTo: str = None, mentionUserIds: str = None):
-        self.subclient.send_message(chatId=chatId, message=message, file=file, fileType=fileType, replyTo=replyTo, messageType=messageType, mentionUserIds=mentionUserIds)
+        self.send_coins(coins=coins, blogId=blogId, chatId=chatId, objectId=objectId, transactionId=transactionId)
 
     def favorite(self, time: int = 1, userId: str = None, chatId: str = None, blogId: str = None, wikiId: str = None):
-        self.subclient.feature(time=time, userId=userId, chatId=chatId, blogId=blogId, wikiId=wikiId)
+        self.feature(time=time, userId=userId, chatId=chatId, blogId=blogId, wikiId=wikiId)
 
     def unfavorite(self, userId: str = None, chatId: str = None, blogId: str = None, wikiId: str = None):
-        self.subclient.unfeature(userId=userId, chatId=chatId, blogId=blogId, wikiId=wikiId)
+        self.unfeature(userId=userId, chatId=chatId, blogId=blogId, wikiId=wikiId)
 
     def join_chat(self, chat: str = None, chatId: str = None):
         if not chat:
             with suppress(Exception):
-                self.subclient.join_chat(chatId)
+                self.join_chat(chatId)
                 return ""
 
         with suppress(Exception):
-            chati = self.subclient.get_from_code(f"{chat}").objectId
-            self.subclient.join_chat(chati)
+            chati = self.get_from_code(f"{chat}").objectId
+            self.join_chat(chati)
             return chat
 
-        chats = self.subclient.get_public_chat_threads()
+        chats = self.get_public_chat_threads()
         for title, chat_id in zip(chats.title, chats.chatId):
             if chat == title:
-                self.subclient.join_chat(chat_id)
+                self.join_chat(chat_id)
                 return title
 
-        chats = self.subclient.get_public_chat_threads()
+        chats = self.get_public_chat_threads()
         for title, chat_id in zip(chats.title, chats.chatId):
             if chat.lower() in title.lower() or chat == chat_id:
-                self.subclient.join_chat(chat_id)
+                self.join_chat(chat_id)
                 return title
 
         return False
 
     def get_chats(self):
-        return self.subclient.get_public_chat_threads()
+        return self.get_public_chat_threads()
 
     def join_all_chat(self):
-        for elem in self.subclient.get_public_chat_threads().chatId:
+        for elem in self.get_public_chat_threads().chatId:
             with suppress(Exception):
-                self.subclient.join_chat(elem)
+                self.join_chat(elem)
 
     def leave_chat(self, chat: str):
-        self.subclient.leave_chat(chat)
+        self.leave_chat(chat)
 
     def leave_all_chats(self):
-        for elem in self.subclient.get_public_chat_threads().chatId:
+        for elem in self.get_public_chat_threads().chatId:
             with suppress(Exception):
-                self.subclient.leave_chat(elem)
+                self.leave_chat(elem)
 
     def follow_user(self, uid):
-        self.subclient.follow(userId=[uid])
+        self.follow(userId=[uid])
 
     def unfollow_user(self, uid):
-        self.subclient.unfollow(userId=uid)
+        self.unfollow(userId=uid)
 
     def add_title(self, uid, title: str, color: str = None):
         member = self.get_member_titles(uid)
@@ -683,7 +681,7 @@ class Bot():
         clist.append(color)
 
         with suppress(Exception):
-            self.subclient.edit_titles(uid, tlist, clist)
+            self.edit_titles(uid, tlist, clist)
         return True
 
     def remove_title(self, uid, title: str):
@@ -698,7 +696,7 @@ class Bot():
             nb = tlist.index(title)
             tlist.pop(nb)
             clist.pop(nb)
-            self.subclient.edit_titles(uid, tlist, clist)
+            self.edit_titles(uid, tlist, clist)
         return True
 
     def passive(self):
@@ -708,8 +706,8 @@ class Bot():
             if self.welcome_chat or self.message_bvn:
                 Thread(target=self.welcome_new_member).start()
             try:
-                self.subclient.activity_status('on')
-                self.subclient.edit_profile(content=choice(bio_contents))
+                self.activity_status('on')
+                self.edit_profile(content=choice(bio_contents))
             except Exception as e:
                 print_exception(e)
 
@@ -737,11 +735,6 @@ class Bot():
         check_new_members()
         feature_chats()
         feature_users()
-
-        # 60
-        # 500
-        # 7200
-        # 86400
 
         every().minute.do(change_bio_and_welcome_members)
         every(500).seconds.do(check_new_members)

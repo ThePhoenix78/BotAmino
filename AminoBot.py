@@ -88,7 +88,7 @@ def join_amino(args):
         if isJoined:
             client.add_community(args.message)
             client[comId].run()
-            auth = client.get_community(comId).subclient.get_user_info(args.message).nickname
+            auth = client.get_community(comId).get_user_info(args.message).nickname
             client.get_community(comId).ask_amino_staff(f"Hello! I am a bot and i can do a lot of stuff!\nI've been invited here by {auth}.\nIf you need help, you can do !help.\nEnjoy^^")
             args.subClient.send_message(args.chatId, "Joined!")
             return
@@ -184,12 +184,12 @@ def clear(args):
         else:
             value = False
         size = 1
-        args.subClient.delete_message(args.chatId, args.messageId, asStaff=True)
+        args.subClient.delete_message(args.chatId, args.messageId, asStaff=True, reason="Clear")
 
         if size > 50 and not client.check(args, 'me'):
             size = 50
 
-        messages = args.subClient.subclient.get_chat_messages(chatId=args.chatId, size=size).messageId
+        messages = args.subClient.get_chat_messages(chatId=args.chatId, size=size).messageId
 
         for message in messages:
             with suppress(Exception):
@@ -244,8 +244,8 @@ def mentionall(args):
                 args.chatId = chat_ide
             args.message = " ".join(args.message.strip().split()[:-1])
 
-        mention = [userId for userId in args.subClient.subclient.get_chat_users(chatId=args.chatId).userId]
-        test = "".join(["‎‏‎‏‬‭" for user in args.subClient.subclient.get_chat_users(chatId=args.chatId).userId])
+        mention = [userId for userId in args.subClient.get_chat_users(chatId=args.chatId).userId]
+        test = "".join(["‎‏‎‏‬‭" for user in args.subClient.get_chat_users(chatId=args.chatId).userId])
 
         with suppress(Exception):
             args.subClient.send_message(chatId=args.chatId, message=f"@everyone{test}", mentionUserIds=mention)
@@ -517,13 +517,13 @@ def uinfo(args):
         uid = ""
         with suppress(Exception):
             val = args.subClient.client.get_user_info(args.message)
-            val2 = args.subClient.subclient.get_user_info(args.message)
+            val2 = args.subClient.get_user_info(args.message)
 
         if not val:
             uid = args.subClient.get_user_id(args.message)
             if uid:
                 val = args.subClient.client.get_user_info(uid[1])
-                val2 = args.subClient.subclient.get_user_info(uid[1])
+                val2 = args.subClient.get_user_info(uid[1])
 
         if not val:
             with suppress(Exception):
@@ -531,7 +531,7 @@ def uinfo(args):
                 val = args.subClient.client.get_user_info(lin)
 
             with suppress(Exception):
-                val2 = args.subClient.subclient.get_user_info(lin)
+                val2 = args.subClient.get_user_info(lin)
 
         with suppress(Exception):
             with open(path_eljson1, "w") as file:
@@ -659,7 +659,7 @@ def accept(args):
         if args.subClient.accept_role("", args.chatId):
             args.subClient.send_message(args.chatId, "Accepted!")
             return
-        val = args.subClient.subclient.get_notices(start=0, size=25)
+        val = args.subClient.get_notices(start=0, size=25)
         for elem in val:
             print(elem["title"])
         ans = None
@@ -682,7 +682,7 @@ def say(args):
     audio_file = f"{path_download}/ttp{randint(1,500)}.mp3"
     langue = list(lang.tts_langs().keys())
     if not args.message:
-        args.message = args.subClient.subclient.get_chat_messages(chatId=args.chatId, size=2).content[1]
+        args.message = args.subClient.get_chat_messages(chatId=args.chatId, size=2).content[1]
     gTTS(text=args.message, lang=choice(langue), slow=False).save(audio_file)
     try:
         with open(audio_file, 'rb') as fp:
@@ -862,7 +862,7 @@ def keep_favorite_chats(args):
     if args.subClient.is_in_staff(client.botId) and client.check(args, 'staff', 'me', 'admin'):
         chats = args.subClient.favorite_chats
         with suppress(Exception):
-            chat = args.subClient.subclient.get_from_code(f"{args.message}")
+            chat = args.subClient.get_from_code(f"{args.message}")
             if chat.objectId not in chats:
                 args.subClient.add_favorite_chats(chat.objectId)
                 args.subClient.send_message(args.chatId, "Added to favorite chats")
@@ -897,7 +897,7 @@ def unkeep_favorite_chats(args):
         chats = args.subClient.favorite_chats
 
         with suppress(Exception):
-            chat = args.subClient.subclient.get_from_code(f"{args.message}")
+            chat = args.subClient.get_from_code(f"{args.message}")
             if chat.objectId in chats:
                 args.subClient.remove_favorite_chats(chat.objectId)
                 args.subClient.send_message(args.chatId, "Removed to favorite chats")
