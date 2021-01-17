@@ -1,6 +1,5 @@
-pdf2image
 Amino.py
-youtube_dl
+schedule
 reportlab
 argparse
 pyttsx3
