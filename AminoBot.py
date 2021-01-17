@@ -257,9 +257,9 @@ def msg(args):
     size = 1
     ment = None
     with suppress(Exception):
-        args.subClient.delete_message(args.chatId, args.messageId, asStaff=False)
+        args.subClient.delete_message(args.chatId, args.messageId, asStaff=True, reason="Clear")
 
-    if "chat=" in args.message and client.check(args, 'me'):
+    if "chat=" in args.message:
         chat_name = args.message.rsplit("chat=", 1).pop()
         chat_ide = args.subClient.get_chat_id(chat_name)
         if chat_ide:

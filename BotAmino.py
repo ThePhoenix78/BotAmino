@@ -228,7 +228,7 @@ class BotAmino(Command):
             args = Parameters(data, subClient)
 
             if args.chatId in subClient.only_view and not (self.check(args, "staff", "me", "admin")) and self.check(args, "staff", id_=self.botId):
-                subClient.delete_message(args.chatId, args.messageId, "Read-only chat", asStaff=True)
+                subClient.delete_message(args.chatId, args.messageId, reason="Read-only chat", asStaff=True)
 
         @client.callbacks.event("on_voice_message")
         def on_voice_message(data):
@@ -241,7 +241,7 @@ class BotAmino(Command):
             args = Parameters(data, subClient)
 
             if args.chatId in subClient.only_view and not (self.check(args, "staff", "me", "admin")) and self.check(args, "staff", id_=self.botId):
-                subClient.delete_message(args.chatId, args.messageId, "Read-only chat", asStaff=True)
+                subClient.delete_message(args.chatId, args.messageId, reason="Read-only chat", asStaff=True)
 
         @client.callbacks.event("on_sticker_message")
         def on_sticker_message(data):
@@ -254,7 +254,7 @@ class BotAmino(Command):
             args = Parameters(data, subClient)
 
             if args.chatId in subClient.only_view and not (self.check(args, "staff", "me", "admin")) and self.check(args, "staff", id_=self.botId):
-                subClient.delete_message(args.chatId, args.messageId, "Read-only chat", asStaff=True)
+                subClient.delete_message(args.chatId, args.messageId, reason="Read-only chat", asStaff=True)
 
         @client.callbacks.event("on_chat_invite")
         def on_chat_invite(data):
