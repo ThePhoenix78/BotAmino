@@ -20,8 +20,6 @@ path_picture = f'{path_utilities}/pictures'
 path_sound = f'{path_utilities}/sound'
 path_download = f'{path_utilities}/download'
 path_config = f"{path_utilities}/config.json"
-path_eljson1 = f"{path_utilities}/elJson.json"
-path_eljson2 = f"{path_utilities}/elJson2.json"
 path_client = "client.txt"
 
 

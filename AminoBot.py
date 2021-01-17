@@ -15,7 +15,7 @@ from BotAmino import *
 # Big optimisation thanks to SempreLEGIT#1378 ♥
 
 
-version = "1.7.3"
+version = "1.7.4"
 print(f"version : {version}")
 
 path_eljson1 = f"{path_utilities}/elJson.json"
