@@ -142,7 +142,10 @@ class BotAmino(Command):
                 return True
 
     def add_community(self, comId):
-        self.communaute[comId] = Bot(self.client, comId)
+        self.communaute[comId] = Bot(self.client, comId, self.prefix)
+
+    def commands_list(self):
+        return [elem for elem in self.commands.keys()]
 
     def run(self, comId):
         self.communaute[comId].run()
@@ -160,7 +163,7 @@ class BotAmino(Command):
         self.perms_list = tradlist(perms_list)
 
         amino_list = self.client.sub_clients()
-        self.len_community = len([Thread(target=self.threadLaunch, args=[commu, self.prefix]).start() for commu in amino_list.comId])
+        self.len_community = len([Thread(target=self.threadLaunch, args=[commu]).start() for commu in amino_list.comId])
 
         @client.callbacks.event("on_text_message")
         def on_text_message(data):
