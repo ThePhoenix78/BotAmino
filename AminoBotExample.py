@@ -3,7 +3,6 @@ from BotAmino import *
 print("Wait...")
 
 client = BotAmino()
-client.prefix = "/"
 
 # parameters inside the args : subClient : the "amino",
 #                              chatId : the chat where the command has be done,
