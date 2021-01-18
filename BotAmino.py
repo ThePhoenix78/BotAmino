@@ -13,6 +13,7 @@ from schedule import every, run_pending
 from amino.sub_client import SubClient
 from amino.client import Client
 
+# API made by ThePhoenix78
 
 path_utilities = "utilities"
 path_amino = f'{path_utilities}/amino_list'
@@ -112,9 +113,11 @@ class Parameters:
 
 
 class BotAmino(Command):
-    def __init__(self, client=client):
+    def __init__(self):
         super().__init__()
         self.client = client
+        self.client = Client()
+        self.client.login(email=login[0].strip(), password=login[1].strip())
         self.communaute = {}
         self.botId = client.userId
         self.len_community = 0
