@@ -17,14 +17,12 @@ from amino.client import Client
 
 path_utilities = "utilities"
 path_amino = f'{path_utilities}/amino_list'
-path_picture = f'{path_utilities}/pictures'
-path_sound = f'{path_utilities}/sound'
 path_download = f'{path_utilities}/download'
 path_config = f"{path_utilities}/config.json"
 path_client = "client.txt"
 
 
-for i in (path_utilities, path_picture, path_sound, path_download, path_amino):
+for i in (path_utilities, path_download, path_amino):
     Path(i).mkdir(exist_ok=True)
 
 
