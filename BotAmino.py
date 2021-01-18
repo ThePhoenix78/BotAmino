@@ -291,7 +291,7 @@ class Bot(SubClient):
 
         self.community_name = self.community.name
 
-        SubClient.__init__(self, self.community_id, client.profile)
+        SubClient.__init__(self, self.community_id, self.client.profile)
 
         try:
             self.community_leader_agent_id = self.community.json["agent"]["uid"]
