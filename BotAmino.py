@@ -14,6 +14,7 @@ from amino.sub_client import SubClient
 from amino.client import Client
 
 # API made by ThePhoenix78
+# Big optimisation thanks to SempreLEGIT#1378 ♥
 
 path_utilities = "utilities"
 path_amino = f'{path_utilities}/amino_list'
