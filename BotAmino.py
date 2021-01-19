@@ -272,12 +272,38 @@ class BotAmino(Command):
             subClient.join_chat(chatId=args.chatId)
             subClient.send_message(args.chatId, f"Hello!\n[B]I am a bot, if you have any question ask a staff member!\nHow can I help you?\n(you can do {subClient.prefix}help if you need help)")
 
+        @client.callbacks.event("on_group_member_join")
+        def on_group_member_join(data):
+            try:
+                commuId = data.json["ndcId"]
+                subClient = self.get_community(commuId)
+            except Exception:
+                return
+
+            args = Parameters(data, subClient)
+            if subClient.group_message_welcome:
+                subClient.send_message(args.chatId, f"{subClient.group_message_welcome}")
+
+        @client.callbacks.event("on_group_member_leave")
+        def on_group_member_leave(data):
+            try:
+                commuId = data.json["ndcId"]
+                subClient = self.get_community(commuId)
+            except Exception:
+                return
+
+            args = Parameters(data, subClient)
+            if subClient.group_message_goodbye:
+                subClient.send_message(args.chatId, f"{subClient.group_message_welcome}")
+
 
 class Bot(SubClient):
     def __init__(self, client, community, prefix: str = "!"):
         self.client = client
         self.marche = True
         self.prefix = prefix
+        self.group_message_welcome = ""
+        self.group_message_goodbye = ""
 
         if isinstance(community, int):
             self.community_id = community
@@ -715,13 +741,6 @@ class Bot(SubClient):
             except Exception as e:
                 print_exception(e)
 
-        def check_new_members():
-            if self.welcome_chat or self.message_bvn:
-                try:
-                    Thread(target=self.check_new_member).start()
-                except Exception as e:
-                    print_exception(e)
-
         def feature_chats():
             try:
                 Thread(target=self.feature_chats).start()
@@ -736,12 +755,10 @@ class Bot(SubClient):
 
         sleep(30)
         change_bio_and_welcome_members()
-        check_new_members()
         feature_chats()
         feature_users()
 
         every().minute.do(change_bio_and_welcome_members)
-        every(500).seconds.do(check_new_members)
         every(2).hours.do(feature_chats)
         every().day.do(feature_users)
 
