@@ -51,23 +51,6 @@ except FileNotFoundError:
     exit(1)
 
 
-client = Client()
-client.login(email=login[0].strip(), password=login[1].strip())
-
-
-def tradlist(sub):
-    sublist = []
-    for elem in sub:
-        with suppress(Exception):
-            val = client.get_from_code(f"http://aminoapps.com/u/{elem}").objectId
-            sublist.append(val)
-            continue
-        with suppress(Exception):
-            val = client.get_user_info(elem).userId
-            sublist.append(val)
-            continue
-    return sublist
-
 
 def filter_message(message, code):
     return normalize('NFD', message).encode(code, 'ignore').decode().lower().translate(str.maketrans("", "", punctuation))
@@ -111,17 +94,34 @@ class Parameters:
         self.messageId = data.message.messageId
 
 
-class BotAmino(Command):
-    def __init__(self):
-        super().__init__()
-        self.client = client
-        self.client = Client()
-        self.client.login(email=login[0].strip(), password=login[1].strip())
+class BotAmino(Command, Client):
+    def __init__(self, email: str = None, password: str = None):
+        Command.__init__(self)
+        Client.__init__(self)
+
+        if email and password:
+            self.login(email=email, password=password)
+        else:
+            self.login(email=login[0].strip(), password=login[1].strip())
+
         self.communaute = {}
-        self.botId = client.userId
+        self.botId = self.userId
         self.len_community = 0
         self.perms_list = []
         self.prefix = "!"
+
+    def tradlist(self, sub):
+        sublist = []
+        for elem in sub:
+            with suppress(Exception):
+                val = self.get_from_code(f"http://aminoapps.com/u/{elem}").objectId
+                sublist.append(val)
+                continue
+            with suppress(Exception):
+                val = self.get_user_info(elem).userId
+                sublist.append(val)
+                continue
+        return sublist
 
     def get_community(self, comId):
         return self.communaute[comId]
@@ -144,7 +144,7 @@ class BotAmino(Command):
                 return True
 
     def add_community(self, comId):
-        self.communaute[comId] = Bot(self.client, comId, self.prefix)
+        self.communaute[comId] = Bot(self, comId, self.prefix)
 
     def commands_list(self):
         return [elem for elem in self.commands.keys()]
@@ -162,12 +162,12 @@ class BotAmino(Command):
             if command in self.commands.keys():
                 del self.commands[command]
 
-        self.perms_list = tradlist(perms_list)
+        self.perms_list = self.tradlist(perms_list)
 
-        amino_list = self.client.sub_clients()
+        amino_list = self.sub_clients()
         self.len_community = len([Thread(target=self.threadLaunch, args=[commu]).start() for commu in amino_list.comId])
 
-        @client.callbacks.event("on_text_message")
+        @self.callbacks.event("on_text_message")
         def on_text_message(data):
             try:
                 commuId = data.json["ndcId"]
@@ -221,7 +221,7 @@ class BotAmino(Command):
             with suppress(Exception):
                 [Thread(target=values, args=[args]).start() for key, values in self.commands.items() if command == key.lower()]
 
-        @client.callbacks.event("on_image_message")
+        @self.callbacks.event("on_image_message")
         def on_image_message(data):
             try:
                 commuId = data.json["ndcId"]
@@ -234,7 +234,7 @@ class BotAmino(Command):
             if args.chatId in subClient.only_view and not (self.check(args, "staff", "me", "admin")) and self.check(args, "staff", id_=self.botId):
                 subClient.delete_message(args.chatId, args.messageId, reason="Read-only chat", asStaff=True)
 
-        @client.callbacks.event("on_voice_message")
+        @self.callbacks.event("on_voice_message")
         def on_voice_message(data):
             try:
                 commuId = data.json["ndcId"]
@@ -247,7 +247,7 @@ class BotAmino(Command):
             if args.chatId in subClient.only_view and not (self.check(args, "staff", "me", "admin")) and self.check(args, "staff", id_=self.botId):
                 subClient.delete_message(args.chatId, args.messageId, reason="Read-only chat", asStaff=True)
 
-        @client.callbacks.event("on_sticker_message")
+        @self.callbacks.event("on_sticker_message")
         def on_sticker_message(data):
             try:
                 commuId = data.json["ndcId"]
@@ -260,7 +260,7 @@ class BotAmino(Command):
             if args.chatId in subClient.only_view and not (self.check(args, "staff", "me", "admin")) and self.check(args, "staff", id_=self.botId):
                 subClient.delete_message(args.chatId, args.messageId, reason="Read-only chat", asStaff=True)
 
-        @client.callbacks.event("on_chat_invite")
+        @self.callbacks.event("on_chat_invite")
         def on_chat_invite(data):
             try:
                 commuId = data.json["ndcId"]
@@ -273,7 +273,7 @@ class BotAmino(Command):
             subClient.join_chat(chatId=args.chatId)
             subClient.send_message(args.chatId, f"Hello!\n[B]I am a bot, if you have any question ask a staff member!\nHow can I help you?\n(you can do {subClient.prefix}help if you need help)")
 
-        @client.callbacks.event("on_group_member_join")
+        @self.callbacks.event("on_group_member_join")
         def on_group_member_join(data):
             try:
                 commuId = data.json["ndcId"]
@@ -285,7 +285,7 @@ class BotAmino(Command):
             if subClient.group_message_welcome:
                 subClient.send_message(args.chatId, f"{subClient.group_message_welcome}")
 
-        @client.callbacks.event("on_group_member_leave")
+        @self.callbacks.event("on_group_member_leave")
         def on_group_member_leave(data):
             try:
                 commuId = data.json["ndcId"]
@@ -341,7 +341,7 @@ class Bot(SubClient):
         old_dict = self.get_file_dict()
         new_dict = self.create_dict()
 
-        {**new_dict, **{i:e for i, e in old_dict.items() if i in new_dict}}
+        {**new_dict, **{i: e for i, e in old_dict.items() if i in new_dict}}
 
         self.update_file(old_dict)
 
