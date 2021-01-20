@@ -1,8 +1,13 @@
 from BotAmino import *
+from gtts import gTTS, lang
+import os
+from pathlib import Path
 
+
+print("wait...")
 client = BotAmino()
 
-# parameters inside the args : subClient : the "amino",
+# parameters inside the data : subClient : the "amino",
 #                              chatId : the chat where the command has be done,
 #                              authorId : the id of the author
 #                              author : the username of the user who did the command
@@ -10,13 +15,22 @@ client = BotAmino()
 #                              messageId : the message id of the command
 
 
+@client.command("say")
+def say_something(data):
+    audio_file = f"{path_download}/ttp.mp3"
+    langue = list(lang.tts_langs().keys())
+    gTTS(text=data.message, lang=choice(langue), slow=False).save(audio_file)
+    with open(audio_file, 'rb') as fp:
+        data.subClient.send_message(data.chatId, file=fp, fileType="audio")
+        os.remove(audio_file)
+
+
 @client.command("hello")
-def random_action(args):
-    args.subClient.send_message(args.chatId, "Hello!^^")
+def random_action(data):
+    data.subClient.send_message(data.chatId, "Hello!^^")
 
 
-print(client.commands_list())
-
+# --->
 # first, we name our command, here, I will call it title
 
 
