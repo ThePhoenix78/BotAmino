@@ -1,12 +1,11 @@
 from BotAmino import *
 from gtts import gTTS, lang
 import os
-from pathlib import Path
+from random import choice
 
 
 print("wait...")
 client = BotAmino()
-
 # parameters inside the data : subClient : the "amino",
 #                              chatId : the chat where the command has be done,
 #                              authorId : the id of the author
@@ -17,12 +16,12 @@ client = BotAmino()
 
 @client.command("say")
 def say_something(data):
-    audio_file = f"{path_download}/ttp.mp3"
+    audio_file = "ttp.mp3"
     langue = list(lang.tts_langs().keys())
     gTTS(text=data.message, lang=choice(langue), slow=False).save(audio_file)
     with open(audio_file, 'rb') as fp:
         data.subClient.send_message(data.chatId, file=fp, fileType="audio")
-        os.remove(audio_file)
+    os.remove(audio_file)
 
 
 @client.command("hello")
@@ -50,5 +49,18 @@ def give_a_title(data):
     # and the message (here Done!), you can add as well other parameters like replyTo=data.authorId
 
 
+@client.command("8ball")
+def height_ball(data):
+    test = choice(["não", "sim", "talvez", "claro", "nunca", "acho que sim"])
+    data.subClient.send_message(data.chatId, test)
+
+
 client.launch()
+
+
+@client.callbacks.event("on_voice_message")
+def on_audio(data):
+    print("audio_file")
+
+
 print("ready")

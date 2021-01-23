@@ -1,13 +1,11 @@
+from time import sleep as slp
 from sys import exit
 from json import dumps, load
-from time import sleep
 from string import hexdigits
 from pathlib import Path
 from threading import Thread
 from contextlib import suppress
 from random import sample, choice
-from string import punctuation
-from unicodedata import normalize
 from schedule import every, run_pending
 
 from amino.sub_client import SubClient
@@ -18,51 +16,15 @@ from amino.client import Client
 
 path_utilities = "utilities"
 path_amino = f'{path_utilities}/amino_list'
-path_download = f'{path_utilities}/download'
-path_config = f"{path_utilities}/config.json"
 path_client = "client.txt"
 
 
-for i in (path_utilities, path_download, path_amino):
+for i in (path_utilities, path_amino):
     Path(i).mkdir(exist_ok=True)
-
-
-try:
-    with open(path_config, "r") as file:
-        data = load(file)
-        perms_list = data["admin"]
-        command_lock = data["lock"]
-        del data
-except FileNotFoundError:
-    with open(path_config, 'w') as file:
-        file.write(dumps({"admin": [], "lock": []}, indent=4))
-    print("Created config.json!\nYou should put your Amino Id in the list admin\nand the commands you don't want to use in lock")
-    perms_list = []
-    command_lock = []
-
-try:
-    with open(path_client, "r") as file_:
-        login = file_.readlines()
-except FileNotFoundError:
-    with open(path_client, 'w') as file_:
-        file_.write('email\npassword')
-    print("Please enter your email and password in the file client.txt")
-    print("-----end-----")
-    exit(1)
-
-
-
-def filter_message(message, code):
-    return normalize('NFD', message).encode(code, 'ignore').decode().lower().translate(str.maketrans("", "", punctuation))
 
 
 def print_exception(exc):
     print(repr(exc))
-
-
-def is_it_me(uid):
-    return uid in ('2137891f-82b5-4811-ac74-308d7a46345b', 'fa1f3678-df94-4445-8ec4-902651140841',
-                   'f198e2f4-603c-481a-ab74-efd0f688f666')
 
 
 class Command:
@@ -102,7 +64,16 @@ class BotAmino(Command, Client):
         if email and password:
             self.login(email=email, password=password)
         else:
-            self.login(email=login[0].strip(), password=login[1].strip())
+            try:
+                with open(path_client, "r") as file_:
+                    para = file_.readlines()
+                self.login(email=para[0].strip(), password=para[1].strip())
+            except FileNotFoundError:
+                with open(path_client, 'w') as file_:
+                    file_.write('email\npassword')
+                print("Please enter your email and password in the file client.txt")
+                print("-----end-----")
+                exit(1)
 
         self.communaute = {}
         self.botId = self.userId
@@ -135,8 +106,6 @@ class BotAmino(Command, Client):
     def check(self, args, *can, id_=None):
         id_ = id_ if id_ else args.authorId
         foo = {'staff': args.subClient.is_in_staff,
-               'me': is_it_me,
-               'admin': self.is_it_admin,
                'bot': self.is_it_bot}
 
         for i in can:
@@ -153,19 +122,13 @@ class BotAmino(Command, Client):
         self.communaute[comId].run()
 
     def threadLaunch(self, commu):
-        with suppress(Exception):
-            self.add_community(commu)
-            self.run(commu)
+        self.add_community(commu)
+        self.run(commu)
 
     def launch(self):
-        for command in command_lock:
-            if command in self.commands.keys():
-                del self.commands[command]
-
-        self.perms_list = self.tradlist(perms_list)
-
         amino_list = self.sub_clients()
-        self.len_community = len([Thread(target=self.threadLaunch, args=[commu]).start() for commu in amino_list.comId])
+        self.len_community = len(amino_list.comId)
+        [Thread(target=self.threadLaunch, args=[commu]).start() for commu in amino_list.comId]
 
         @self.callbacks.event("on_text_message")
         def on_text_message(data):
@@ -178,124 +141,14 @@ class BotAmino(Command, Client):
             args = Parameters(data, subClient)
             print(f"{args.author} : {args.message}")
 
-            if args.chatId in subClient.only_view and not (self.check(args, 'me', 'admin', "staff")) and self.check(args, "staff", id_=self.botId):
-                subClient.delete_message(args.chatId, args.messageId, "Read-only chat", asStaff=True)
-                return
-
-            if not self.check(args, 'staff', 'me', 'admin', "bot") and subClient.banned_words:
-                with suppress(Exception):
-                    para = filter_message(args.message, "ascii").split()
-
-                    if para != [""]:
-                        for elem in para:
-                            if elem in subClient.banned_words:
-                                with suppress(Exception):
-                                    subClient.delete_message(args.chatId, args.messageId, "Banned word", asStaff=True)
-                                return
-
-                with suppress(Exception):
-                    para = filter_message(args.message, "utf8").split()
-
-                    if para != [""]:
-                        for elem in para:
-                            if elem in subClient.banned_words:
-                                with suppress(Exception):
-                                    subClient.delete_message(args.chatId, args.messageId, "Banned word", asStaff=True)
-                                return
-
             if args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
-
                 command = args.message.split()[0][len(subClient.prefix):]
                 args.message = ' '.join(args.message.split()[1:])
-
-                if command in subClient.locked_command and not self.check(args, 'staff', 'me', 'admin'):
-                    return
-                if command in subClient.admin_locked_command and not (self.check(args, 'me', 'admin')):
-                    return
-                if not subClient.is_level_good(args.authorId) and not self.check(args, 'staff', 'me', 'admin'):
-                    subClient.send_message(args.chatId, f"You don't have the level for that ({subClient.level})")
-                    return
             else:
                 return
 
             with suppress(Exception):
                 [Thread(target=values, args=[args]).start() for key, values in self.commands.items() if command == key.lower()]
-
-        @self.callbacks.event("on_image_message")
-        def on_image_message(data):
-            try:
-                commuId = data.json["ndcId"]
-                subClient = self.get_community(commuId)
-            except Exception:
-                return
-
-            args = Parameters(data, subClient)
-
-            if args.chatId in subClient.only_view and not (self.check(args, "staff", "me", "admin")) and self.check(args, "staff", id_=self.botId):
-                subClient.delete_message(args.chatId, args.messageId, reason="Read-only chat", asStaff=True)
-
-        @self.callbacks.event("on_voice_message")
-        def on_voice_message(data):
-            try:
-                commuId = data.json["ndcId"]
-                subClient = self.get_community(commuId)
-            except Exception:
-                return
-
-            args = Parameters(data, subClient)
-
-            if args.chatId in subClient.only_view and not (self.check(args, "staff", "me", "admin")) and self.check(args, "staff", id_=self.botId):
-                subClient.delete_message(args.chatId, args.messageId, reason="Read-only chat", asStaff=True)
-
-        @self.callbacks.event("on_sticker_message")
-        def on_sticker_message(data):
-            try:
-                commuId = data.json["ndcId"]
-                subClient = self.get_community(commuId)
-            except Exception:
-                return
-
-            args = Parameters(data, subClient)
-
-            if args.chatId in subClient.only_view and not (self.check(args, "staff", "me", "admin")) and self.check(args, "staff", id_=self.botId):
-                subClient.delete_message(args.chatId, args.messageId, reason="Read-only chat", asStaff=True)
-
-        @self.callbacks.event("on_chat_invite")
-        def on_chat_invite(data):
-            try:
-                commuId = data.json["ndcId"]
-                subClient = self.get_community(commuId)
-            except Exception:
-                return
-
-            args = Parameters(data, subClient)
-
-            subClient.join_chat(chatId=args.chatId)
-            subClient.send_message(args.chatId, f"Hello!\n[B]I am a bot, if you have any question ask a staff member!\nHow can I help you?\n(you can do {subClient.prefix}help if you need help)")
-
-        @self.callbacks.event("on_group_member_join")
-        def on_group_member_join(data):
-            try:
-                commuId = data.json["ndcId"]
-                subClient = self.get_community(commuId)
-            except Exception:
-                return
-
-            args = Parameters(data, subClient)
-            if subClient.group_message_welcome:
-                subClient.send_message(args.chatId, f"{subClient.group_message_welcome}")
-
-        @self.callbacks.event("on_group_member_leave")
-        def on_group_member_leave(data):
-            try:
-                commuId = data.json["ndcId"]
-                subClient = self.get_community(commuId)
-            except Exception:
-                return
-
-            args = Parameters(data, subClient)
-            if subClient.group_message_goodbye:
-                subClient.send_message(args.chatId, f"{subClient.group_message_welcome}")
 
 
 class Bot(SubClient):
@@ -754,7 +607,7 @@ class Bot(SubClient):
             except Exception as e:
                 print_exception(e)
 
-        sleep(30)
+        slp(30)
         change_bio_and_welcome_members()
         feature_chats()
         feature_users()
@@ -765,7 +618,7 @@ class Bot(SubClient):
 
         while self.marche:
             run_pending()
-            sleep(10)
+            slp(10)
 
     def run(self):
         Thread(target=self.passive).start()
