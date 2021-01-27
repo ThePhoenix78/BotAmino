@@ -154,6 +154,7 @@ class BotAmino(Command, Client):
 class Bot(SubClient):
     def __init__(self, client, community, prefix: str = "!"):
         self.client = client
+        print(self.client.profile)
         self.marche = True
         self.prefix = prefix
         self.group_message_welcome = ""
@@ -171,7 +172,7 @@ class Bot(SubClient):
 
         self.community_name = self.community.name
 
-        super().__init__(self.community_id, self.client.profile)
+        super().__init__(comId=self.community_id, profile=self.client.profile)
 
         try:
             self.community_leader_agent_id = self.community.json["agent"]["uid"]
