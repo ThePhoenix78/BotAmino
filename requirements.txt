@@ -2,4 +2,3 @@ Amino.py
 schedule
 reportlab
 argparse
-pyttsx3

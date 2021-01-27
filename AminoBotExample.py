@@ -6,6 +6,8 @@ from random import choice
 
 print("wait...")
 client = BotAmino()
+client.prefix = "/"
+
 # parameters inside the data : subClient : the "amino",
 #                              chatId : the chat where the command has be done,
 #                              authorId : the id of the author
@@ -33,7 +35,7 @@ def random_action(data):
 # first, we name our command, here, I will call it title
 
 
-@client.command("title")
+@client.command("title_example")
 def give_a_title(data):
     # we give the function the name we want (here give_a_title for example)
     # /!\ The function MUST HAVE a parameter (call it data for an easy use)
@@ -47,6 +49,20 @@ def give_a_title(data):
     # Here is an cfunction taken from the Amino.py's API (https://aminopy.readthedocs.io/en/latest/amino.html#amino.client.Client.send_message)
     # it take at least 2 parameters, the chatId (the chat where the message have to be send)
     # and the message (here Done!), you can add as well other parameters like replyTo=data.authorId
+
+
+@client.command("title")
+def title(args):
+    if client.check(args, 'staff', id_=client.botId):
+        try:
+            title, color = args.message.split("color=")
+            color = color if color.startswith("#") else f'#{color}'
+        except Exception:
+            title = args.message
+            color = None
+
+        if args.subClient.add_title(args.authorId, title, color):
+            args.subClient.send_message(args.chatId, f"The titles of {args.author} has changed")
 
 
 @client.command("8ball")

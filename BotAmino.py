@@ -196,6 +196,10 @@ class Bot(SubClient):
 
         {**new_dict, **{i: e for i, e in old_dict.items() if i in new_dict}}
 
+        for key, value in old_dict.items():
+            if key not in new_dict:
+                del old_dict[key]
+
         self.update_file(old_dict)
 
         self.subclient = SubClient(comId=self.community_id, profile=client.profile)
@@ -205,7 +209,6 @@ class Bot(SubClient):
         self.locked_command = self.get_file_info("locked_command")
         self.admin_locked_command = self.get_file_info("admin_locked_command")
         self.welcome_chat = self.get_file_info("welcome_chat")
-        self.only_view = self.get_file_info("only_view")
         self.prefix = self.get_file_info("prefix")
         self.level = self.get_file_info("level")
         self.favorite_users = self.get_file_info("favorite_users")
@@ -223,10 +226,10 @@ class Bot(SubClient):
             file.write(dumps(dict, sort_keys=False, indent=4))
 
     def create_dict(self):
-        return {"welcome": "", "banned_words": [], "locked_command": [], "admin_locked_command": [], "prefix": self.prefix, "only_view": [], "welcome_chat": "", "level": 0, "favorite_users": [], "favorite_chats": []}
+        return {"welcome": "", "banned_words": [], "locked_command": [], "admin_locked_command": [], "prefix": self.prefix, "welcome_chat": "", "level": 0, "favorite_users": [], "favorite_chats": []}
 
     def get_dict(self):
-        return {"welcome": self.message_bvn, "banned_words": self.banned_words, "locked_command": self.locked_command, "admin_locked_command": self.admin_locked_command, "prefix": self.prefix, "only_view": self.only_view, "welcome_chat": self.welcome_chat, "level": self.level, "favorite_users": self.favorite_users, "favorite_chats": self.favorite_chats}
+        return {"welcome": self.message_bvn, "banned_words": self.banned_words, "locked_command": self.locked_command, "admin_locked_command": self.admin_locked_command, "prefix": self.prefix, "welcome_chat": self.welcome_chat, "level": self.level, "favorite_users": self.favorite_users, "favorite_chats": self.favorite_chats}
 
     def update_file(self, dict=None):
         if not dict:
@@ -270,10 +273,6 @@ class Bot(SubClient):
         self.banned_words.extend(liste)
         self.update_file()
 
-    def add_only_view(self, chatId: str):
-        self.only_view.append(chatId)
-        self.update_file()
-
     def add_favorite_users(self, value: str):
         self.favorite_users.append(value)
         self.update_file()
@@ -302,10 +301,6 @@ class Bot(SubClient):
     def remove_favorite_chats(self, value: str):
         liste = [value]
         [self.favorite_chats.remove(elem) for elem in liste if elem in self.favorite_chats]
-        self.update_file()
-
-    def remove_only_view(self, chatId: str):
-        self.only_view.remove(chatId)
         self.update_file()
 
     def unset_welcome_chat(self):
@@ -556,16 +551,10 @@ class Bot(SubClient):
 
     def add_title(self, uid, title: str, color: str = None):
         member = self.get_member_titles(uid)
-        tlist = []
-        clist = []
-        with suppress(Exception):
-            tlist = [elem['title'] for elem in member]
-            clist = [elem['color'] for elem in member]
-        tlist.append(title)
-        clist.append(color)
+        titles = [i['title'] for i in member] + [title]
+        colors = [i['color'] for i in member] + [color]
 
-        with suppress(Exception):
-            self.edit_titles(uid, tlist, clist)
+        self.edit_titles(uid, titles, colors)
         return True
 
     def remove_title(self, uid, title: str):
