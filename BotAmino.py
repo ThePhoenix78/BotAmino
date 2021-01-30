@@ -10,6 +10,7 @@ from schedule import every, run_pending
 
 from amino.sub_client import SubClient
 from amino.client import Client
+from amino.acm import ACM
 
 # API made by ThePhoenix78
 # Big optimisation thanks to SempreLEGIT#1378 ♥
@@ -31,17 +32,47 @@ class Command:
     def __init__(self):
         self.commands = {}
 
-    def execute(self, commande, data):
-        return self.commands[commande](data)
+    def execute(self, commande, data, type: str = "text"):
+        return self.commands[type][commande](data)
 
-    def get_commands_names(self):
-        return self.commands.keys()
+    def commands_list(self):
+        return [command.keys() for command in self.commands.keys()]
 
     def command(self, command_name):
         def add_command(command_funct):
-            self.commands[command_name] = command_funct
+            self.commands["text"][command_name.lower()] = command_funct
             return command_funct
+        if "text" not in self.commands.keys():
+            self.commands["text"] = {}
         return add_command
+
+    def delete(self, command_name):
+        def add_command(command_funct):
+            self.commands["delete"][command_name.lower()] = command_funct
+            return command_funct
+        if "delete" not in self.commands.keys():
+            self.commands["delete"] = {}
+        return add_command
+
+
+class TimeOut:
+    users_dict = {}
+
+    def time_user(self, uid, end: int = 5):
+        if uid not in self.users_dict.keys():
+            self.users_dict[uid] = {"start": 0, "end": end}
+            Thread(target=self.timer, args=[uid]).start()
+
+    def timer(self, uid):
+        while self.users_dict[uid]["start"] <= self.users_dict[uid]["end"]:
+            self.users_dict[uid]["start"] += 1
+            slp(1)
+        del self.users_dict[uid]
+
+    def timed_out(self, uid):
+        if uid in self.users_dict.keys():
+            return self.users_dict[uid]["start"] >= self.users_dict[uid]["end"]
+        return True
 
 
 class Parameters:
@@ -56,7 +87,7 @@ class Parameters:
         self.messageId = data.message.messageId
 
 
-class BotAmino(Command, Client):
+class BotAmino(Command, Client, TimeOut):
     def __init__(self, email: str = None, password: str = None):
         Command.__init__(self)
         Client.__init__(self)
@@ -80,6 +111,7 @@ class BotAmino(Command, Client):
         self.len_community = 0
         self.perms_list = []
         self.prefix = "!"
+        self.wait = 0
 
     def tradlist(self, sub):
         sublist = []
@@ -115,9 +147,6 @@ class BotAmino(Command, Client):
     def add_community(self, comId):
         self.communaute[comId] = Bot(self, comId, self.prefix)
 
-    def commands_list(self):
-        return [elem for elem in self.commands.keys()]
-
     def run(self, comId):
         self.communaute[comId].run()
 
@@ -130,6 +159,10 @@ class BotAmino(Command, Client):
         self.len_community = len(amino_list.comId)
         [Thread(target=self.threadLaunch, args=[commu]).start() for commu in amino_list.comId]
 
+        if "text" in self.commands.keys():
+            self.launch_text_message()
+
+    def launch_text_message(self):
         @self.callbacks.event("on_text_message")
         def on_text_message(data):
             try:
@@ -139,22 +172,24 @@ class BotAmino(Command, Client):
                 return
 
             args = Parameters(data, subClient)
-            print(f"{args.author} : {args.message}")
 
-            if args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
+            if not self.timed_out(args.authorId) and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
+                subClient.send_message(args.chatId, "You are spamming, be careful")
+
+            elif args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
+                print(f"{args.author} : {args.message}")
                 command = args.message.split()[0][len(subClient.prefix):]
                 args.message = ' '.join(args.message.split()[1:])
+                self.time_user(args.authorId, self.wait)
+                if command.lower() in self.commands["text"].keys():
+                    Thread(target=self.execute, args=[command, args]).start()
             else:
                 return
 
-            with suppress(Exception):
-                [Thread(target=values, args=[args]).start() for key, values in self.commands.items() if command == key.lower()]
 
-
-class Bot(SubClient):
+class Bot(SubClient, ACM):
     def __init__(self, client, community, prefix: str = "!"):
         self.client = client
-        print(self.client.profile)
         self.marche = True
         self.prefix = prefix
         self.group_message_welcome = ""
@@ -197,10 +232,6 @@ class Bot(SubClient):
 
         {**new_dict, **{i: e for i, e in old_dict.items() if i in new_dict}}
 
-        for key, value in old_dict.items():
-            if key not in new_dict:
-                del old_dict[key]
-
         self.update_file(old_dict)
 
         self.subclient = SubClient(comId=self.community_id, profile=client.profile)
@@ -216,6 +247,7 @@ class Bot(SubClient):
         self.favorite_chats = self.get_file_info("favorite_chats")
         self.activity_status("on")
         new_users = self.get_all_users(start=0, size=30, type="recent")
+
         self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
         if self.welcome_chat or self.message_bvn:
             with suppress(Exception):
@@ -486,9 +518,6 @@ class Bot(SubClient):
     def get_member_info(self, uid):
         return self.get_user_info(userId=uid)
 
-    def get_wallet_info(self):
-        return self.client.get_wallet_info().json
-
     def get_wallet_amount(self):
         return self.client.get_wallet_info().totalCoins
 
@@ -503,7 +532,7 @@ class Bot(SubClient):
     def unfavorite(self, userId: str = None, chatId: str = None, blogId: str = None, wikiId: str = None):
         self.unfeature(userId=userId, chatId=chatId, blogId=blogId, wikiId=wikiId)
 
-    def join_chat(self, chat: str = None, chatId: str = None):
+    def join_chatroom(self, chat: str = None, chatId: str = None):
         if not chat:
             with suppress(Exception):
                 self.join_chat(chatId)
@@ -535,9 +564,6 @@ class Bot(SubClient):
         for elem in self.get_public_chat_threads().chatId:
             with suppress(Exception):
                 self.join_chat(elem)
-
-    def leave_chat(self, chat: str):
-        self.leave_chat(chat)
 
     def leave_all_chats(self):
         for elem in self.get_public_chat_threads().chatId:
