@@ -54,6 +54,14 @@ class Command:
             self.commands["delete"] = {}
         return add_command
 
+    def answer(self, command_name):
+        def add_command(command_funct):
+            self.commands["answer"][command_name.lower()] = command_funct
+            return command_funct
+        if "answer" not in self.commands.keys():
+            self.commands["answer"] = {}
+        return add_command
+
 
 class TimeOut:
     users_dict = {}
@@ -159,7 +167,7 @@ class BotAmino(Command, Client, TimeOut):
         self.len_community = len(amino_list.comId)
         [Thread(target=self.threadLaunch, args=[commu]).start() for commu in amino_list.comId]
 
-        if "text" in self.commands.keys():
+        if "text" in self.commands.keys() or "answer" in self.commands.keys():
             self.launch_text_message()
 
     def launch_text_message(self):
@@ -176,13 +184,18 @@ class BotAmino(Command, Client, TimeOut):
             if not self.timed_out(args.authorId) and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
                 subClient.send_message(args.chatId, "You are spamming, be careful")
 
-            elif args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
+            elif self.commands["text"] and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
                 print(f"{args.author} : {args.message}")
                 command = args.message.split()[0][len(subClient.prefix):]
                 args.message = ' '.join(args.message.split()[1:])
                 self.time_user(args.authorId, self.wait)
                 if command.lower() in self.commands["text"].keys():
                     Thread(target=self.execute, args=[command, args]).start()
+
+            elif self.commands["answer"] and args.message.lower() in self.commands["answer"] and not self.check(args, "bot"):
+                print(f"{args.author} : {args.message}")
+                self.time_user(args.authorId, self.wait)
+                Thread(target=self.execute, args=[args.message, args, "answer"]).start()
             else:
                 return
 
