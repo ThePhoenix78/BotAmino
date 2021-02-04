@@ -8,9 +8,7 @@ from contextlib import suppress
 from random import sample, choice
 from schedule import every, run_pending
 
-from amino.sub_client import SubClient
-from amino.client import Client
-from amino.acm import ACM
+from amino import Client, SubClient, ACM
 
 # API made by ThePhoenix78
 # Big optimisation thanks to SempreLEGIT#1378 ♥
@@ -184,7 +182,7 @@ class BotAmino(Command, Client, TimeOut):
             if not self.timed_out(args.authorId) and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
                 subClient.send_message(args.chatId, "You are spamming, be careful")
 
-            elif self.commands["text"] and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
+            elif "text" in self.commands.keys() and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
                 print(f"{args.author} : {args.message}")
                 command = args.message.split()[0][len(subClient.prefix):]
                 args.message = ' '.join(args.message.split()[1:])
@@ -192,10 +190,10 @@ class BotAmino(Command, Client, TimeOut):
                 if command.lower() in self.commands["text"].keys():
                     Thread(target=self.execute, args=[command, args]).start()
 
-            elif self.commands["answer"] and args.message.lower() in self.commands["answer"] and not self.check(args, "bot"):
+            elif "answer" in self.commands.keys() and args.message.lower() in self.commands["answer"] and not self.check(args, "bot"):
                 print(f"{args.author} : {args.message}")
                 self.time_user(args.authorId, self.wait)
-                Thread(target=self.execute, args=[args.message, args, "answer"]).start()
+                Thread(target=self.execute, args=[args.message.lower(), args, "answer"]).start()
             else:
                 return
 
