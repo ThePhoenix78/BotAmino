@@ -205,6 +205,7 @@ class Bot(SubClient, ACM):
         self.prefix = prefix
         self.group_message_welcome = ""
         self.group_message_goodbye = ""
+        self.bio_contents = ["Hello everyone!", f"{self.prefix}"]
 
         if isinstance(community, int):
             self.community_id = community
@@ -611,14 +612,12 @@ class Bot(SubClient, ACM):
         return True
 
     def passive(self):
-        bio_contents = [f"{self.prefix}cookie for cookies", "Hello everyone!", f"{self.prefix}help for help"]
-
         def change_bio_and_welcome_members():
             if self.welcome_chat or self.message_bvn:
                 Thread(target=self.welcome_new_member).start()
             try:
                 self.activity_status('on')
-                self.edit_profile(content=choice(bio_contents))
+                self.edit_profile(content=choice(self.admin_locked_commandbio_contents))
             except Exception as e:
                 print_exception(e)
 
