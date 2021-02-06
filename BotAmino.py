@@ -118,6 +118,7 @@ class BotAmino(Command, Client, TimeOut):
         self.perms_list = []
         self.prefix = "!"
         self.wait = 0
+        self.bio = None
 
     def tradlist(self, sub):
         sublist = []
@@ -151,7 +152,7 @@ class BotAmino(Command, Client, TimeOut):
                 return True
 
     def add_community(self, comId):
-        self.communaute[comId] = Bot(self, comId, self.prefix)
+        self.communaute[comId] = Bot(self, comId, self.prefix, self.bio)
 
     def run(self, comId):
         self.communaute[comId].run()
@@ -199,13 +200,13 @@ class BotAmino(Command, Client, TimeOut):
 
 
 class Bot(SubClient, ACM):
-    def __init__(self, client, community, prefix: str = "!"):
+    def __init__(self, client, community, prefix: str = "!", bio=None):
         self.client = client
         self.marche = True
         self.prefix = prefix
         self.group_message_welcome = ""
         self.group_message_goodbye = ""
-        self.bio_contents = ["Hello everyone!", f"{self.prefix}"]
+        self.bio_contents = bio
 
         if isinstance(community, int):
             self.community_id = community
@@ -617,7 +618,12 @@ class Bot(SubClient, ACM):
                 Thread(target=self.welcome_new_member).start()
             try:
                 self.activity_status('on')
-                self.edit_profile(content=choice(self.admin_locked_commandbio_contents))
+                if isinstance(self.bio_contents, list):
+                    self.edit_profile(content=choice(self.bio_contents))
+
+                elif isinstance(self.bio_contents, str):
+                    self.edit_profile(content=self.bio_contents)
+
             except Exception as e:
                 print_exception(e)
 
