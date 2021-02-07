@@ -142,6 +142,12 @@ class BotAmino(Command, Client, TimeOut):
     def is_it_admin(self, uid):
         return uid in self.perms_list
 
+    def get_wallet_amount(self):
+        return self.get_wallet_info().totalCoins
+
+    def generate_transaction_id(self):
+        return f"{''.join(sample([lst for lst in hexdigits[:-6]], 8))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 12))}"
+
     def check(self, args, *can, id_=None):
         id_ = id_ if id_ else args.authorId
         foo = {'staff': args.subClient.is_in_staff,
@@ -534,9 +540,12 @@ class Bot(SubClient, ACM):
     def get_wallet_amount(self):
         return self.client.get_wallet_info().totalCoins
 
+    def generate_transaction_id(self):
+        return f"{''.join(sample([lst for lst in hexdigits[:-6]], 8))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 12))}"
+
     def pay(self, coins: int = 0, blogId: str = None, chatId: str = None, objectId: str = None, transactionId: str = None):
         if not transactionId:
-            transactionId = f"{''.join(sample([lst for lst in hexdigits[:-6]], 8))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 12))}"
+            transactionId = self.generate_transaction_id()
         self.send_coins(coins=coins, blogId=blogId, chatId=chatId, objectId=objectId, transactionId=transactionId)
 
     def favorite(self, time: int = 1, userId: str = None, chatId: str = None, blogId: str = None, wikiId: str = None):
