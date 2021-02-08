@@ -94,12 +94,14 @@ class Parameters:
 
 
 class BotAmino(Command, Client, TimeOut):
-    def __init__(self, email: str = None, password: str = None):
+    def __init__(self, email: str = None, password: str = None, sid: str = None):
         Command.__init__(self)
         Client.__init__(self)
 
         if email and password:
             self.login(email=email, password=password)
+        elif sid:
+            self.login_sid(SID=sid)
         else:
             try:
                 with open(path_client, "r") as file_:
