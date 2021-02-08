@@ -1,4 +1,4 @@
-# BotAmino
+# AminoBot
 An API for bot amino based on Slimakoi's work
 
 Discord server https://discord.gg/KZgKktQ6Rt
@@ -68,3 +68,7 @@ print("ready")
 • get_staff(community) : return the staff of the given community (communityId or aminoId)
 
 • accept_role(noticeId, chatId) : accept a promotion or a chat transfert
+
+• generate_transaction_id() : create a transactionId
+
+•
