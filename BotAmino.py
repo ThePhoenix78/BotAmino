@@ -30,7 +30,7 @@ class Command:
     def __init__(self):
         self.commands = {}
 
-    def execute(self, commande, data, type: str = "text"):
+    def execute(self, commande, data, type: str = "command"):
         return self.commands[type][commande](data)
 
     def commands_list(self):
@@ -38,18 +38,10 @@ class Command:
 
     def command(self, command_name):
         def add_command(command_funct):
-            self.commands["text"][command_name.lower()] = command_funct
+            self.commands["command"][command_name.lower()] = command_funct
             return command_funct
-        if "text" not in self.commands.keys():
-            self.commands["text"] = {}
-        return add_command
-
-    def delete(self, command_name):
-        def add_command(command_funct):
-            self.commands["delete"][command_name.lower()] = command_funct
-            return command_funct
-        if "delete" not in self.commands.keys():
-            self.commands["delete"] = {}
+        if "command" not in self.commands.keys():
+            self.commands["command"] = {}
         return add_command
 
     def answer(self, command_name):
@@ -58,6 +50,20 @@ class Command:
             return command_funct
         if "answer" not in self.commands.keys():
             self.commands["answer"] = {}
+        return add_command
+
+    def on_member_join_chat(self):
+        def add_command(command_funct):
+            self.commands["on_member_join_chat"].append(command_funct)
+            return command_funct
+        self.commands["on_member_join_chat"] = []
+        return add_command
+
+    def on_member_leave_chat(self):
+        def add_command(command_funct):
+            self.commands["on_member_leave_chat"].append(command_funct)
+            return command_funct
+        self.commands["on_member_leave_chat"] = []
         return add_command
 
 
@@ -174,8 +180,14 @@ class BotAmino(Command, Client, TimeOut):
         self.len_community = len(amino_list.comId)
         [Thread(target=self.threadLaunch, args=[commu]).start() for commu in amino_list.comId]
 
-        if "text" in self.commands.keys() or "answer" in self.commands.keys():
+        if "command" in self.commands.keys() or "answer" in self.commands.keys():
             self.launch_text_message()
+
+        if "on_member_join_chat" in self.commands.keys():
+            self.launch_on_member_join_chat()
+
+        if "on_member_leave_chat" in self.commands.keys():
+            self.launch_on_member_leave_chat()
 
     def launch_text_message(self):
         @self.callbacks.event("on_text_message")
@@ -191,12 +203,12 @@ class BotAmino(Command, Client, TimeOut):
             if not self.timed_out(args.authorId) and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
                 subClient.send_message(args.chatId, "You are spamming, be careful")
 
-            elif "text" in self.commands.keys() and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
+            elif "command" in self.commands.keys() and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
                 print(f"{args.author} : {args.message}")
                 command = args.message.split()[0][len(subClient.prefix):]
                 args.message = ' '.join(args.message.split()[1:])
                 self.time_user(args.authorId, self.wait)
-                if command.lower() in self.commands["text"].keys():
+                if command.lower() in self.commands["command"].keys():
                     Thread(target=self.execute, args=[command, args]).start()
 
             elif "answer" in self.commands.keys() and args.message.lower() in self.commands["answer"] and not self.check(args, "bot"):
@@ -206,14 +218,40 @@ class BotAmino(Command, Client, TimeOut):
             else:
                 return
 
+    def launch_on_member_join_chat(self):
+        @self.callbacks.event("on_group_member_join")
+        def on_group_member_join(data):
+            try:
+                commuId = data.json["ndcId"]
+                subClient = self.get_community(commuId)
+            except Exception:
+                return
+
+            args = Parameters(data, subClient)
+
+            if not self.check(args, "bot"):
+                Thread(target=self.execute, args=[0, args, "on_member_join_chat"]).start()
+
+    def launch_on_member_leave_chat(self):
+        @self.callbacks.event("on_group_member_leave")
+        def on_group_member_leave(data):
+            try:
+                commuId = data.json["ndcId"]
+                subClient = self.get_community(commuId)
+            except Exception:
+                return
+
+            args = Parameters(data, subClient)
+
+            if not self.check(args, "bot"):
+                Thread(target=self.execute, args=[0, args, "on_member_leave_chat"]).start()
+
 
 class Bot(SubClient, ACM):
     def __init__(self, client, community, prefix: str = "!", bio=None):
         self.client = client
         self.marche = True
         self.prefix = prefix
-        self.group_message_welcome = ""
-        self.group_message_goodbye = ""
         self.bio_contents = bio
 
         if isinstance(community, int):
