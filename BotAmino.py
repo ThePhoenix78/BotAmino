@@ -166,6 +166,7 @@ class BotAmino(Command, Client, TimeOut):
         self.prefix = "!"
         self.wait = 0
         self.bio = None
+        self.self_callable = False
 
     def tradlist(self, sub):
         sublist = []
@@ -184,7 +185,7 @@ class BotAmino(Command, Client, TimeOut):
         return self.communaute[comId]
 
     def is_it_bot(self, uid):
-        return uid == self.botId
+        return uid == self.botId and not self.self_callable
 
     def is_it_admin(self, uid):
         return uid in self.perms_list
