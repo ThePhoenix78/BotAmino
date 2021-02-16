@@ -16,6 +16,7 @@ from amino import Client, SubClient, ACM
 path_utilities = "utilities"
 path_amino = f'{path_utilities}/amino_list'
 path_client = "client.txt"
+NoneType = type(None)
 
 
 for i in (path_utilities, path_amino):
@@ -29,61 +30,77 @@ def print_exception(exc):
 class Command:
     def __init__(self):
         self.commands = {}
+        self.conditions = {}
 
     def execute(self, commande, data, type: str = "command"):
+        if commande in self.conditions.keys():
+            if self.conditions[commande](data):
+                return self.commands[type][commande](data)
+            else:
+                return
         return self.commands[type][commande](data)
+
+    def add_categorie(self, name):
+        if name not in self.commands.keys():
+            self.commands[name] = {}
 
     def commands_list(self):
         return [command.keys() for command in self.commands.keys()]
 
-    def command(self, command_name):
+    def command(self, command_name, condition=None):
+        name = "command"
+        self.add_categorie(name)
+        if callable(condition):
+            self.conditions[command_name] = condition
+
         def add_command(command_funct):
-            self.commands["command"][command_name.lower()] = command_funct
+            self.commands[name][command_name.lower()] = command_funct
             return command_funct
-        if "command" not in self.commands.keys():
-            self.commands["command"] = {}
         return add_command
 
-    def answer(self, command_name):
+    def answer(self, command_name, condition=None):
+        name = "answer"
+        self.add_categorie(name)
+        if callable(condition):
+            self.conditions[command_name] = condition
+
         def add_command(command_funct):
-            self.commands["answer"][command_name.lower()] = command_funct
+            self.commands[name][command_name.lower()] = command_funct
             return command_funct
-        if "answer" not in self.commands.keys():
-            self.commands["answer"] = {}
         return add_command
 
-    def on_member_join_chat(self, chat_name: list = None):
+    def on_member_join_chat(self, chatId: list = None):
         name = "on_member_join_chat"
 
         def add_command(command_funct):
             if isinstance(self.commands[name], list):
                 self.commands[name].append(command_funct)
             elif isinstance(self.commands[name], dict):
-                for chat in chat_name:
+                for chat in chatId:
                     self.commands[name][chat] = command_funct
             return command_funct
 
-        if name not in self.commands.keys() and chat_name:
+        if name not in self.commands.keys() and chatId:
             self.commands[name] = {}
-        elif not chat_name:
+        elif not chatId:
             self.commands[name] = []
 
         return add_command
 
-    def on_member_leave_chat(self, chat_name: list = None):
+    def on_member_leave_chat(self, chatId: list = None):
         name = "on_member_leave_chat"
 
         def add_command(command_funct):
             if isinstance(self.commands[name], list):
                 self.commands[name].append(command_funct)
             elif isinstance(self.commands[name], dict):
-                for chat in chat_name:
+                for chat in chatId:
                     self.commands[name][chat] = command_funct
             return command_funct
 
-        if name not in self.commands.keys() and chat_name:
+        if name not in self.commands.keys() and chatId:
             self.commands[name] = {}
-        elif not chat_name:
+        elif not chatId:
             self.commands[name] = []
 
         return add_command
@@ -252,8 +269,9 @@ class BotAmino(Command, Client, TimeOut):
             args = Parameters(data, subClient)
 
             if not self.check(args, "bot"):
-                if isinstance(self.commands["on_member_join_chat"], dict) and args.chatId in self.commands["on_member_join_chat"].keys():
-                    Thread(target=self.execute, args=[args.chatId, args, "on_member_join_chat"]).start()
+                if isinstance(self.commands["on_member_join_chat"], dict):
+                    if args.chatId in self.commands["on_member_join_chat"].keys():
+                        Thread(target=self.execute, args=[args.chatId, args, "on_member_join_chat"]).start()
                 else:
                     Thread(target=self.execute, args=[0, args, "on_member_join_chat"]).start()
 
@@ -269,8 +287,9 @@ class BotAmino(Command, Client, TimeOut):
             args = Parameters(data, subClient)
 
             if not self.check(args, "bot"):
-                if isinstance(self.commands["on_member_leave_chat"], dict) and args.chatId in self.commands["on_member_leave_chat"].keys():
-                    Thread(target=self.execute, args=[args.chatId, args, "on_member_leave_chat"]).start()
+                if isinstance(self.commands["on_member_leave_chat"], dict):
+                    if args.chatId in self.commands["on_member_leave_chat"].keys():
+                        Thread(target=self.execute, args=[args.chatId, args, "on_member_leave_chat"]).start()
                 else:
                     Thread(target=self.execute, args=[0, args, "on_member_leave_chat"]).start()
 
