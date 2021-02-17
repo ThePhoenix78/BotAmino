@@ -8,7 +8,8 @@ from contextlib import suppress
 from random import sample, choice
 from schedule import every, run_pending
 
-from amino import Client, SubClient, ACM
+from amino2bot import Client, SubClient, ACM
+# this is the Slimakoi's API with some of my patches
 
 # API made by ThePhoenix78
 # Big optimisation thanks to SempreLEGIT#1378 ♥
