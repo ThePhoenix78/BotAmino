@@ -140,9 +140,9 @@ class Parameters:
 
 
 class BotAmino(Command, Client, TimeOut):
-    def __init__(self, email: str = None, password: str = None, sid: str = None):
+    def __init__(self, email: str = None, password: str = None, sid: str = None,  proxies: dict = None):
         Command.__init__(self)
-        Client.__init__(self)
+        Client.__init__(self, proxies=proxies)
 
         if email and password:
             self.login(email=email, password=password)
