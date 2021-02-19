@@ -3,6 +3,8 @@ An API for bot amino based on Slimakoi's work
 
 Discord server https://discord.gg/KZgKktQ6Rt
 
+This API has been made for people who aren't very good at programming or people who want to do easy stuff!
+
 ## How does this API works?
 
 It works like the Amino.py's API but with added features like commands or answer
@@ -17,14 +19,36 @@ client.prefix = "/"  # set the prefix to /
 client.wait = 10  # wait 10 sec before doing a new command
 
 
-@client.command("ping")
+def test(data):
+    return data.authorId == ["your_user_id"]
+
+
+
+@client.command("ping", test) # "ping" the command and test the function, if test is True the command will be executed, else it will not
 def ping(data):
     data.subClient.send_message(data.chatId, message="pong!")
+
+
+@client.command("pong") # "pong" the command, the test function is not necessary
+def ping(data):
+    if data.subClient.is_in_staff(data.authorId): # will execute the command if the user is in the amino's staff (learder/curator)
+        data.subClient.send_message(data.chatId, message="ping!")
 
 
 @client.answer("hey")
 def hello(data):
     data.subClient.send_message(data.chatId, message="Hey! Hey!")
+
+
+@client.on_member_join_chat()
+def say_hello(data):
+    data.subClient.send_message(data.chatId, f"welcome here {data.author}!")
+
+
+@client.on_member_leave_chat(["chatId"]) # the chatId is not necessary, put one if you want a specified chat only
+def say_goodbye(data):
+    data.subClient.send_message(data.chatId, f"See you soon {data.author}!")
+
 
 
 client.launch()
@@ -71,4 +95,8 @@ print("ready")
 
 • generate_transaction_id() : create a transactionId
 
-•
+• ask_all_members(message) : will send a message in pv to all member by group of 100
+
+• is_it_bot(userId) : check if the user is the bot account
+
+• add_community("aminoId") : add manually a community to the bot (nice for join amino command)
