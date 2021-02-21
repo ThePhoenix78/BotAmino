@@ -51,24 +51,48 @@ class Command:
     def command(self, command_name, condition=None):
         name = "command"
         self.add_categorie(name)
-        if callable(condition):
-            self.conditions[command_name] = condition
+        if isinstance(command_name, str):
+            if callable(condition):
+                self.conditions[command_name] = condition
 
-        def add_command(command_funct):
-            self.commands[name][command_name.lower()] = command_funct
-            return command_funct
-        return add_command
+            def add_command(command_funct):
+                self.commands[name][command_name.lower()] = command_funct
+                return command_funct
+            return add_command
+
+        elif isinstance(command_name, list):
+            if callable(condition):
+                for command in command_name:
+                    self.conditions[command] = condition
+
+            def add_command(command_funct):
+                for command in command_name:
+                    self.commands[name][command.lower()] = command_funct
+                return command_funct
+            return add_command
 
     def answer(self, command_name, condition=None):
-        name = "answer"
+        name = "anwser"
         self.add_categorie(name)
-        if callable(condition):
-            self.conditions[command_name] = condition
+        if isinstance(command_name, str):
+            if callable(condition):
+                self.conditions[command_name] = condition
 
-        def add_command(command_funct):
-            self.commands[name][command_name.lower()] = command_funct
-            return command_funct
-        return add_command
+            def add_command(command_funct):
+                self.commands[name][command_name.lower()] = command_funct
+                return command_funct
+            return add_command
+
+        elif isinstance(command_name, list):
+            if callable(condition):
+                for command in command_name:
+                    self.conditions[command] = condition
+
+            def add_command(command_funct):
+                for command in command_name:
+                    self.commands[name][command.lower()] = command_funct
+                return command_funct
+            return add_command
 
     def on_member_join_chat(self, chatId: list = None):
         name = "on_member_join_chat"
@@ -168,6 +192,7 @@ class BotAmino(Command, Client, TimeOut):
         self.wait = 0
         self.bio = None
         self.self_callable = False
+        self.no_command_message = ""
 
     def tradlist(self, sub):
         sublist = []
@@ -243,6 +268,7 @@ class BotAmino(Command, Client, TimeOut):
 
             if not self.timed_out(args.authorId) and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
                 subClient.send_message(args.chatId, "You are spamming, be careful")
+                return
 
             elif "command" in self.commands.keys() and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
                 print(f"{args.author} : {args.message}")
@@ -251,11 +277,15 @@ class BotAmino(Command, Client, TimeOut):
                 self.time_user(args.authorId, self.wait)
                 if command.lower() in self.commands["command"].keys():
                     Thread(target=self.execute, args=[command, args]).start()
+                elif self.no_command_message:
+                    subClient.send_message(args.chatId, self.no_command_message)
+                return
 
             elif "answer" in self.commands.keys() and args.message.lower() in self.commands["answer"] and not self.check(args, "bot"):
                 print(f"{args.author} : {args.message}")
                 self.time_user(args.authorId, self.wait)
                 Thread(target=self.execute, args=[args.message.lower(), args, "answer"]).start()
+                return
             else:
                 return
 
