@@ -72,7 +72,7 @@ class Command:
             return add_command
 
     def answer(self, command_name, condition=None):
-        name = "anwser"
+        name = "answer"
         self.add_categorie(name)
         if isinstance(command_name, str):
             if callable(condition):
