@@ -255,12 +255,12 @@ class BotAmino(Command, Client, TimeOut):
     def add_community(self, comId):
         self.communaute[comId] = Bot(self, comId, self.prefix, self.bio)
 
-    def run(self, comId):
-        self.communaute[comId].run()
+    def run_community(self, comId):
+        self.communaute[comId].run_bg_task()
 
     def threadLaunch(self, commu):
         self.add_community(commu)
-        self.run(commu)
+        self.run_community(commu)
 
     def launch(self):
         amino_list = self.sub_clients()
@@ -804,5 +804,5 @@ class Bot(SubClient, ACM):
             run_pending()
             slp(10)
 
-    def run(self):
+    def run_bg_task(self):
         Thread(target=self.passive).start()
