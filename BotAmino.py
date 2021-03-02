@@ -8,6 +8,7 @@ from contextlib import suppress
 from random import sample, choice
 from schedule import every, run_pending
 from amino import Client, SubClient, ACM
+from uuid import uuid4
 
 # this is the Slimakoi's API with some of my patches
 
@@ -268,7 +269,8 @@ class BotAmino(Command, Client, TimeOut):
         return self.get_wallet_info().totalCoins
 
     def generate_transaction_id(self):
-        return f"{''.join(sample([lst for lst in hexdigits[:-6]], 8))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 12))}"
+        # return f"{''.join(sample([lst for lst in hexdigits[:-6]], 8))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 12))}"
+        return str(uuid4())
 
     def check(self, args, *can, id_=None):
         id_ = id_ if id_ else args.authorId
@@ -745,6 +747,7 @@ class Bot(SubClient, ACM):
 
     def generate_transaction_id(self):
         return f"{''.join(sample([lst for lst in hexdigits[:-6]], 8))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 12))}"
+        return str(uuid4())
 
     def pay(self, coins: int = 0, blogId: str = None, chatId: str = None, objectId: str = None, transactionId: str = None):
         if not transactionId:
@@ -813,15 +816,11 @@ class Bot(SubClient, ACM):
         member = self.get_member_titles(uid)
         tlist = []
         clist = []
-        for elem in member:
-            tlist.append(elem["title"])
-            clist.append(elem["color"])
-
-        if title in tlist:
-            nb = tlist.index(title)
-            tlist.pop(nb)
-            clist.pop(nb)
-            self.edit_titles(uid, tlist, clist)
+        for t in member:
+            if t["title"] != title:
+                tlist.append(t["title"])
+                clist.append(t["color"])
+        self.edit_titles(uid, tlist, clist)
         return True
 
     def passive(self):
