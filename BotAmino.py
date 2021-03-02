@@ -154,8 +154,8 @@ class Command:
             return command_funct
         return add_command
 
-    def on_delete(self, condition=None):
-        type = "on_delete"
+    def on_other(self, condition=None):
+        type = "on_other"
         self.add_categorie(type)
         self.add_condition(type)
         if callable(condition):
@@ -303,8 +303,8 @@ class BotAmino(Command, Client, TimeOut):
         if self.categorie_exist("on_member_leave_chat"):
             self.launch_on_member_leave_chat()
 
-        if self.categorie_exist("on_delete"):
-            self.launch_deleted_message()
+        if self.categorie_exist("on_other"):
+            self.launch_other_message()
 
         if self.categorie_exist("on_remove"):
             self.launch_removed_message()
@@ -346,18 +346,24 @@ class BotAmino(Command, Client, TimeOut):
             else:
                 return
 
-    def launch_deleted_message(self):
-        @self.callbacks.event("on_delete_message")
-        def on_delete_message(data):
-            try:
-                commuId = data.json["ndcId"]
-                subClient = self.get_community(commuId)
-            except Exception:
-                return
+    def launch_other_message(self):
+        for type_name in ("on_delete_message", "on_strike_message", "on_voice_chat_not_answered",
+                          "on_voice_chat_not_cancelled", "on_voice_chat_not_declined",
+                          "on_video_chat_not_answered", "on_video_chat_not_cancelled",
+                          "on_video_chat_not_declined", "on_voice_chat_start", "on_video_chat_start",
+                          "on_voice_chat_end", "on_video_chat_end", "on_screen_room_start",
+                          "on_screen_room_end", "on_avatar_chat_start", "on_avatar_chat_end"):
+            @self.callbacks.event(type_name)
+            def on_other_message(data):
+                try:
+                    commuId = data.json["ndcId"]
+                    subClient = self.get_community(commuId)
+                except Exception:
+                    return
 
-            args = Parameters(data, subClient)
+                args = Parameters(data, subClient)
 
-            Thread(target=self.execute, args=["on_delete", args, "on_delete"]).start()
+                Thread(target=self.execute, args=["on_other", args, "on_other"]).start()
 
     def launch_removed_message(self):
         for type_name in ("on_chat_removed_message", "on_text_message_force_removed", "on_text_message_removed_by_admin"):
