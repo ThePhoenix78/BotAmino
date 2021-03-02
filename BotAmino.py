@@ -1,11 +1,10 @@
 from time import sleep as slp
 from sys import exit
 from json import dumps, load
-from string import hexdigits
 from pathlib import Path
 from threading import Thread
 from contextlib import suppress
-from random import sample, choice
+from random import choice
 from schedule import every, run_pending
 from amino import Client, SubClient, ACM
 from uuid import uuid4
@@ -269,7 +268,6 @@ class BotAmino(Command, Client, TimeOut):
         return self.get_wallet_info().totalCoins
 
     def generate_transaction_id(self):
-        # return f"{''.join(sample([lst for lst in hexdigits[:-6]], 8))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 12))}"
         return str(uuid4())
 
     def check(self, args, *can, id_=None):
@@ -746,7 +744,6 @@ class Bot(SubClient, ACM):
         return self.client.get_wallet_info().totalCoins
 
     def generate_transaction_id(self):
-        return f"{''.join(sample([lst for lst in hexdigits[:-6]], 8))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 4))}-{''.join(sample([lst for lst in hexdigits[:-6]], 12))}"
         return str(uuid4())
 
     def pay(self, coins: int = 0, blogId: str = None, chatId: str = None, objectId: str = None, transactionId: str = None):
