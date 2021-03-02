@@ -41,6 +41,9 @@ class Command:
                 return
         return self.commands[type][commande](data)
 
+    def categorie_exist(self, type: str):
+        return type in self.commands.keys()
+
     def add_categorie(self, type):
         if type not in self.commands.keys():
             self.commands[type] = {}
@@ -144,10 +147,34 @@ class Command:
         self.add_categorie(type)
         self.add_condition(type)
         if callable(condition):
-            self.conditions[type]["on_message"] = condition
+            self.conditions[type][type] = condition
 
         def add_command(command_funct):
-            self.commands[type]["on_message"] = command_funct
+            self.commands[type][type] = command_funct
+            return command_funct
+        return add_command
+
+    def on_delete(self, condition=None):
+        type = "on_delete"
+        self.add_categorie(type)
+        self.add_condition(type)
+        if callable(condition):
+            self.conditions[type][type] = condition
+
+        def add_command(command_funct):
+            self.commands[type][type] = command_funct
+            return command_funct
+        return add_command
+
+    def on_remove(self, condition=None):
+        type = "on_remove"
+        self.add_categorie(type)
+        self.add_condition(type)
+        if callable(condition):
+            self.conditions[type][type] = condition
+
+        def add_command(command_funct):
+            self.commands[type][type] = command_funct
             return command_funct
         return add_command
 
@@ -267,14 +294,20 @@ class BotAmino(Command, Client, TimeOut):
         self.len_community = len(amino_list.comId)
         [Thread(target=self.threadLaunch, args=[commu]).start() for commu in amino_list.comId]
 
-        if "command" in self.commands.keys() or "answer" in self.commands.keys():
+        if self.categorie_exist("command") or self.categorie_exist("answer"):
             self.launch_text_message()
 
-        if "on_member_join_chat" in self.commands.keys():
+        if self.categorie_exist("on_member_join_chat"):
             self.launch_on_member_join_chat()
 
-        if "on_member_leave_chat" in self.commands.keys():
+        if self.categorie_exist("on_member_leave_chat"):
             self.launch_on_member_leave_chat()
+
+        if self.categorie_exist("on_delete"):
+            self.launch_deleted_message()
+
+        if self.categorie_exist("on_remove"):
+            self.launch_removed_message()
 
     def launch_text_message(self):
         @self.callbacks.event("on_text_message")
@@ -312,6 +345,33 @@ class BotAmino(Command, Client, TimeOut):
                 return
             else:
                 return
+
+    def launch_deleted_message(self):
+        @self.callbacks.event("on_delete_message")
+        def on_delete_message(data):
+            try:
+                commuId = data.json["ndcId"]
+                subClient = self.get_community(commuId)
+            except Exception:
+                return
+
+            args = Parameters(data, subClient)
+
+            Thread(target=self.execute, args=["on_delete", args, "on_delete"]).start()
+
+    def launch_removed_message(self):
+        for type_name in ("on_chat_removed_message", "on_text_message_force_removed", "on_text_message_removed_by_admin"):
+            @self.callbacks.event(type_name)
+            def on_chat_removed(data):
+                try:
+                    commuId = data.json["ndcId"]
+                    subClient = self.get_community(commuId)
+                except Exception:
+                    return
+
+                args = Parameters(data, subClient)
+
+                Thread(target=self.execute, args=["on_remove", args, "on_remove"]).start()
 
     def launch_on_member_join_chat(self):
         @self.callbacks.event("on_group_member_join")
