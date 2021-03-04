@@ -166,6 +166,18 @@ class Command:
             return command_funct
         return add_command
 
+    def on_delete(self, condition=None):
+        type = "on_delete"
+        self.add_categorie(type)
+        self.add_condition(type)
+        if callable(condition):
+            self.conditions[type][type] = condition
+
+        def add_command(command_funct):
+            self.commands[type][type] = command_funct
+            return command_funct
+        return add_command
+
     def on_remove(self, condition=None):
         type = "on_remove"
         self.add_categorie(type)
@@ -200,7 +212,7 @@ class TimeOut:
 
 
 class Parameters:
-    __slots__ = ("subClient", "chatId", "authorId", "author", "message", "messageId")
+    __slots__ = ("subClient", "chatId", "authorId", "author", "message", "messageId", "info")
 
     def __init__(self, data, subClient):
         self.subClient = subClient
@@ -209,6 +221,7 @@ class Parameters:
         self.author = data.message.author.nickname
         self.message = data.message.content
         self.messageId = data.message.messageId
+        self.info = data
 
 
 class BotAmino(Command, Client, TimeOut):
@@ -309,6 +322,9 @@ class BotAmino(Command, Client, TimeOut):
         if self.categorie_exist("on_remove"):
             self.launch_removed_message()
 
+        if self.categorie_exist("on_delete"):
+            self.launch_delete_message()
+
     def launch_text_message(self):
         @self.callbacks.event("on_text_message")
         def on_text_message(data):
@@ -347,7 +363,7 @@ class BotAmino(Command, Client, TimeOut):
                 return
 
     def launch_other_message(self):
-        for type_name in ("on_delete_message", "on_strike_message", "on_voice_chat_not_answered",
+        for type_name in ("on_strike_message", "on_voice_chat_not_answered",
                           "on_voice_chat_not_cancelled", "on_voice_chat_not_declined",
                           "on_video_chat_not_answered", "on_video_chat_not_cancelled",
                           "on_video_chat_not_declined", "on_voice_chat_start", "on_video_chat_start",
@@ -364,6 +380,19 @@ class BotAmino(Command, Client, TimeOut):
                 args = Parameters(data, subClient)
 
                 Thread(target=self.execute, args=["on_other", args, "on_other"]).start()
+
+    def launch_delete_message(self):
+        @self.callbacks.event("on_delete_message")
+        def on_delete_message(data):
+            try:
+                commuId = data.json["ndcId"]
+                subClient = self.get_community(commuId)
+            except Exception:
+                return
+
+            args = Parameters(data, subClient)
+
+            Thread(target=self.execute, args=["on_delete", args, "on_delete"]).start()
 
     def launch_removed_message(self):
         for type_name in ("on_chat_removed_message", "on_text_message_force_removed", "on_text_message_removed_by_admin"):
