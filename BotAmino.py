@@ -402,16 +402,21 @@ class BotAmino(Command, Client, TimeOut):
                           "on_video_chat_not_declined", "on_voice_chat_start", "on_video_chat_start",
                           "on_voice_chat_end", "on_video_chat_end", "on_screen_room_start",
                           "on_screen_room_end", "on_avatar_chat_start", "on_avatar_chat_end"):
-            @self.callbacks.event(type_name)
-            def on_other_message(data):
-                self.message_analyse(data, "on_other")
+            try:
+                @self.callbacks.event(type_name)
+                def on_other_message(data):
+                    self.message_analyse(data, "on_other")
+            except AttributeError:
+                @self.event(type_name)
+                def on_other_message(data):
+                    self.message_analyse(data, "on_other")
 
     def launch_delete_message(self):
         try:
             @self.callbacks.event("on_delete_message")
             def on_delete_message(data):
                 self.message_analyse(data, "on_delete")
-        except Exception:
+        except AttributeError:
             @self.event("on_delete_message")
             def on_delete_message(data):
                 self.message_analyse(data, "on_delete")
@@ -422,7 +427,7 @@ class BotAmino(Command, Client, TimeOut):
                 @self.callbacks.event(type_name)
                 def on_chat_removed(data):
                     self.message_analyse(data, "on_remove")
-            except Exception:
+            except AttributeError:
                 @self.event(type_name)
                 def on_chat_removed(data):
                     self.message_analyse(data, "on_remove")
@@ -432,7 +437,7 @@ class BotAmino(Command, Client, TimeOut):
             @self.callbacks.event("on_group_member_join")
             def on_group_member_join(data):
                 self.on_member_event(data, "on_member_join_chat")
-        except Exception:
+        except AttributeError:
             @self.event("on_group_member_join")
             def on_group_member_join(data):
                 self.on_member_event(data, "on_member_join_chat")
@@ -442,7 +447,7 @@ class BotAmino(Command, Client, TimeOut):
             @self.callbacks.event("on_group_member_leave")
             def on_group_member_leave(data):
                 self.on_member_event(data, "on_member_leave_chat")
-        except Exception:
+        except AttributeError:
             @self.event("on_group_member_leave")
             def on_group_member_leave(data):
                 self.on_member_event(data, "on_member_leave_chat")
