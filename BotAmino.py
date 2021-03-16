@@ -5,9 +5,9 @@ from pathlib import Path
 from threading import Thread
 from contextlib import suppress
 from random import choice
-from schedule import every, run_pending
 from amino import Client, SubClient, ACM
 from uuid import uuid4
+import asyncio
 
 # this is the Slimakoi's API with some of my patches
 
@@ -106,40 +106,28 @@ class Command:
                 return command_funct
             return add_command
 
-    def on_member_join_chat(self, chatId: list = None):
-        name = "on_member_join_chat"
+    def on_member_join_chat(self, condition=None):
+        type = "on_member_join_chat"
+        self.add_categorie(type)
+        self.add_condition(type)
+        if callable(condition):
+            self.conditions[type][type] = condition
 
         def add_command(command_funct):
-            if isinstance(self.commands[name], list):
-                self.commands[name].append(command_funct)
-            elif isinstance(self.commands[name], dict):
-                for chat in chatId:
-                    self.commands[name][chat] = command_funct
+            self.commands[type][type] = command_funct
             return command_funct
-
-        if name not in self.commands.keys() and chatId:
-            self.commands[name] = {}
-        elif not chatId:
-            self.commands[name] = []
-
         return add_command
 
-    def on_member_leave_chat(self, chatId: list = None):
-        name = "on_member_leave_chat"
+    def on_member_leave_chat(self, condition=None):
+        type = "on_member_leave_chat"
+        self.add_categorie(type)
+        self.add_condition(type)
+        if callable(condition):
+            self.conditions[type][type] = condition
 
         def add_command(command_funct):
-            if isinstance(self.commands[name], list):
-                self.commands[name].append(command_funct)
-            elif isinstance(self.commands[name], dict):
-                for chat in chatId:
-                    self.commands[name][chat] = command_funct
+            self.commands[type][type] = command_funct
             return command_funct
-
-        if name not in self.commands.keys() and chatId:
-            self.commands[name] = {}
-        elif not chatId:
-            self.commands[name] = []
-
         return add_command
 
     def on_message(self, condition=None):
@@ -197,9 +185,10 @@ class TimeOut:
     def time_user(self, uid, end: int = 5):
         if uid not in self.users_dict.keys():
             self.users_dict[uid] = {"start": 0, "end": end}
-            Thread(target=self.timer, args=[uid]).start()
+            # Thread(target=self.timer, args=[uid]).start()
+            asyncio.run(self.timer([uid]))
 
-    def timer(self, uid):
+    async def timer(self, uid):
         while self.users_dict[uid]["start"] <= self.users_dict[uid]["end"]:
             self.users_dict[uid]["start"] += 1
             slp(1)
@@ -293,20 +282,15 @@ class BotAmino(Command, Client, TimeOut):
             if foo[i](id_):
                 return True
 
-    def add_community(self, comId):
-        self.communaute[comId] = Bot(self, comId, self.prefix, self.bio)
-
-    def run_community(self, comId):
-        self.communaute[comId].run_bg_task()
-
     def threadLaunch(self, commu):
-        self.add_community(commu)
-        self.run_community(commu)
+        self.communaute[commu] = Bot(self, commu, self.prefix, self.bio)
 
     def launch(self):
         amino_list = self.sub_clients()
         self.len_community = len(amino_list.comId)
-        [Thread(target=self.threadLaunch, args=[commu]).start() for commu in amino_list.comId]
+        # [Thread(target=self.threadLaunch, args=[commu]).start() for commu in amino_list.comId]
+        for commu in amino_list.comId:
+            Thread(target=self.threadLaunch, args=[commu]).start()
 
         if self.categorie_exist("command") or self.categorie_exist("answer"):
             self.launch_text_message()
@@ -347,11 +331,7 @@ class BotAmino(Command, Client, TimeOut):
         args = Parameters(data, subClient)
 
         if not self.check(args, "bot"):
-            if isinstance(self.commands[type], dict):
-                if args.chatId in self.commands[type].keys():
-                    Thread(target=self.execute, args=[args.chatId, args, type]).start()
-            else:
-                Thread(target=self.execute, args=[0, args, type]).start()
+            Thread(target=self.execute, args=[type, args, type]).start()
 
     def launch_text_message(self):
         def text_message(data):
@@ -365,6 +345,7 @@ class BotAmino(Command, Client, TimeOut):
 
             if "on_message" in self.commands.keys():
                 Thread(target=self.execute, args=["on_message", args, "on_message"]).start()
+                # asyncio.run(self.execute("on_message", args, "on_message"))
 
             if not self.timed_out(args.authorId) and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
                 subClient.send_message(args.chatId, self.spam_message)
@@ -377,6 +358,7 @@ class BotAmino(Command, Client, TimeOut):
                 self.time_user(args.authorId, self.wait)
                 if command.lower() in self.commands["command"].keys():
                     Thread(target=self.execute, args=[command, args]).start()
+                    # asyncio.run(self.execute(command, args))
                 elif self.no_command_message:
                     subClient.send_message(args.chatId, self.no_command_message)
                 return
@@ -385,6 +367,7 @@ class BotAmino(Command, Client, TimeOut):
                 print(f"{args.author} : {args.message}")
                 self.time_user(args.authorId, self.wait)
                 Thread(target=self.execute, args=[args.message.lower(), args, "answer"]).start()
+                # asyncio.run(self.execute(args.message.lower(), args, "answer"))
                 return
         try:
             @self.callbacks.event("on_text_message")
@@ -511,6 +494,9 @@ class Bot(SubClient, ACM):
         new_users = self.get_all_users(start=0, size=30, type="recent")
 
         self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
+
+        asyncio.run(self.passive())
+
         if self.welcome_chat or self.message_bvn:
             with suppress(Exception):
                 Thread(target=self.check_new_member).start()
@@ -682,6 +668,7 @@ class Bot(SubClient, ACM):
                 self.leave_chat(elem)
 
     def check_new_member(self):
+        print("CHECK", self.community_name)
         if not (self.message_bvn and self.welcome_chat):
             return
         new_list = self.get_all_users(start=0, size=25, type="recent")
@@ -711,7 +698,7 @@ class Bot(SubClient, ACM):
             name, uid = elem[0], elem[1]
 
             try:
-                val = self.get_wall_comments(userId=uid, sorting='newest').commentId
+                val = self.get_wall_comments(userId=uid, sorting='newest', size=1).commentId
             except Exception:
                 val = True
 
@@ -745,9 +732,6 @@ class Bot(SubClient, ACM):
         with suppress(Exception):
             return self.get_user_info(userId=uid).customTitles
         return False
-
-    def get_member_info(self, uid):
-        return self.get_user_info(userId=uid)
 
     def get_wallet_amount(self):
         return self.client.get_wallet_info().totalCoins
@@ -829,7 +813,7 @@ class Bot(SubClient, ACM):
         self.edit_titles(uid, tlist, clist)
         return True
 
-    def passive(self):
+    async def passive(self):
         def change_bio_and_welcome_members():
             if self.welcome_chat or self.message_bvn:
                 Thread(target=self.welcome_new_member).start()
@@ -857,17 +841,21 @@ class Bot(SubClient, ACM):
                 print_exception(e)
 
         slp(30)
+
         change_bio_and_welcome_members()
         feature_chats()
         feature_users()
 
-        every().minute.do(change_bio_and_welcome_members)
-        every(2).hours.do(feature_chats)
-        every().day.do(feature_users)
-
+        j = 0
+        k = 0
         while self.marche:
-            run_pending()
-            slp(10)
-
-    def run_bg_task(self):
-        Thread(target=self.passive).start()
+            change_bio_and_welcome_members()
+            if j//120:
+                feature_chats()
+                j = 0
+            if k//1440:
+                feature_users()
+                k = 0
+            slp(60)
+            j += 1
+            k += 1
