@@ -7,7 +7,6 @@ from contextlib import suppress
 from random import choice
 from amino import Client, SubClient, ACM
 from uuid import uuid4
-import asyncio
 
 # this is the Slimakoi's API with some of my patches
 
@@ -185,10 +184,10 @@ class TimeOut:
     def time_user(self, uid, end: int = 5):
         if uid not in self.users_dict.keys():
             self.users_dict[uid] = {"start": 0, "end": end}
-            # Thread(target=self.timer, args=[uid]).start()
-            asyncio.run(self.timer([uid]))
+            Thread(target=self.timer, args=[uid]).start()
+            #asyncio.run(self.timer([uid]))
 
-    async def timer(self, uid):
+    def timer(self, uid):
         while self.users_dict[uid]["start"] <= self.users_dict[uid]["end"]:
             self.users_dict[uid]["start"] += 1
             slp(1)
@@ -284,13 +283,13 @@ class BotAmino(Command, Client, TimeOut):
 
     def threadLaunch(self, commu):
         self.communaute[commu] = Bot(self, commu, self.prefix, self.bio)
+        slp(30)
+        self.communaute[commu].passive()
 
     def launch(self):
         amino_list = self.sub_clients()
         self.len_community = len(amino_list.comId)
-        # [Thread(target=self.threadLaunch, args=[commu]).start() for commu in amino_list.comId]
-        for commu in amino_list.comId:
-            Thread(target=self.threadLaunch, args=[commu]).start()
+        [Thread(target=self.threadLaunch, args=[commu]).start() for commu in amino_list.comId]
 
         if self.categorie_exist("command") or self.categorie_exist("answer"):
             self.launch_text_message()
@@ -345,7 +344,6 @@ class BotAmino(Command, Client, TimeOut):
 
             if "on_message" in self.commands.keys():
                 Thread(target=self.execute, args=["on_message", args, "on_message"]).start()
-                # asyncio.run(self.execute("on_message", args, "on_message"))
 
             if not self.timed_out(args.authorId) and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
                 subClient.send_message(args.chatId, self.spam_message)
@@ -358,7 +356,7 @@ class BotAmino(Command, Client, TimeOut):
                 self.time_user(args.authorId, self.wait)
                 if command.lower() in self.commands["command"].keys():
                     Thread(target=self.execute, args=[command, args]).start()
-                    # asyncio.run(self.execute(command, args))
+
                 elif self.no_command_message:
                     subClient.send_message(args.chatId, self.no_command_message)
                 return
@@ -367,7 +365,6 @@ class BotAmino(Command, Client, TimeOut):
                 print(f"{args.author} : {args.message}")
                 self.time_user(args.authorId, self.wait)
                 Thread(target=self.execute, args=[args.message.lower(), args, "answer"]).start()
-                # asyncio.run(self.execute(args.message.lower(), args, "answer"))
                 return
         try:
             @self.callbacks.event("on_text_message")
@@ -495,11 +492,9 @@ class Bot(SubClient, ACM):
 
         self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
 
-        asyncio.run(self.passive())
-
         if self.welcome_chat or self.message_bvn:
-            with suppress(Exception):
-                Thread(target=self.check_new_member).start()
+            Thread(target=self.check_new_member).start()
+
 
     def create_community_file(self):
         with open(f'{path_amino}/{self.community_amino_id}.json', 'w', encoding='utf8') as file:
@@ -668,21 +663,19 @@ class Bot(SubClient, ACM):
                 self.leave_chat(elem)
 
     def check_new_member(self):
-        print("CHECK", self.community_name)
-        if not (self.message_bvn and self.welcome_chat):
+        if not (self.message_bvn or self.welcome_chat):
             return
         new_list = self.get_all_users(start=0, size=25, type="recent")
         new_member = [(elem["nickname"], elem["uid"]) for elem in new_list.json["userProfileList"]]
         for elem in new_member:
             name, uid = elem[0], elem[1]
-            try:
-                val = self.get_wall_comments(userId=uid, sorting='newest').commentId
-            except Exception:
-                val = True
+
+            val = self.get_wall_comments(userId=uid, sorting='newest').commentId
 
             if not val and self.message_bvn:
                 with suppress(Exception):
                     self.comment(message=self.message_bvn, userId=uid)
+
             if not val and self.welcome_chat:
                 with suppress(Exception):
                     self.send_message(chatId=self.welcome_chat, message=f"Welcome here ‎‏‎‏@{name}!‬‭", mentionUserIds=[uid])
@@ -697,10 +690,7 @@ class Bot(SubClient, ACM):
         for elem in new_member:
             name, uid = elem[0], elem[1]
 
-            try:
-                val = self.get_wall_comments(userId=uid, sorting='newest', size=1).commentId
-            except Exception:
-                val = True
+            val = self.get_wall_comments(userId=uid, sorting='newest').commentId
 
             if not val and uid not in self.new_users and self.message_bvn:
                 with suppress(Exception):
@@ -813,7 +803,7 @@ class Bot(SubClient, ACM):
         self.edit_titles(uid, tlist, clist)
         return True
 
-    async def passive(self):
+    def passive(self):
         def change_bio_and_welcome_members():
             if self.welcome_chat or self.message_bvn:
                 Thread(target=self.welcome_new_member).start()
@@ -840,9 +830,6 @@ class Bot(SubClient, ACM):
             except Exception as e:
                 print_exception(e)
 
-        slp(30)
-
-        change_bio_and_welcome_members()
         feature_chats()
         feature_users()
 
