@@ -548,6 +548,9 @@ class Bot(SubClient, ACM):
         with open(f"{path_amino}/{self.community_amino_id}.json", "r", encoding="utf8") as file:
             return load(file)
 
+    def get_banned_words(self):
+        return self.banned_words
+
     def set_prefix(self, prefix: str):
         self.prefix = prefix
         self.update_file()
