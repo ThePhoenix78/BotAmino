@@ -370,7 +370,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
 
             elif "command" in self.commands.keys() and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
                 print(f"{args.author} : {args.message}")
-                command = args.message.split()[0][len(subClient.prefix):]
+                command = args.message.lower().split()[0][len(subClient.prefix):]
                 args.message = ' '.join(args.message.split()[1:])
                 self.time_user(args.authorId, self.wait)
                 if command.lower() in self.commands["command"].keys():
