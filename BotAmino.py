@@ -4,6 +4,7 @@ from json import dumps, load
 from pathlib import Path
 from threading import Thread
 from contextlib import suppress
+from unicodedata import normalize
 from random import choice
 from amino import Client, SubClient, ACM
 from uuid import uuid4
@@ -185,7 +186,6 @@ class TimeOut:
         if uid not in self.users_dict.keys():
             self.users_dict[uid] = {"start": 0, "end": end}
             Thread(target=self.timer, args=[uid]).start()
-            #asyncio.run(self.timer([uid]))
 
     def timer(self, uid):
         while self.users_dict[uid]["start"] <= self.users_dict[uid]["end"]:
@@ -197,6 +197,25 @@ class TimeOut:
         if uid in self.users_dict.keys():
             return self.users_dict[uid]["start"] >= self.users_dict[uid]["end"]
         return True
+
+
+class BannedWords:
+    def filtre_message(self, message, code):
+        para = normalize('NFD', message).encode(code, 'ignore').decode("utf8").strip().lower()
+        para = para.translate(str.maketrans("", "", punctuation))
+        return para
+
+    def check_banned_words(self, args, subClient):
+        for word in ("ascii", "utf8"):
+            with suppress(Exception):
+                para = self.filtre_message(args.message, word).split()
+
+                if para != [""]:
+                    for elem in para:
+                        if elem in subClient.banned_words:
+                            with suppress(Exception):
+                                subClient.delete_message(args.chatId, args.messageId, "Banned word", asStaff=True)
+                            return
 
 
 class Parameters:
@@ -212,7 +231,7 @@ class Parameters:
         self.info = data
 
 
-class BotAmino(Command, Client, TimeOut):
+class BotAmino(Command, Client, TimeOut, BannedWords):
     def __init__(self, email: str = None, password: str = None, sid: str = None,  proxies: dict = None):
         Command.__init__(self)
         Client.__init__(self, proxies=proxies)
@@ -345,6 +364,9 @@ class BotAmino(Command, Client, TimeOut):
             if "on_message" in self.commands.keys():
                 Thread(target=self.execute, args=["on_message", args, "on_message"]).start()
 
+            if not self.check(args, 'staff', 'bot') and subClient.banned_words:
+                self.check_banned_words(args, subClient)
+
             if not self.timed_out(args.authorId) and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
                 subClient.send_message(args.chatId, self.spam_message)
                 return
@@ -475,12 +497,17 @@ class Bot(SubClient, ACM):
         old_dict = self.get_file_dict()
         new_dict = self.create_dict()
 
-        {**new_dict, **{i: e for i, e in old_dict.items() if i in new_dict}}
+        def do(k, v): old_dict[k] = v
+        def undo(k): del old_dict[k]
+
+        [do(k, v) for k, v in new_dict.items() if k not in old_dict]
+        [undo(k) for k in new_dict.keys() if k not in old_dict]
 
         self.update_file(old_dict)
 
         self.subclient = SubClient(comId=self.community_id, profile=client.profile)
 
+        self.banned_words = self.get_file_info("banned_words")
         self.message_bvn = self.get_file_info("welcome")
         self.welcome_chat = self.get_file_info("welcome_chat")
         self.prefix = self.get_file_info("prefix")
@@ -502,10 +529,10 @@ class Bot(SubClient, ACM):
             file.write(dumps(dict, sort_keys=False, indent=4))
 
     def create_dict(self):
-        return {"welcome": "", "prefix": self.prefix, "welcome_chat": "", "favorite_users": [], "favorite_chats": []}
+        return {"welcome": "", "prefix": self.prefix, "welcome_chat": "", "favorite_users": [], "favorite_chats": [], "banned_words": []}
 
     def get_dict(self):
-        return {"welcome": self.message_bvn, "prefix": self.prefix, "welcome_chat": self.welcome_chat, "favorite_users": self.favorite_users, "favorite_chats": self.favorite_chats}
+        return {"welcome": self.message_bvn, "prefix": self.prefix, "welcome_chat": self.welcome_chat, "favorite_users": self.favorite_users, "favorite_chats": self.favorite_chats, "banned_words": self.banned_words}
 
     def update_file(self, dict=None):
         if not dict:
@@ -541,6 +568,10 @@ class Bot(SubClient, ACM):
         self.favorite_chats.append(value)
         self.update_file()
 
+    def add_banned_words(self, liste: list):
+        self.banned_words.extend(liste)
+        self.update_file()
+
     def remove_favorite_users(self, value: str):
         liste = [value]
         [self.favorite_users.remove(elem) for elem in liste if elem in self.favorite_users]
@@ -549,6 +580,10 @@ class Bot(SubClient, ACM):
     def remove_favorite_chats(self, value: str):
         liste = [value]
         [self.favorite_chats.remove(elem) for elem in liste if elem in self.favorite_chats]
+        self.update_file()
+
+    def remove_banned_words(self, liste: list):
+        [self.banned_words.remove(elem) for elem in liste if elem in self.banned_words]
         self.update_file()
 
     def unset_welcome_chat(self):
