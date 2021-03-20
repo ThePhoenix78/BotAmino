@@ -821,8 +821,12 @@ class Bot(SubClient, ACM):
 
     def add_title(self, uid, title: str, color: str = None):
         member = self.get_member_titles(uid)
-        titles = [i['title'] for i in member] + [title]
-        colors = [i['color'] for i in member] + [color]
+        try:
+            titles = [i['title'] for i in member] + [title]
+            colors = [i['color'] for i in member] + [color]
+        except TypeError:
+            titles = [title]
+            colors = [color]
 
         self.edit_titles(uid, titles, colors)
         return True
