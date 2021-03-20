@@ -206,17 +206,26 @@ class BannedWords:
         para = para.translate(str.maketrans("", "", punctuation))
         return para
 
-    def check_banned_words(self, args, subClient):
-        for word in ("ascii", "utf8"):
-            with suppress(Exception):
-                para = self.filtre_message(args.message, word).split()
+    def check_banned_words(self, args):
+        # for word in ("ascii", "utf8"):
+        with suppress(Exception):
+            para = self.filtre_message(args.message, "ascii").split()
 
-                if para != [""]:
-                    for elem in para:
-                        if elem in subClient.banned_words:
-                            with suppress(Exception):
-                                subClient.delete_message(args.chatId, args.messageId, "Banned word", asStaff=True)
-                            return
+            if para != [""]:
+                for elem in para:
+                    if elem in args.subClient.banned_words:
+                        with suppress(Exception):
+                            args.subClient.delete_message(args.chatId, args.messageId, "Banned word", asStaff=True)
+                        return
+        with suppress(Exception):
+            para = self.filtre_message(args.message, "utf8").split()
+
+            if para != [""]:
+                for elem in para:
+                    if elem in args.subClient.banned_words:
+                        with suppress(Exception):
+                            args.subClient.delete_message(args.chatId, args.messageId, "Banned word", asStaff=True)
+                        return
 
 
 class Parameters:
@@ -366,7 +375,8 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
                 Thread(target=self.execute, args=["on_message", args, "on_message"]).start()
 
             if not self.check(args, 'staff', 'bot') and subClient.banned_words:
-                self.check_banned_words(args, subClient)
+                print(args.author, args.message)
+                Thread(target=self.check_banned_words, args=[args]).start()
 
             if not self.timed_out(args.authorId) and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
                 subClient.send_message(args.chatId, self.spam_message)
