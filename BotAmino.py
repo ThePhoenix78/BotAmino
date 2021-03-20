@@ -211,11 +211,8 @@ class BannedWords:
             with suppress(Exception):
                 para = self.filtre_message(args.message, word).split()
                 if para != [""]:
-                    for elem in para:
-                        if elem in args.subClient.banned_words:
-                            with suppress(Exception):
-                                args.subClient.delete_message(args.chatId, args.messageId, reason="Banned word", asStaff=True)
-                            return
+                    with suppress(Exception):
+                        [args.subClient.delete_message(args.chatId, args.messageId, reason="Banned word", asStaff=True) for elem in para if elem in args.subClient.banned_words]
 
 
 class Parameters:
@@ -365,8 +362,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
                 Thread(target=self.execute, args=["on_message", args, "on_message"]).start()
 
             if not self.check(args, 'staff', 'bot') and subClient.banned_words:
-                print(args.author, args.message)
-                Thread(target=self.check_banned_words, args=[args]).start()
+                self.check_banned_words(args)
 
             if not self.timed_out(args.authorId) and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
                 subClient.send_message(args.chatId, self.spam_message)
