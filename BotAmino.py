@@ -207,25 +207,15 @@ class BannedWords:
         return para
 
     def check_banned_words(self, args):
-        # for word in ("ascii", "utf8"):
-        with suppress(Exception):
-            para = self.filtre_message(args.message, "ascii").split()
-
-            if para != [""]:
-                for elem in para:
-                    if elem in args.subClient.banned_words:
-                        with suppress(Exception):
-                            args.subClient.delete_message(args.chatId, args.messageId, "Banned word", asStaff=True)
-                        return
-        with suppress(Exception):
-            para = self.filtre_message(args.message, "utf8").split()
-
-            if para != [""]:
-                for elem in para:
-                    if elem in args.subClient.banned_words:
-                        with suppress(Exception):
-                            args.subClient.delete_message(args.chatId, args.messageId, "Banned word", asStaff=True)
-                        return
+        for word in ("ascii", "utf8"):
+            with suppress(Exception):
+                para = self.filtre_message(args.message, word).split()
+                if para != [""]:
+                    for elem in para:
+                        if elem in args.subClient.banned_words:
+                            with suppress(Exception):
+                                args.subClient.delete_message(args.chatId, args.messageId, reason="Banned word", asStaff=True)
+                            return
 
 
 class Parameters:
