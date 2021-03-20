@@ -5,6 +5,7 @@ from pathlib import Path
 from threading import Thread
 from contextlib import suppress
 from unicodedata import normalize
+from string import punctuation
 from random import choice
 from amino import Client, SubClient, ACM
 from uuid import uuid4
@@ -521,7 +522,6 @@ class Bot(SubClient, ACM):
 
         if self.welcome_chat or self.message_bvn:
             Thread(target=self.check_new_member).start()
-
 
     def create_community_file(self):
         with open(f'{path_amino}/{self.community_amino_id}.json', 'w', encoding='utf8') as file:
