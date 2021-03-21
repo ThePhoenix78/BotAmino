@@ -15,6 +15,7 @@ from uuid import uuid4
 # API made by ThePhoenix78
 # Big optimisation thanks to SempreLEGIT#1378 ♥
 
+
 path_utilities = "utilities"
 path_amino = f'{path_utilities}/amino_list'
 path_client = "client.txt"
@@ -59,53 +60,47 @@ class Command:
     def answer_list(self):
         return [command.keys() for command in self.commands["answser"].keys()]
 
-    def command(self, command_name, condition=None):
+    def command(self, name=None, condition=None):
         type = "command"
         self.add_categorie(type)
         self.add_condition(type)
-        if isinstance(command_name, str):
-            if callable(condition):
-                self.conditions[type][command_name] = condition
+        if isinstance(name, str):
+            name = [name]
+        elif not name:
+            name = []
 
-            def add_command(command_funct):
-                self.commands[type][command_name.lower()] = command_funct
-                return command_funct
-            return add_command
-
-        elif isinstance(command_name, list):
+        def add_command(command_funct):
+            name.append(command_funct.__name__)
             if callable(condition):
-                for command in command_name:
+                for command in name:
                     self.conditions[type][command] = condition
 
-            def add_command(command_funct):
-                for command in command_name:
-                    self.commands[type][command.lower()] = command_funct
-                return command_funct
-            return add_command
+            for command in name:
+                self.commands[type][command.lower()] = command_funct
+            return command_funct
 
-    def answer(self, command_name, condition=None):
-        type = "answer"
+        return add_command
+
+    def answer(self, name=None, condition=None):
+        type = "command"
         self.add_categorie(type)
         self.add_condition(type)
-        if isinstance(command_name, str):
-            if callable(condition):
-                self.conditions[type][command_name] = condition
+        if isinstance(name, str):
+            name = [name]
+        elif not name:
+            name = []
 
-            def add_command(command_funct):
-                self.commands[type][command_name.lower()] = command_funct
-                return command_funct
-            return add_command
-
-        elif isinstance(command_name, list):
+        def add_command(command_funct):
+            name.append(command_funct.__name__)
             if callable(condition):
-                for command in command_name:
+                for command in name:
                     self.conditions[type][command] = condition
 
-            def add_command(command_funct):
-                for command in command_name:
-                    self.commands[type][command.lower()] = command_funct
-                return command_funct
-            return add_command
+            for command in name:
+                self.commands[type][command.lower()] = command_funct
+            return command_funct
+
+        return add_command
 
     def on_member_join_chat(self, condition=None):
         type = "on_member_join_chat"
@@ -818,7 +813,7 @@ class Bot(SubClient, ACM):
     def unfollow_user(self, uid):
         self.unfollow(userId=uid)
 
-    def add_title(self, uid, title: str, color: str = None):
+    def add_title(self, uid: str, title: str, color: str = None):
         member = self.get_member_titles(uid)
         try:
             titles = [i['title'] for i in member] + [title]
@@ -830,10 +825,11 @@ class Bot(SubClient, ACM):
         self.edit_titles(uid, titles, colors)
         return True
 
-    def remove_title(self, uid, title: str):
+    def remove_title(self, uid: str, title: str):
         member = self.get_member_titles(uid)
         tlist = []
         clist = []
+
         for t in member:
             if t["title"] != title:
                 tlist.append(t["title"])
