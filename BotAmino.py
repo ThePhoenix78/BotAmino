@@ -1,4 +1,5 @@
 from time import sleep as slp
+from time import time as timestamp
 from sys import exit
 from json import dumps, load
 from pathlib import Path
@@ -6,10 +7,9 @@ from threading import Thread
 from contextlib import suppress
 from unicodedata import normalize
 from string import punctuation
-from random import choice
+from random import choice, random, randint
 from amino import Client, SubClient, ACM
 from uuid import uuid4
-
 # this is the Slimakoi's API with some of my patches
 
 # API made by ThePhoenix78
@@ -249,6 +249,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         self.len_community = 0
         self.perms_list = []
         self.prefix = "!"
+        self.activity = False
         self.wait = 0
         self.bio = None
         self.self_callable = False
@@ -293,7 +294,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
                 return True
 
     def threadLaunch(self, commu):
-        self.communaute[commu] = Bot(self, commu, self.prefix, self.bio)
+        self.communaute[commu] = Bot(self, commu, self.prefix, self.bio, self.activity)
         slp(30)
         self.communaute[commu].passive()
 
@@ -448,11 +449,12 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
 
 
 class Bot(SubClient, ACM):
-    def __init__(self, client, community, prefix: str = "!", bio=None):
+    def __init__(self, client, community, prefix: str = "!", bio=None, activity=False):
         self.client = client
         self.marche = True
         self.prefix = prefix
         self.bio_contents = bio
+        self.activity = activity
 
         if isinstance(community, int):
             self.community_id = community
@@ -646,6 +648,14 @@ class Bot(SubClient, ACM):
         return lower_name if lower_name else None
 
     def ask_all_members(self, message, lvl: int = 20, type_bool: int = 1):
+        def ask(uid):
+            print(uid)
+            try:
+                self.start_chat(userId=[uid], message=message)
+            except Exception:
+                self.start_chat(userId=[uid], message=message)
+
+
         size = self.get_all_users(start=0, size=1, type="recent").json['userProfileCount']
         st = 0
 
@@ -655,12 +665,11 @@ class Bot(SubClient, ACM):
                 value = 100
             users = self.get_all_users(start=st, size=value)
             if type_bool == 1:
-                user_lvl_list = [user['uid'] for user in users.json['userProfileList'] if user['level'] == lvl]
+                [ask(user["uid"]) for user in users.json['userProfileList'] if user['level'] == lvl]
             elif type_bool == 2:
-                user_lvl_list = [user['uid'] for user in users.json['userProfileList'] if user['level'] <= lvl]
+                [ask(user["uid"]) for user in users.json['userProfileList'] if user['level'] <= lvl]
             elif type_bool == 3:
-                user_lvl_list = [user['uid'] for user in users.json['userProfileList'] if user['level'] >= lvl]
-            self.start_chat(userId=user_lvl_list, message=message)
+                [ask(user["uid"]) for user in users.json['userProfileList'] if user['level'] >= lvl]
             size -= 100
             st += 100
 
@@ -871,10 +880,10 @@ class Bot(SubClient, ACM):
         k = 0
         while self.marche:
             change_bio_and_welcome_members()
-            if j//120:
+            if j >= 120:
                 feature_chats()
                 j = 0
-            if k//1440:
+            if k >= 1440:
                 feature_users()
                 k = 0
             slp(60)
