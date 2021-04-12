@@ -1,5 +1,4 @@
 from time import sleep as slp
-from time import time as timestamp
 from sys import exit
 from json import dumps, load
 from pathlib import Path
@@ -7,7 +6,7 @@ from threading import Thread
 from contextlib import suppress
 from unicodedata import normalize
 from string import punctuation
-from random import choice, random, randint
+from random import choice
 from amino import Client, SubClient, ACM
 from uuid import uuid4
 # this is the Slimakoi's API with some of my patches
@@ -293,15 +292,16 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
             if foo[i](id_):
                 return True
 
-    def threadLaunch(self, commu):
+    def threadLaunch(self, commu, passive):
         self.communaute[commu] = Bot(self, commu, self.prefix, self.bio, self.activity)
         slp(30)
-        self.communaute[commu].passive()
+        if passive:
+            self.communaute[commu].passive()
 
-    def launch(self):
+    def launch(self, passive: bool = False):
         amino_list = self.sub_clients()
         self.len_community = len(amino_list.comId)
-        [Thread(target=self.threadLaunch, args=[commu]).start() for commu in amino_list.comId]
+        [Thread(target=self.threadLaunch, args=[commu, passive]).start() for commu in amino_list.comId]
 
         if self.categorie_exist("command") or self.categorie_exist("answer"):
             self.launch_text_message()
@@ -417,7 +417,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
                 self.message_analyse(data, "on_delete")
 
     def launch_removed_message(self):
-        for type_name in ("on_chat_removed_message", "on_text_message_force_removed", "on_text_message_removed_by_admin"):
+        for type_name in ("on_chat_removed_message", "on_text_message_force_removed", "on_text_message_removed_by_admin", "on_delete_message"):
             try:
                 @self.callbacks.event(type_name)
                 def on_chat_removed(data):
@@ -655,7 +655,6 @@ class Bot(SubClient, ACM):
             except Exception:
                 self.start_chat(userId=[uid], message=message)
 
-
         size = self.get_all_users(start=0, size=1, type="recent").json['userProfileCount']
         st = 0
 
@@ -692,6 +691,10 @@ class Bot(SubClient, ACM):
 
     def stop_instance(self):
         self.marche = False
+
+    def start_instance(self):
+        self.marche = True
+        Thread(target=self.passive).start()
 
     def leave_community(self):
         self.client.leave_community(comId=self.community_id)
