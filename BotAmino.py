@@ -21,8 +21,9 @@ path_client = "client.txt"
 NoneType = type(None)
 
 
-for i in (path_utilities, path_amino):
-    Path(i).mkdir(exist_ok=True)
+with suppress(Exception):
+    for i in (path_utilities, path_amino):
+        Path(i).mkdir(exist_ok=True)
 
 
 def print_exception(exc):
@@ -80,17 +81,18 @@ class Command:
 
         return add_command
 
-    def answer(self, name=None, condition=None):
-        type = "command"
+    def answer(self, name, condition=None):
+        type = "answer"
         self.add_categorie(type)
         self.add_condition(type)
+
         if isinstance(name, str):
             name = [name]
         elif not name:
             name = []
 
         def add_command(command_funct):
-            name.append(command_funct.__name__)
+            # name.append(command_funct.__name__)
             if callable(condition):
                 for command in name:
                     self.conditions[type][command] = condition
