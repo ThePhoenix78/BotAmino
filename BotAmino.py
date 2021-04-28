@@ -7,6 +7,7 @@ from contextlib import suppress
 from unicodedata import normalize
 from string import punctuation
 from random import choice
+from datetime import datetime
 from amino import Client, SubClient, ACM
 from uuid import uuid4
 # this is the Slimakoi's API with some of my patches
@@ -276,10 +277,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
                 val = self.get_from_code(f"http://aminoapps.com/u/{elem}").objectId
                 sublist.append(val)
                 continue
-            with suppress(Exception):
-                val = self.get_user_info(elem).userId
-                sublist.append(val)
-                continue
+            sublist.append(elem)
         return sublist
 
     def get_community(self, comId):
@@ -878,6 +876,14 @@ class Bot(SubClient, ACM):
         return True
 
     def passive(self):
+        def upt_activity():
+            timeNow = int(datetime.timestamp(datetime.now()))
+            timeEnd = timeNow + 300
+            try:
+                self.send_active_obj(startTime=timeNow, endTime=timeEnd)
+            except Exception as activeError:
+                pass
+
         def change_bio_and_welcome_members():
             if self.welcome_chat or self.message_bvn:
                 Thread(target=self.welcome_new_member).start()
@@ -911,12 +917,16 @@ class Bot(SubClient, ACM):
         k = 0
         while self.marche:
             change_bio_and_welcome_members()
-            if j >= 120:
+
+            if self.activity:
+                upt_activity()
+            if j >= 240:
                 feature_chats()
                 j = 0
-            if k >= 1440:
+            if k >= 2880:
                 feature_users()
                 k = 0
-            slp(60)
+
+            slp(30)
             j += 1
             k += 1
