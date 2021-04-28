@@ -175,6 +175,18 @@ class Command:
             return command_funct
         return add_command
 
+    def on_all(self, condition=None):
+        type = "on_all"
+        self.add_categorie(type)
+        self.add_condition(type)
+        if callable(condition):
+            self.conditions[type][type] = condition
+
+        def add_command(command_funct):
+            self.commands[type][type] = command_funct
+            return command_funct
+        return add_command
+
 
 class TimeOut:
     users_dict = {}
@@ -323,6 +335,9 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         if self.categorie_exist("on_delete"):
             self.launch_delete_message()
 
+        if self.categorie_exist("on_all"):
+            self.launch_all_message()
+
     def message_analyse(self, data, type):
         try:
             commuId = data.json["ndcId"]
@@ -331,7 +346,6 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
             return
 
         args = Parameters(data, subClient)
-
         Thread(target=self.execute, args=[type, args, type]).start()
 
     def on_member_event(self, data, type):
@@ -408,6 +422,18 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
                 def on_other_message(data):
                     self.message_analyse(data, "on_other")
 
+    def launch_all_message(self):
+        try:
+            for x in (self.chat_methods):
+                @self.event(self.chat_methods[x].__name__)
+                def on_all_message(data):
+                    self.message_analyse(data, "on_all")
+        except AttributeError:
+            for x in (self.callbacks.chat_methods):
+                @self.callbacks.event(self.callbacks.chat_methods[x].__name__)
+                def on_all_message(data):
+                    self.message_analyse(data, "on_all")
+
     def launch_delete_message(self):
         try:
             @self.callbacks.event("on_delete_message")
@@ -451,7 +477,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
 
 
 class Bot(SubClient, ACM):
-    def __init__(self, client, community, prefix: str = "!", bio=None, activity=False):
+    def __init__(self, client, community, prefix: str = "!", bio=None, activity=False) -> None:
         self.client = client
         self.marche = True
         self.prefix = prefix
