@@ -917,9 +917,6 @@ class Bot(SubClient, ACM):
         k = 0
         while self.marche:
             change_bio_and_welcome_members()
-
-            if self.activity:
-                upt_activity()
             if j >= 240:
                 feature_chats()
                 j = 0
@@ -928,5 +925,7 @@ class Bot(SubClient, ACM):
                 k = 0
 
             slp(30)
+            if self.activity:
+                upt_activity()
             j += 1
             k += 1
