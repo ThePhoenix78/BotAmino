@@ -56,10 +56,10 @@ class Command:
             self.conditions[type] = {}
 
     def commands_list(self):
-        return [command.keys() for command in self.commands["command"].keys()]
+        return [command for command in self.commands["command"].keys()]
 
     def answer_list(self):
-        return [command.keys() for command in self.commands["answser"].keys()]
+        return [command for command in self.commands["answser"].keys()]
 
     def command(self, name=None, condition=None):
         type = "command"
@@ -221,11 +221,11 @@ class BannedWords:
                 para = self.filtre_message(args.message, word).split()
                 if para != [""]:
                     with suppress(Exception):
-                        [args.subClient.delete_message(args.chatId, args.messageId, reason="Banned word", asStaff=True) for elem in para if elem in args.subClient.banned_words]
+                        [args.subClient.delete_message(args.chatId, args.messageId, reason=f"Banned word : {elem}", asStaff=True) for elem in para if elem in args.subClient.banned_words]
 
 
 class Parameters:
-    __slots__ = ("subClient", "chatId", "authorId", "author", "message", "messageId", "info")
+    __slots__ = ("subClient", "chatId", "authorId", "author", "message", "messageId", "comId", "info")
 
     def __init__(self, data, subClient):
         self.subClient = subClient
@@ -234,6 +234,7 @@ class Parameters:
         self.author = data.message.author.nickname
         self.message = data.message.content
         self.messageId = data.message.messageId
+        self.comId = data.comId
         self.info = data
 
 
@@ -269,6 +270,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         self.self_callable = False
         self.no_command_message = ""
         self.spam_message = "You are spamming, be careful"
+        self.lock_message = "Command locked sorry"
 
     def tradlist(self, sub):
         sublist = []
@@ -338,7 +340,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
 
     def message_analyse(self, data, type):
         try:
-            commuId = data.json["ndcId"]
+            commuId = data.comId
             subClient = self.get_community(commuId)
         except Exception:
             return
@@ -348,7 +350,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
 
     def on_member_event(self, data, type):
         try:
-            commuId = data.json["ndcId"]
+            commuId = data.comId
             subClient = self.get_community(commuId)
         except Exception:
             return
@@ -361,7 +363,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
     def launch_text_message(self):
         def text_message(data):
             try:
-                commuId = data.json["ndcId"]
+                commuId = data.comId
                 subClient = self.get_community(commuId)
             except Exception:
                 return
@@ -381,6 +383,11 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
             elif "command" in self.commands.keys() and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
                 print(f"{args.author} : {args.message}")
                 command = args.message.lower().split()[0][len(subClient.prefix):]
+
+                if command in subClient.locked_command:
+                    subClient.send_message(args.chatId, self.lock_message)
+                    return
+
                 args.message = ' '.join(args.message.split()[1:])
                 self.time_user(args.authorId, self.wait)
                 if command.lower() in self.commands["command"].keys():
@@ -528,6 +535,7 @@ class Bot(SubClient, ACM):
         self.subclient = SubClient(comId=self.community_id, profile=client.profile)
 
         self.banned_words = self.get_file_info("banned_words")
+        self.locked_command = self.get_file_info("locked_command")
         self.message_bvn = self.get_file_info("welcome")
         self.welcome_chat = self.get_file_info("welcome_chat")
         self.prefix = self.get_file_info("prefix")
@@ -548,10 +556,11 @@ class Bot(SubClient, ACM):
             file.write(dumps(dict, sort_keys=False, indent=4))
 
     def create_dict(self):
-        return {"welcome": "", "prefix": self.prefix, "welcome_chat": "", "favorite_users": [], "favorite_chats": [], "banned_words": []}
+        return {"welcome": "", "prefix": self.prefix, "welcome_chat": "","locked_command": [], "favorite_users": [], "favorite_chats": [], "banned_words": []}
 
     def get_dict(self):
-        return {"welcome": self.message_bvn, "prefix": self.prefix, "welcome_chat": self.welcome_chat, "favorite_users": self.favorite_users, "favorite_chats": self.favorite_chats, "banned_words": self.banned_words}
+        return {"welcome": self.message_bvn, "prefix": self.prefix, "welcome_chat": self.welcome_chat, "locked_command": self.locked_command,
+                "favorite_users": self.favorite_users, "favorite_chats": self.favorite_chats, "banned_words": self.banned_words}
 
     def update_file(self, dict=None):
         if not dict:
@@ -594,6 +603,10 @@ class Bot(SubClient, ACM):
         self.banned_words.extend(liste)
         self.update_file()
 
+    def add_locked_command(self, liste: list):
+        self.locked_command.extend(liste)
+        self.update_file()
+
     def remove_favorite_users(self, value: str):
         liste = [value]
         [self.favorite_users.remove(elem) for elem in liste if elem in self.favorite_users]
@@ -606,6 +619,10 @@ class Bot(SubClient, ACM):
 
     def remove_banned_words(self, liste: list):
         [self.banned_words.remove(elem) for elem in liste if elem in self.banned_words]
+        self.update_file()
+
+    def remove_locked_command(self, liste: list):
+        [self.locked_command.remove(elem) for elem in liste if elem in self.locked_command]
         self.update_file()
 
     def unset_welcome_chat(self):
@@ -881,7 +898,7 @@ class Bot(SubClient, ACM):
             timeEnd = timeNow + 300
             try:
                 self.send_active_obj(startTime=timeNow, endTime=timeEnd)
-            except Exception as activeError:
+            except Exception:
                 pass
 
         def change_bio_and_welcome_members():
