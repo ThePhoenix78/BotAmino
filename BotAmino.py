@@ -225,7 +225,7 @@ class BannedWords:
 
 
 class Parameters:
-    __slots__ = ("subClient", "chatId", "authorId", "author", "message", "messageId", "comId", "info")
+    __slots__ = ("subClient", "chatId", "authorId", "author", "message", "messageId", "authorIcon", "comId", "info")
 
     def __init__(self, data, subClient):
         self.subClient = subClient
@@ -234,6 +234,7 @@ class Parameters:
         self.author = data.message.author.nickname
         self.message = data.message.content
         self.messageId = data.message.messageId
+        self.authorIcon = data.message.author.icon
         self.comId = data.comId
         self.info = data
 
