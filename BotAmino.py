@@ -850,6 +850,16 @@ class Bot(SubClient, ACM):
 
         return False
 
+    def start_screen_room(self, chatId: str, joinType: int=1):
+        self.client.join_video_chat(comId=self.community_id, chatId=chatId, joinType=joinType)
+
+    def start_voice_room(self, chatId: str, joinType: int=1):
+        self.client.join_voice_chat(comId=self.community_id, chatId=chatId, joinType=joinType)
+
+    def join_screen_room(self, chatId: str, joinType: int=1):
+        self.client.join_video_chat_as_viewer(comId=self.community_id, chatId=chatId, joinType=joinType)
+
+
     def get_chats(self):
         return self.get_public_chat_threads()
 
