@@ -298,6 +298,15 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
     def generate_transaction_id(self):
         return str(uuid4())
 
+    def start_screen_room(self,comId: str, chatId: str, joinType: int=1):
+        self.join_video_chat(comId=comId chatId=chatId, joinType=joinType)
+
+    def start_voice_room(self,comId: str, chatId: str, joinType: int=1):
+        self.join_voice_chat(comId=comId, chatId=chatId, joinType=joinType)
+
+    def join_screen_room(self,comId: str, chatId: str, joinType: int=1):
+        self.join_video_chat_as_viewer(comId=comId chatId=chatId, joinType=joinType)
+
     def check(self, args, *can, id_=None):
         id_ = id_ if id_ else args.authorId
         foo = {'staff': args.subClient.is_in_staff,
