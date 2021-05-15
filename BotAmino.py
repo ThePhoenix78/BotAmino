@@ -302,7 +302,43 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         self.join_video_chat(comId=comId, chatId=chatId, joinType=joinType)
 
     def start_voice_room(self,comId: str, chatId: str, joinType: int=1):
-        self.join_voice_chat(comId=comId, chatId=chatId, joinType=joinType)
+        data = {
+            "o": {
+                "ndcId": comId,
+                "threadId": chatId,
+                "joinRole": joinType,
+                "id": "2154531"  # Need to change?
+            },
+            "t": 112
+        }
+        data = dumps(data)
+        self.send(data)
+        data = {
+            "o": {
+                "ndcId": comId,
+                "threadId": chatId,
+                "channelType": 1,
+                "id": "2154531"  # Need to change?
+            },
+            "t": 108
+        }
+        data = dumps(data)
+        self.send(data)
+
+        # self.join_voice_chat(comId=comId, chatId=chatId, joinType=joinType)
+
+    def end_voice_room(self, comId: str, chatId: str, joinType: int = 2):
+        data = {
+            "o": {
+                "ndcId": comId,
+                "threadId": chatId,
+                "joinRole": joinType,
+                "id": "2154531"  # Need to change?
+            },
+            "t": 112
+        }
+        data = dumps(data)
+        self.send(data)
 
     def join_screen_room(self,comId: str, chatId: str, joinType: int=1):
         self.join_video_chat_as_viewer(comId=comId, chatId=chatId, joinType=joinType)
