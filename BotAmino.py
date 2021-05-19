@@ -301,6 +301,18 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
     def start_screen_room(self, comId: str, chatId: str, joinType: int=1):
         data = {
             "o": {
+                "ndcId": comId,
+                "threadId": chatId,
+                "joinRole": joinType,
+                "id": "2154531"  # Need to change?
+            },
+            "t": 112
+        }
+        data = dumps(data)
+        self.send(data)
+
+        data = {
+            "o": {
                 "ndcId": int(comId),
                 "threadId": chatId,
                 "joinRole": joinType,
@@ -326,7 +338,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         data = dumps(data)
         self.send(data)
 
-    def start_voice_room(self,comId: str, chatId: str, joinType: int=1):
+    def start_voice_room(self, comId: str, chatId: str, joinType: int=1):
         data = {
             "o": {
                 "ndcId": comId,
@@ -350,8 +362,6 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         data = dumps(data)
         self.send(data)
 
-        # self.join_voice_chat(comId=comId, chatId=chatId, joinType=joinType)
-
     def end_voice_room(self, comId: str, chatId: str, joinType: int = 2):
         data = {
             "o": {
@@ -364,7 +374,6 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         }
         data = dumps(data)
         self.send(data)
-
 
     def check(self, args, *can, id_=None):
         id_ = id_ if id_ else args.authorId
