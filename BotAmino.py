@@ -298,8 +298,33 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
     def generate_transaction_id(self):
         return str(uuid4())
 
-    def start_screen_room(self,comId: str, chatId: str, joinType: int=1):
-        self.join_video_chat(comId=comId, chatId=chatId, joinType=joinType)
+    def start_screen_room(self, comId: str, chatId: str, joinType: int=1):
+        data = {
+            "o": {
+                "ndcId": int(comId),
+                "threadId": chatId,
+                "joinRole": joinType,
+                "channelType": 5,
+                "id": "2154531"  # Need to change?
+            },
+            "t": 108
+        }
+        data = dumps(data)
+        self.send(data)
+
+    def join_screen_room(self, comId: str, chatId: str, joinType: int=1):
+        data = {
+            "o":
+                {
+                    "ndcId": int(comId),
+                    "threadId": chatId,
+                    "joinRole": 2,
+                    "id": "72446"
+                },
+            "t": 112
+        }
+        data = dumps(data)
+        self.send(data)
 
     def start_voice_room(self,comId: str, chatId: str, joinType: int=1):
         data = {
@@ -340,8 +365,6 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         data = dumps(data)
         self.send(data)
 
-    def join_screen_room(self,comId: str, chatId: str, joinType: int=1):
-        self.join_video_chat_as_viewer(comId=comId, chatId=chatId, joinType=joinType)
 
     def check(self, args, *can, id_=None):
         id_ = id_ if id_ else args.authorId
