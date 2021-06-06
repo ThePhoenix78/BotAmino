@@ -240,9 +240,9 @@ class Parameters:
 
 
 class BotAmino(Command, Client, TimeOut, BannedWords):
-    def __init__(self, email: str = None, password: str = None, sid: str = None,  proxies: dict = None):
+    def __init__(self, email: str = None, password: str = None, sid: str = None,  proxies: dict = None, deviceId: str = None, certificatePath: str = None):
         Command.__init__(self)
-        Client.__init__(self, proxies=proxies)
+        Client.__init__(self, proxies=proxies, deviceId = deviceId, certificatePath = certificatePath)
 
         if email and password:
             self.login(email=email, password=password)
@@ -282,6 +282,9 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
                 continue
             sublist.append(elem)
         return sublist
+
+    def add_community(self, comId):
+        self.communaute[comId] = Bot(self, comId, self.prefix, self.bio, self.activity)
 
     def get_community(self, comId):
         return self.communaute[comId]
@@ -817,12 +820,12 @@ class Bot(SubClient, ACM):
         self.marche = True
         Thread(target=self.passive).start()
 
-    def leave_community(self):
-        self.client.leave_community(comId=self.community_id)
+    def leave_amino(self):
         self.marche = False
         for elem in self.get_public_chat_threads().chatId:
             with suppress(Exception):
                 self.leave_chat(elem)
+        self.client.leave_community(comId=self.community_id)
 
     def check_new_member(self):
         if not (self.message_bvn or self.welcome_chat):
