@@ -10,6 +10,7 @@ from random import choice
 from datetime import datetime
 from amino import Client, SubClient, ACM
 from uuid import uuid4
+from inspect import getfullargspec
 # this is the Slimakoi's API with some of my patches
 
 # API made by ThePhoenix78
@@ -37,12 +38,19 @@ class Command:
         self.conditions = {}
 
     def execute(self, commande, data, type: str = "command"):
-        if commande in self.conditions[type].keys():
+        com = self.commands[type][commande]
+        arg = getfullargspec(com).args
+        arg.pop(0)
+        s = len(arg)
+        dico = {}
+        if s:
+            dico = {key: value for key, value in zip(arg, data.message.split()[0:s])}
+
+        if self.conditions[type].get(commande, None):
             if self.conditions[type][commande](data):
-                return self.commands[type][commande](data)
-            else:
-                return
-        return self.commands[type][commande](data)
+                return self.commands[type][commande](data, **dico)
+            return
+        return self.commands[type][commande](data, **dico)
 
     def categorie_exist(self, type: str):
         return type in self.commands.keys()
@@ -75,7 +83,6 @@ class Command:
             if callable(condition):
                 for command in name:
                     self.conditions[type][command] = condition
-
             for command in name:
                 self.commands[type][command.lower()] = command_funct
             return command_funct
@@ -225,7 +232,10 @@ class BannedWords:
 
 
 class Parameters:
-    __slots__ = ("subClient", "chatId", "authorId", "author", "message", "messageId", "authorIcon", "comId", "info")
+    __slots__ = (
+                    "subClient", "chatId", "authorId", "author", "message", "messageId",
+                    "authorIcon", "comId", "replySrc", "replyMsg", "replyId", "info"
+                 )
 
     def __init__(self, data, subClient):
         self.subClient = subClient
@@ -236,13 +246,25 @@ class Parameters:
         self.messageId = data.message.messageId
         self.authorIcon = data.message.author.icon
         self.comId = data.comId
+
+        self.replySrc = None
+        self.replyId = None
+        if data.message.extensions and data.message.extensions.get('replyMessage', None) and data.message.extensions['replyMessage'].get('mediaValue', None):
+            self.replySrc = data.message.extensions['replyMessage']['mediaValue'].replace('_00.', '_hq.')
+            self.replyId = data.message.extensions['replyMessage']['messageId']
+
+        self.replyMsg = None
+        if data.message.extensions and data.message.extensions.get('replyMessage', None) and data.message.extensions['replyMessage'].get('content', None):
+            self.replyMsg = data.message.extensions['replyMessage']['content']
+            self.replyId = data.message.extensions['replyMessage']['messageId']
+
         self.info = data
 
 
 class BotAmino(Command, Client, TimeOut, BannedWords):
     def __init__(self, email: str = None, password: str = None, sid: str = None,  proxies: dict = None, deviceId: str = None, certificatePath: str = None):
         Command.__init__(self)
-        Client.__init__(self, proxies=proxies, deviceId = deviceId, certificatePath = certificatePath)
+        Client.__init__(self, proxies=proxies, deviceId=deviceId, certificatePath=certificatePath)
 
         if email and password:
             self.login(email=email, password=password)
@@ -637,7 +659,7 @@ class Bot(SubClient, ACM):
             file.write(dumps(dict, sort_keys=False, indent=4))
 
     def create_dict(self):
-        return {"welcome": "", "prefix": self.prefix, "welcome_chat": "","locked_command": [], "favorite_users": [], "favorite_chats": [], "banned_words": []}
+        return {"welcome": "", "prefix": self.prefix, "welcome_chat": "", "locked_command": [], "favorite_users": [], "favorite_chats": [], "banned_words": []}
 
     def get_dict(self):
         return {"welcome": self.message_bvn, "prefix": self.prefix, "welcome_chat": self.welcome_chat, "locked_command": self.locked_command,
