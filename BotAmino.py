@@ -11,7 +11,8 @@ from datetime import datetime
 from amino import Client, SubClient, ACM
 from uuid import uuid4
 from inspect import getfullargspec
-# this is the Slimakoi's API with some of my patches
+
+# this is Slimakoi's API with some of my patches
 
 # API made by ThePhoenix78
 # Big optimisation thanks to SempreLEGIT#1378 ♥
@@ -409,7 +410,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
             if foo[i](id_):
                 return True
 
-    def threadLaunch(self, commu, passive):
+    def threadLaunch(self, commu, passive: bool=False):
         self.communaute[commu] = Bot(self, commu, self.prefix, self.bio, self.activity)
         slp(30)
         if passive:
@@ -419,6 +420,32 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         amino_list = self.sub_clients()
         self.len_community = len(amino_list.comId)
         [Thread(target=self.threadLaunch, args=[commu, passive]).start() for commu in amino_list.comId]
+
+        if self.categorie_exist("command") or self.categorie_exist("answer"):
+            self.launch_text_message()
+
+        if self.categorie_exist("on_member_join_chat"):
+            self.launch_on_member_join_chat()
+
+        if self.categorie_exist("on_member_leave_chat"):
+            self.launch_on_member_leave_chat()
+
+        if self.categorie_exist("on_other"):
+            self.launch_other_message()
+
+        if self.categorie_exist("on_remove"):
+            self.launch_removed_message()
+
+        if self.categorie_exist("on_delete"):
+            self.launch_delete_message()
+
+        if self.categorie_exist("on_all"):
+            self.launch_all_message()
+
+    def single_launch(self, commu, passive: bool = False):
+        amino_list = self.sub_clients()
+        self.len_community = len(amino_list.comId)
+        Thread(target=self.threadLaunch, args=[commu, passive]).start()
 
         if self.categorie_exist("command") or self.categorie_exist("answer"):
             self.launch_text_message()
@@ -635,7 +662,7 @@ class Bot(SubClient, ACM):
 
         self.update_file(old_dict)
 
-        self.subclient = SubClient(comId=self.community_id, profile=client.profile)
+        # self.subclient = SubClient(comId=self.community_id, profile=client.profile)
 
         self.banned_words = self.get_file_info("banned_words")
         self.locked_command = self.get_file_info("locked_command")
@@ -649,9 +676,6 @@ class Bot(SubClient, ACM):
         new_users = self.get_all_users(start=0, size=30, type="recent")
 
         self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
-
-        if self.welcome_chat or self.message_bvn:
-            Thread(target=self.check_new_member).start()
 
     def create_community_file(self):
         with open(f'{path_amino}/{self.community_amino_id}.json', 'w', encoding='utf8') as file:
