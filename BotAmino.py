@@ -295,6 +295,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         self.no_command_message = ""
         self.spam_message = "You are spamming, be careful"
         self.lock_message = "Command locked sorry"
+        self.launched = False
 
     def tradlist(self, sub):
         sublist = []
@@ -421,6 +422,9 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         self.len_community = len(amino_list.comId)
         [Thread(target=self.threadLaunch, args=[commu, passive]).start() for commu in amino_list.comId]
 
+        if self.launched:
+            return
+
         if self.categorie_exist("command") or self.categorie_exist("answer"):
             self.launch_text_message()
 
@@ -441,12 +445,17 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
 
         if self.categorie_exist("on_all"):
             self.launch_all_message()
+
+        self.launched = True
 
     def single_launch(self, commu, passive: bool = False):
         amino_list = self.sub_clients()
         self.len_community = len(amino_list.comId)
         Thread(target=self.threadLaunch, args=[commu, passive]).start()
 
+        if self.launched:
+            return
+
         if self.categorie_exist("command") or self.categorie_exist("answer"):
             self.launch_text_message()
 
@@ -467,6 +476,8 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
 
         if self.categorie_exist("on_all"):
             self.launch_all_message()
+
+        self.launched = True
 
     def message_analyse(self, data, type):
         try:
