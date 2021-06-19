@@ -411,6 +411,14 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
             if foo[i](id_):
                 return True
 
+    def check_all(self):
+        amino_list = self.sub_clients()
+        for com in amino_list.comId:
+            try:
+                self.communaute[com].check_in()
+            except Exception:
+                pass
+
     def threadLaunch(self, commu, passive: bool=False):
         self.communaute[commu] = Bot(self, commu, self.prefix, self.bio, self.activity)
         slp(30)
