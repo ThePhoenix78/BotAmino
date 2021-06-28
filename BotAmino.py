@@ -307,6 +307,9 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
             sublist.append(elem)
         return sublist
 
+    def send_data(self, data):
+        self.send(data)
+
     def add_community(self, comId):
         self.communaute[comId] = Bot(self, comId, self.prefix, self.bio, self.activity)
 
@@ -402,6 +405,19 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         data = dumps(data)
         self.send(data)
 
+    def show_online(self, comId):
+        data = {
+            "o": {
+                "actions": ["Browsing"],
+                "target": f"ndc://x{comId}/",
+                "ndcId": int(comId),
+                "id": "82333"
+            },
+            "t":304}
+        data = dumps(data)
+        slp(1)
+        self.send(data)
+
     def check(self, args, *can, id_=None):
         id_ = id_ if id_ else args.authorId
         foo = {'staff': args.subClient.is_in_staff,
@@ -420,7 +436,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
                 pass
 
     def threadLaunch(self, commu, passive: bool=False):
-        self.communaute[commu] = Bot(self, commu, self.prefix, self.bio, self.activity)
+        self.communaute[commu] = Bot(self, commu, self.prefix, self.bio, passive)
         slp(30)
         if passive:
             self.communaute[commu].passive()
@@ -1097,8 +1113,9 @@ class Bot(SubClient, ACM):
                 feature_users()
                 k = 0
 
-            slp(30)
             if self.activity:
                 upt_activity()
+
+            slp(30)
             j += 1
             k += 1
