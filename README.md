@@ -14,13 +14,13 @@ for example:
 from BotAmino import BotAmino
 
 print("wait...")
-client = BotAmino()
+client = BotAmino("Email", "Password")
 client.prefix = "/"  # set the prefix to /
 client.wait = 10  # wait 10 sec before doing a new command
 
 
 def test(data):
-    return data.authorId == ["your_user_id"]
+    return data.authorId in ["your_user_id"]
 
 
 
@@ -30,7 +30,7 @@ def ping(data):
 
 
 @client.command("pong") # "pong" the command, the test function is not necessary
-def ping(data):
+def pong(data):
     if data.subClient.is_in_staff(data.authorId): # will execute the command if the user is in the amino's staff (learder/curator)
         data.subClient.send_message(data.chatId, message="ping!")
 
