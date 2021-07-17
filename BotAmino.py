@@ -1,6 +1,6 @@
 from time import sleep as slp
 from sys import exit
-from json import dumps, load
+from json import dumps, load, loads
 from pathlib import Path
 from threading import Thread
 from contextlib import suppress
@@ -11,6 +11,9 @@ from datetime import datetime
 from amino import Client, SubClient, ACM
 from uuid import uuid4
 from inspect import getfullargspec
+from urllib.request import urlopen
+from zipfile import ZipFile
+import requests
 
 # this is Slimakoi's API with some of my patches
 
@@ -307,9 +310,6 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
             sublist.append(elem)
         return sublist
 
-    def send_data(self, data):
-        self.send(data)
-
     def add_community(self, comId):
         self.communaute[comId] = Bot(self, comId, self.prefix, self.bio, self.activity)
 
@@ -328,7 +328,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
     def generate_transaction_id(self):
         return str(uuid4())
 
-    def start_screen_room(self, comId: str, chatId: str, joinType: int=1):
+    def start_screen_room(self, comId: str, chatId: str, joinType: int = 1):
         data = {
             "o": {
                 "ndcId": comId,
@@ -354,7 +354,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         data = dumps(data)
         self.send(data)
 
-    def join_screen_room(self, comId: str, chatId: str, joinType: int=1):
+    def join_screen_room(self, comId: str, chatId: str, joinType: int = 1):
         data = {
             "o":
                 {
@@ -368,7 +368,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         data = dumps(data)
         self.send(data)
 
-    def start_voice_room(self, comId: str, chatId: str, joinType: int=1):
+    def start_voice_room(self, comId: str, chatId: str, joinType: int = 1):
         data = {
             "o": {
                 "ndcId": comId,
@@ -413,10 +413,28 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
                 "ndcId": int(comId),
                 "id": "82333"
             },
-            "t":304}
+            "t": 304}
         data = dumps(data)
         slp(1)
         self.send(data)
+
+    def copy_bubble(self, chatId: str, replyId: str, comId: str):
+        header = {
+            'Accept-Language': 'en-US',
+            'Content-Type': 'application/octet-stream',
+            'User-Agent': 'Dalvik/2.1.0 (Linux; U; Android 7.1; LG-UK495 Build/MRA58K; com.narvii.amino.master/3.3.33180)',
+            'Host': 'service.narvii.com',
+            'Accept-Encoding': 'gzip',
+            'Connection': 'Keep-Alive',
+        }
+        a = self.get_message_info(chatId=chatId, messageId=replyId).json["chatBubble"]["resourceUrl"]
+
+        with urlopen(a) as zipresp:
+            yo = zipresp.read()
+
+        response = requests.post(f"https://service.narvii.com/api/v1/x{comId}/s/chat/chat-bubble/templates/107147e9-05c5-405f-8553-af65d2823457/generate", data=yo, headers=header)
+        bid = loads(response.text)['chatBubble']['bubbleId']
+        response = requests.post(f"https://service.narvii.com/api/v1/{comId}/s/chat/chat-bubble/{bid}", data=yo, headers=header)
 
     def check(self, args, *can, id_=None):
         id_ = id_ if id_ else args.authorId
@@ -435,7 +453,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
             except Exception:
                 pass
 
-    def threadLaunch(self, commu, passive: bool=False):
+    def threadLaunch(self, commu, passive: bool = False):
         self.communaute[commu] = Bot(self, commu, self.prefix, self.bio, passive)
         slp(30)
         if passive:
@@ -803,6 +821,26 @@ class Bot(SubClient, ACM):
     def is_agent(self, uid):
         return uid == self.community_leader_agent_id
 
+    def copy_bubble(self, chatId: str, replyId: str, comId: str = None):
+        if not comId:
+            comId = self.community_id
+        header = {
+            'Accept-Language': 'en-US',
+            'Content-Type': 'application/octet-stream',
+            'User-Agent': 'Dalvik/2.1.0 (Linux; U; Android 7.1; LG-UK495 Build/MRA58K; com.narvii.amino.master/3.3.33180)',
+            'Host': 'service.narvii.com',
+            'Accept-Encoding': 'gzip',
+            'Connection': 'Keep-Alive',
+        }
+        a = self.get_message_info(chatId=chatId, messageId=replyId).json["chatBubble"]["resourceUrl"]
+
+        with urlopen(a) as zipresp:
+            yo = zipresp.read()
+
+        response = requests.post(f"https://service.narvii.com/api/v1/x{comId}/s/chat/chat-bubble/templates/107147e9-05c5-405f-8553-af65d2823457/generate", data=yo, headers=header)
+        bid = loads(response.text)['chatBubble']['bubbleId']
+        response = requests.post(f"https://service.narvii.com/api/v1/{comId}/s/chat/chat-bubble/{bid}", data=yo, headers=header)
+
     def accept_role(self, rid: str = None):
         with suppress(Exception):
             self.accept_organizer(rid)
@@ -1011,15 +1049,14 @@ class Bot(SubClient, ACM):
 
         return False
 
-    def start_screen_room(self, chatId: str, joinType: int=1):
+    def start_screen_room(self, chatId: str, joinType: int = 1):
         self.client.join_video_chat(comId=self.community_id, chatId=chatId, joinType=joinType)
 
-    def start_voice_room(self, chatId: str, joinType: int=1):
+    def start_voice_room(self, chatId: str, joinType: int = 1):
         self.client.join_voice_chat(comId=self.community_id, chatId=chatId, joinType=joinType)
 
-    def join_screen_room(self, chatId: str, joinType: int=1):
+    def join_screen_room(self, chatId: str, joinType: int = 1):
         self.client.join_video_chat_as_viewer(comId=self.community_id, chatId=chatId, joinType=joinType)
-
 
     def get_chats(self):
         return self.get_public_chat_threads()
