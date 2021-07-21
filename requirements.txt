@@ -1,4 +1,4 @@
-Amino.py
+Amino.py>=1.1.17
 schedule
 reportlab
 argparse
