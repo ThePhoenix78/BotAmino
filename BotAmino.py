@@ -8,7 +8,10 @@ from unicodedata import normalize
 from string import punctuation
 from random import choice
 from datetime import datetime
-from amino import Client, SubClient, ACM
+try:
+    from .local_amino import Client, SubClient, ACM
+except ImportError:
+    from local_amino import Client, SubClient, ACM
 from uuid import uuid4
 from inspect import getfullargspec
 from urllib.request import urlopen
@@ -266,9 +269,9 @@ class Parameters:
 
 
 class BotAmino(Command, Client, TimeOut, BannedWords):
-    def __init__(self, email: str = None, password: str = None, sid: str = None,  proxies: dict = None, deviceId: str = None, certificatePath: str = None):
+    def __init__(self, email: str = None, password: str = None, sid: str = None, deviceId: str = None):
         Command.__init__(self)
-        Client.__init__(self, proxies=proxies, deviceId=deviceId, certificatePath=certificatePath)
+        Client.__init__(self, deviceId=deviceId)
 
         if email and password:
             self.login(email=email, password=password)
