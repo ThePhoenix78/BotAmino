@@ -2071,6 +2071,8 @@ class Thread:
         except (KeyError, TypeError): pass
         try: self.title = self.json["title"]
         except (KeyError, TypeError): pass
+        try: self.membershipStatus = self.json["membershipStatus"]
+        except (KeyError, TypeError): pass
         try: self.content = self.json["content"]
         except (KeyError, TypeError): pass
         try: self.needHidden = self.json["needHidden"]
@@ -2217,6 +2219,8 @@ class ThreadList:
             except (KeyError, TypeError): self.isPinned.append(None)
             try: self.title.append(chat["title"])
             except (KeyError, TypeError): self.title.append(None)
+            try: self.membershipStatus.append(chat["membershipStatus"])
+            except (KeyError, TypeError): self.membershipStatus.append(None)
             try: self.content.append(chat["content"])
             except (KeyError, TypeError): self.content.append(None)
             try: self.needHidden.append(chat["needHidden"])
@@ -3661,5 +3665,158 @@ class NoticeList:
             except (KeyError, TypeError): self.type.append(None)
             try: self.notificationId.append(x["notificationId"])
             except (KeyError, TypeError): self.notificationId.append(None)
+
+        return self
+
+
+class LiveLayer:
+    def __init__(self, data):
+        self.json = data
+
+        self.userProfileCount = []
+        self.topic = []
+        self.userProfileList = []
+        self.mediaList = []
+
+
+    @property
+    def LiveLayer(self):
+        for x in self.json:
+            try: self.userProfileCount.append(x["userProfileCount"])
+            except (KeyError, TypeError): self.userProfileCount.append(None)
+            try: self.topic.append(x["topic"])
+            except (KeyError, TypeError): self.topic.append(None)
+            try: self.userProfileList.append(UserProfileList(x["userProfileList"]).UserProfileList)
+            except (KeyError, TypeError): self.userProfileList.append(None)
+            try: self.mediaList.append(x["mediaList"])
+            except (KeyError, TypeError): self.mediaList.append(None)
+
+        return self
+
+
+class AvatarFrameList:
+    def __init__(self, data):
+        _author, _targetUser = [], []
+
+        self.json = data
+
+        for y in data:
+            try: _author.append(y["operator"])
+            except (KeyError, TypeError): _author.append(None)
+            try: _targetUser.append(y["targetUser"])
+            except (KeyError, TypeError): _targetUser.append(None)
+
+        self.author: UserProfileList = UserProfileList(_author).UserProfileList
+        self.targetUser: UserProfileList = UserProfileList(_targetUser).UserProfileList
+
+        self.isGloballyAvailable = []
+        self.extensions = []
+        self.frameType = []
+        self.resourceUrl = []
+        self.md5 = []
+        self.icon = []
+        self.createdTime = []
+        self.config = []
+        self.moodColor = []
+        self.configName = []
+        self.configVersion = []
+        self.userIconBorderColor = []
+        self.avatarFramePath = []
+        self.avatarId = []
+        self.ownershipStatus = []
+        self.frameUrl = []
+        self.additionalBenefits = []
+        self.firstMonthFreeAminoPlusMembership = []
+        self.restrictionInfo = []
+        self.ownerType = []
+        self.restrictType = []
+        self.restrictValue = []
+        self.availableDuration = []
+        self.discountValue = []
+        self.discountStatus = []
+        self.ownerId = []
+        self.ownershipInfo = []
+        self.isAutoRenew = []
+        self.modifiedTime = []
+        self.name = []
+        self.frameId = []
+        self.version = []
+        self.isNew = []
+        self.availableComIds = []
+        self.status = []
+
+    @property
+    def AvatarFrameList(self):
+        for x in self.json:
+            try: self.isGloballyAvailable.append(x["isGloballyAvailable"])
+            except (KeyError, TypeError): self.isGloballyAvailable.append(None)
+            try: self.extensions.append(x["extensions"])
+            except (KeyError, TypeError): self.extensions.append(None)
+            try: self.frameType.append(x["frameType"])
+            except (KeyError, TypeError): self.frameType.append(None)
+            try: self.resourceUrl.append(x["resourceUrl"])
+            except (KeyError, TypeError): self.resourceUrl.append(None)
+            try: self.md5.append(x["md5"])
+            except (KeyError, TypeError): self.md5.append(None)
+            try: self.icon.append(x["icon"])
+            except (KeyError, TypeError): self.icon.append(None)
+            try: self.createdTime.append(x["createdTime"])
+            except (KeyError, TypeError): self.createdTime.append(None)
+            try: self.config.append(x["config"])
+            except (KeyError, TypeError): self.config.append(None)
+            try: self.moodColor.append(x["config"]["moodColor"])
+            except (KeyError, TypeError): self.moodColor.append(None)
+            try: self.configName.append(x["config"]["name"])
+            except (KeyError, TypeError): self.configName.append(None)
+            try: self.configVersion.append(x["config"]["version"])
+            except (KeyError, TypeError): self.configVersion.append(None)
+            try: self.userIconBorderColor.append(x["config"]["userIconBorderColor"])
+            except (KeyError, TypeError): self.userIconBorderColor.append(None)
+            try: self.avatarFramePath.append(x["config"]["avatarFramePath"])
+            except (KeyError, TypeError): self.avatarFramePath.append(None)
+            try: self.avatarId.append(x["config"]["id"])
+            except (KeyError, TypeError): self.avatarId.append(None)
+            try: self.ownershipStatus.append(x["ownershipStatus"])
+            except (KeyError, TypeError): self.ownershipStatus.append(None)
+            try: self.frameUrl.append(x["frameUrl"])
+            except (KeyError, TypeError): self.frameUrl.append(None)
+            try: self.additionalBenefits.append(x["additionalBenefits"])
+            except (KeyError, TypeError): self.additionalBenefits.append(None)
+            try: self.firstMonthFreeAminoPlusMembership.append(x["additionalBenefits"]["firstMonthFreeAminoPlusMembership"])
+            except (KeyError, TypeError): self.firstMonthFreeAminoPlusMembership.append(None)
+            try: self.restrictionInfo.append(x["restrictionInfo"])
+            except (KeyError, TypeError): self.restrictionInfo.append(None)
+            try: self.ownerType.append(x["restrictionInfo"]["ownerType"])
+            except (KeyError, TypeError): self.ownerType.append(None)
+            try: self.restrictType.append(x["restrictionInfo"]["restrictType"])
+            except (KeyError, TypeError): self.restrictType.append(None)
+            try: self.restrictValue.append(x["restrictionInfo"]["restrictValue"])
+            except (KeyError, TypeError): self.restrictValue.append(None)
+            try: self.availableDuration.append(x["restrictionInfo"]["availableDuration"])
+            except (KeyError, TypeError): self.availableDuration.append(None)
+            try: self.discountValue.append(x["restrictionInfo"]["discountValue"])
+            except (KeyError, TypeError): self.discountValue.append(None)
+            try: self.discountStatus.append(x["restrictionInfo"]["discountStatus"])
+            except (KeyError, TypeError): self.discountStatus.append(None)
+            try: self.ownerId.append(x["restrictionInfo"]["ownerUid"])
+            except (KeyError, TypeError): self.ownerId.append(None)
+            try: self.ownershipInfo.append(x["ownershipInfo"])
+            except (KeyError, TypeError): self.ownershipInfo.append(None)
+            try: self.isAutoRenew.append(x["ownershipInfo"]["isAutoRenew"])
+            except (KeyError, TypeError): self.isAutoRenew.append(None)
+            try: self.name.append(x["name"])
+            except (KeyError, TypeError): self.name.append(None)
+            try: self.modifiedTime.append(x["modifiedTime"])
+            except (KeyError, TypeError): self.modifiedTime.append(None)
+            try: self.frameId.append(x["frameId"])
+            except (KeyError, TypeError): self.frameId.append(None)
+            try: self.version.append(x["version"])
+            except (KeyError, TypeError): self.version.append(None)
+            try: self.isNew.append(x["isNew"])
+            except (KeyError, TypeError): self.isNew.append(None)
+            try: self.status.append(x["status"])
+            except (KeyError, TypeError): self.status.append(None)
+            try: self.availableComIds.append(x["availableNdcIds"])
+            except (KeyError, TypeError): self.availableComIds.append(None)
 
         return self

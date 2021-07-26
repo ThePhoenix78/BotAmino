@@ -61,6 +61,15 @@ class ActionNotAllowed(Exception):
     def __init__(*args, **kwargs):
         Exception.__init__(*args, **kwargs)
 
+class ServiceUnderMaintenance(Exception):
+    """
+    - **API Code** : 111
+    - **API Message** : Sorry, this service is under maintenance. Please check back later.
+    - **API String** : ``Unknown String``
+    """
+    def __init__(*args, **kwargs):
+        Exception.__init__(*args, **kwargs)
+
 class MessageNeeded(Exception):
     """
     - **API Code** : 113
@@ -439,10 +448,29 @@ class ReachedMaxPollOptions(Exception):
     def __init__(*args, **kwargs):
         Exception.__init__(*args, **kwargs)
 
+class TooManyChats(Exception):
+    """
+    - **API Code** : 1602
+    - **API Message** : Sorry, you can only have up to 1000 chat sessions.
+    - **API String** : ``Unknown String``
+    """
+
+    def __init__(*args, **kwargs):
+        Exception.__init__(*args, **kwargs)
+
 class ChatFull(Exception):
     """
     - **API Code** : 1605
     - **API Message** : ``Unknown Message``
+    - **API String** : ``Unknown String``
+    """
+    def __init__(*args, **kwargs):
+        Exception.__init__(*args, **kwargs)
+
+class TooManyInviteUsers(Exception):
+    """
+    - **API Code** : 1606
+    - **API Message** : Sorry, you can only invite up to 999 people.
     - **API String** : ``Unknown String``
     """
     def __init__(*args, **kwargs):
@@ -811,8 +839,10 @@ def CheckException(data):
     elif api_code == 106: raise AccessDenied(data)
     elif api_code == 107: raise UnexistentData(data)
     elif api_code == 110: raise ActionNotAllowed(data)
+    elif api_code == 111: raise ServiceUnderMaintenance(data)
     elif api_code == 113: raise MessageNeeded(data)
     elif api_code == 200: raise InvalidAccountOrPassword(data)
+    elif api_code == 201: raise AccountDisabled(data)
     elif api_code == 213: raise InvalidEmail(data)
     elif api_code == 214: raise InvalidPassword(data)
     elif api_code == 215: raise EmailAlreadyTaken(data) and UnsupportedEmail(data)
@@ -850,7 +880,9 @@ def CheckException(data):
     elif api_code == 833: raise CommunityDeleted(data)
     elif api_code == 1501: raise DuplicatePollOption(data)
     elif api_code == 1507: raise ReachedMaxPollOptions(data)
+    elif api_code == 1602: raise TooManyChats(data)
     elif api_code == 1605: raise ChatFull(data)
+    elif api_code == 1606: raise TooManyInviteUsers(data)
     elif api_code == 1611: raise ChatInvitesDisabled(data)
     elif api_code == 1612: raise RemovedFromChat(data)
     elif api_code == 1613: raise UserNotJoined(data)

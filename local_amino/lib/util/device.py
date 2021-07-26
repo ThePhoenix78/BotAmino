@@ -2,12 +2,17 @@ import json
 from .helpers import generate_device_info
 
 class DeviceGenerator:
-    def __init__(self):
+    def __init__(self, deviceId = None):
         try:
             with open("device.json", "r") as stream:
                 data = json.load(stream)
                 self.user_agent = data["user_agent"]
-                self.device_id = data["device_id"]
+
+                if deviceId:
+                    self.device_id = deviceId
+                else:
+                    self.device_id = data["device_id"]
+
                 self.device_id_sig = data["device_id_sig"]
 
         except (FileNotFoundError, json.decoder.JSONDecodeError):
@@ -18,5 +23,10 @@ class DeviceGenerator:
             with open("device.json", "r") as stream:
                 data = json.load(stream)
                 self.user_agent = data["user_agent"]
-                self.device_id = data["device_id"]
+
+                if deviceId:
+                    self.device_id = deviceId
+                else:
+                    self.device_id = data["device_id"]
+
                 self.device_id_sig = data["device_id_sig"]

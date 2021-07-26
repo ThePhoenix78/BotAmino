@@ -269,12 +269,12 @@ class Parameters:
 
 
 class BotAmino(Command, Client, TimeOut, BannedWords):
-    def __init__(self, email: str = None, password: str = None, sid: str = None, deviceId: str = None):
+    def __init__(self, email: str = None, password: str = None, sid: str = None, deviceId: str = None, proxies: str = None, certificatePath: str = None):
         Command.__init__(self)
         Client.__init__(self, deviceId=deviceId)
 
         if email and password:
-            self.login(email=email, password=password)
+            self.login(email=email, password=password, deviceId=deviceId, proxies=proxies, certificatePath=certificatePath)
         elif sid:
             self.login_sid(SID=sid)
         else:

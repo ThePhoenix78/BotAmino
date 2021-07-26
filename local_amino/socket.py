@@ -11,7 +11,7 @@ from .lib.util import objects
 
 class SocketHandler:
     def __init__(self, client, socket_trace = False, debug = False):
-        # websocket.enableTrace(True)
+        if socket_trace: websocket.enableTrace(True)
         self.socket_url = "wss://ws1.narvii.com"
         self.client = client
         self.debug = debug
