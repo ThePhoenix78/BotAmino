@@ -1,28 +1,25 @@
 from time import sleep as slp
 from sys import exit
-from json import dumps, load, loads
+import requests
+import json
+from json import dumps, load
 from pathlib import Path
 from threading import Thread
 from contextlib import suppress
 from unicodedata import normalize
 from string import punctuation
-from random import choice
+from urllib.request import urlopen
 from datetime import datetime
-try:
-    from .local_amino import Client, SubClient, ACM
-except ImportError:
-    from local_amino import Client, SubClient, ACM
+from .local_amino import Client, SubClient, ACM
 from uuid import uuid4
 from inspect import getfullargspec
-from urllib.request import urlopen
-from zipfile import ZipFile
-import requests
 
 # this is Slimakoi's API with some of my patches
 
 # API made by ThePhoenix78
 # Big optimisation thanks to SempreLEGIT#1378 ♥
-
+#small very small changes by meliodas
+#if login method is not working use sid
 
 path_utilities = "utilities"
 path_amino = f'{path_utilities}/amino_list'
@@ -269,9 +266,9 @@ class Parameters:
 
 
 class BotAmino(Command, Client, TimeOut, BannedWords):
-    def __init__(self, email: str = None, password: str = None, sid: str = None, deviceId: str = None, proxies: str = None, certificatePath: str = None):
+    def __init__(self, email: str = None, password: str = None, sid: str = None,  proxies: dict = None, deviceId: str = "2271017D5F917B37DAC9C325B10542BC9B63109292D882729D1813D5355404380E2F1A699A34629C10", certificatePath: str = None):
         Command.__init__(self)
-        Client.__init__(self, deviceId=deviceId, certificatePath=certificatePath, proxies=proxies)
+        Client.__init__(self, proxies=proxies, deviceId="2271017D5F917B37DAC9C325B10542BC9B63109292D882729D1813D5355404380E2F1A699A34629C10", certificatePath=certificatePath)
 
         if email and password:
             self.login(email=email, password=password)
@@ -293,7 +290,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         self.botId = self.userId
         self.len_community = 0
         self.perms_list = []
-        self.prefix = "!"
+        self.prefix = "*"
         self.activity = False
         self.wait = 0
         self.bio = None
@@ -313,6 +310,9 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
             sublist.append(elem)
         return sublist
 
+    def send_data(self, data):
+        self.send(data)
+
     def add_community(self, comId):
         self.communaute[comId] = Bot(self, comId, self.prefix, self.bio, self.activity)
 
@@ -331,7 +331,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
     def generate_transaction_id(self):
         return str(uuid4())
 
-    def start_screen_room(self, comId: str, chatId: str, joinType: int = 1):
+    def start_screen_room(self, comId: str, chatId: str, joinType: int=1):
         data = {
             "o": {
                 "ndcId": comId,
@@ -357,7 +357,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         data = dumps(data)
         self.send(data)
 
-    def join_screen_room(self, comId: str, chatId: str, joinType: int = 1):
+    def join_screen_room(self, comId: str, chatId: str, joinType: int=1):
         data = {
             "o":
                 {
@@ -371,7 +371,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         data = dumps(data)
         self.send(data)
 
-    def start_voice_room(self, comId: str, chatId: str, joinType: int = 1):
+    def start_voice_room(self, comId: str, chatId: str, joinType: int=1):
         data = {
             "o": {
                 "ndcId": comId,
@@ -416,28 +416,22 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
                 "ndcId": int(comId),
                 "id": "82333"
             },
-            "t": 304}
+            "t":304}
         data = dumps(data)
-        slp(1)
+        slp(2)
         self.send(data)
 
-    def copy_bubble(self, chatId: str, replyId: str, comId: str):
-        header = {
-            'Accept-Language': 'en-US',
-            'Content-Type': 'application/octet-stream',
-            'User-Agent': 'Dalvik/2.1.0 (Linux; U; Android 7.1; LG-UK495 Build/MRA58K; com.narvii.amino.master/3.3.33180)',
-            'Host': 'service.narvii.com',
-            'Accept-Encoding': 'gzip',
-            'Connection': 'Keep-Alive',
-        }
-        a = self.get_message_info(chatId=chatId, messageId=replyId).json["chatBubble"]["resourceUrl"]
+    def upload_bubble(self,file,comId):
+        data=file
+        response = requests.post(f"https://service.narvii.com/api/v1/x{comId}/s/chat/chat-bubble/templates/107147e9-05c5-405f-8553-af65d2823457/generate", data=data, headers=self.headers)
+        bid=json.loads(response.text)['chatBubble']['bubbleId']
+        print(bid)
+        response = requests.post(f"https://service.narvii.com/api/v1/x{comId}/s/chat/chat-bubble/{bid}", data=data, headers=self.headers)
+        if response.status_code !=200:
+            return json.loads(response.text)
+        else: return bid
 
-        with urlopen(a) as zipresp:
-            yo = zipresp.read()
 
-        response = requests.post(f"https://service.narvii.com/api/v1/x{comId}/s/chat/chat-bubble/templates/107147e9-05c5-405f-8553-af65d2823457/generate", data=yo, headers=header)
-        bid = loads(response.text)['chatBubble']['bubbleId']
-        response = requests.post(f"https://service.narvii.com/api/v1/{comId}/s/chat/chat-bubble/{bid}", data=yo, headers=header)
 
     def check(self, args, *can, id_=None):
         id_ = id_ if id_ else args.authorId
@@ -456,7 +450,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
             except Exception:
                 pass
 
-    def threadLaunch(self, commu, passive: bool = False):
+    def threadLaunch(self, commu, passive: bool=False):
         self.communaute[commu] = Bot(self, commu, self.prefix, self.bio, passive)
         slp(30)
         if passive:
@@ -728,7 +722,7 @@ class Bot(SubClient, ACM):
         self.favorite_users = self.get_file_info("favorite_users")
         self.favorite_chats = self.get_file_info("favorite_chats")
         self.update_file()
-        self.activity_status("on")
+        #self.activity_status("on")
         new_users = self.get_all_users(start=0, size=30, type="recent")
 
         self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
@@ -824,26 +818,6 @@ class Bot(SubClient, ACM):
     def is_agent(self, uid):
         return uid == self.community_leader_agent_id
 
-    def copy_bubble(self, chatId: str, replyId: str, comId: str = None):
-        if not comId:
-            comId = self.community_id
-        header = {
-            'Accept-Language': 'en-US',
-            'Content-Type': 'application/octet-stream',
-            'User-Agent': 'Dalvik/2.1.0 (Linux; U; Android 7.1; LG-UK495 Build/MRA58K; com.narvii.amino.master/3.3.33180)',
-            'Host': 'service.narvii.com',
-            'Accept-Encoding': 'gzip',
-            'Connection': 'Keep-Alive',
-        }
-        a = self.get_message_info(chatId=chatId, messageId=replyId).json["chatBubble"]["resourceUrl"]
-
-        with urlopen(a) as zipresp:
-            yo = zipresp.read()
-
-        response = requests.post(f"https://service.narvii.com/api/v1/x{comId}/s/chat/chat-bubble/templates/107147e9-05c5-405f-8553-af65d2823457/generate", data=yo, headers=header)
-        bid = loads(response.text)['chatBubble']['bubbleId']
-        response = requests.post(f"https://service.narvii.com/api/v1/{comId}/s/chat/chat-bubble/{bid}", data=yo, headers=header)
-
     def accept_role(self, rid: str = None):
         with suppress(Exception):
             self.accept_organizer(rid)
@@ -935,6 +909,30 @@ class Bot(SubClient, ACM):
                 return chat_id
         return False
 
+    def copy_bubble(self,chatId:str,replyId:str,comId:str):
+        header={
+    'Accept-Language': 'en-US',
+    'Content-Type': 'application/octet-stream',
+    'User-Agent': 'Dalvik/2.1.0 (Linux; U; Android 7.1; LG-UK495 Build/MRA58K; com.narvii.amino.master/3.3.33180)',
+    'Host': 'service.narvii.com',
+    'Accept-Encoding': 'gzip',
+    'Connection': 'Keep-Alive',
+    }
+        a=self.get_message_info(chatId=chatId,messageId=replyId).json["chatBubble"]["resourceUrl"]
+        print(a)
+        with urlopen(a) as zipresp:
+            yo=zipresp.read()
+        print(yo)
+        response = requests.post(f"https://service.narvii.com/api/v1/x{comId}/s/chat/chat-bubble/templates/107147e9-05c5-405f-8553-af65d2823457/generate", data=yo, headers=header)
+        bid=json.loads(response.text)['chatBubble']['bubbleId']
+        print(bid)
+        response = requests.post(f"https://service.narvii.com/api/v1/{comId}/s/chat/chat-bubble/{bid}", data=yo, headers=header)
+        print("uploaded")
+
+
+
+
+
     def stop_instance(self):
         self.marche = False
 
@@ -965,7 +963,8 @@ class Bot(SubClient, ACM):
 
             if not val and self.welcome_chat:
                 with suppress(Exception):
-                    self.send_message(chatId=self.welcome_chat, message=f"Welcome here ‎‏‎‏@{name}!‬‭", mentionUserIds=[uid])
+                    self.invite_to_chat(chatId=self.welcome_chat, userId=uid)
+                    self.invite_to_chat(chatId="cce71e6d-c2db-40d8-a7b2-41f47b713f97",userId=uid)
 
         new_users = self.get_all_users(start=0, size=30, type="recent")
         self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
@@ -985,7 +984,8 @@ class Bot(SubClient, ACM):
 
             if uid not in self.new_users and self.welcome_chat:
                 with suppress(Exception):
-                    self.send_message(chatId=self.welcome_chat, message=f"Welcome here ‎‏‎‏@{name}!‬‭", mentionUserIds=[uid])
+                    self.invite_to_chat(chatId=self.welcome_chat, userId=uid)
+                    self.invite_to_chat(chatId="cce71e6d-c2db-40d8-a7b2-41f47b713f97",userId=uid)
 
         new_users = self.get_all_users(start=0, size=30, type="recent")
         self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
@@ -1052,14 +1052,15 @@ class Bot(SubClient, ACM):
 
         return False
 
-    def start_screen_room(self, chatId: str, joinType: int = 1):
+    def start_screen_room(self, chatId: str, joinType: int=1):
         self.client.join_video_chat(comId=self.community_id, chatId=chatId, joinType=joinType)
 
-    def start_voice_room(self, chatId: str, joinType: int = 1):
+    def start_voice_room(self, chatId: str, joinType: int=1):
         self.client.join_voice_chat(comId=self.community_id, chatId=chatId, joinType=joinType)
 
-    def join_screen_room(self, chatId: str, joinType: int = 1):
+    def join_screen_room(self, chatId: str, joinType: int=1):
         self.client.join_video_chat_as_viewer(comId=self.community_id, chatId=chatId, joinType=joinType)
+
 
     def get_chats(self):
         return self.get_public_chat_threads()
@@ -1107,25 +1108,11 @@ class Bot(SubClient, ACM):
     def passive(self):
         def upt_activity():
             timeNow = int(datetime.timestamp(datetime.now()))
-            timeEnd = timeNow + 300
-            try:
-                self.send_active_obj(startTime=timeNow, endTime=timeEnd)
-            except Exception:
-                pass
+            timeEnd = timeNow + 30
 
         def change_bio_and_welcome_members():
             if self.welcome_chat or self.message_bvn:
                 Thread(target=self.welcome_new_member).start()
-            try:
-                self.activity_status('on')
-                if isinstance(self.bio_contents, list):
-                    self.edit_profile(content=choice(self.bio_contents))
-
-                elif isinstance(self.bio_contents, str):
-                    self.edit_profile(content=self.bio_contents)
-
-            except Exception as e:
-                print_exception(e)
 
         def feature_chats():
             try:

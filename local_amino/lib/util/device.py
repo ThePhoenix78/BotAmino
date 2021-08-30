@@ -2,7 +2,7 @@ import json
 from .helpers import generate_device_info
 
 class DeviceGenerator:
-    def __init__(self, deviceId = None):
+    def __init__(self, deviceId = "2271017D5F917B37DAC9C325B10542BC9B63109292D882729D1813D5355404380E2F1A699A34629C10"):
         try:
             with open("device.json", "r") as stream:
                 data = json.load(stream)

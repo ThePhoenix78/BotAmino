@@ -1,4 +1,6 @@
 import json
+import string
+import random
 import base64
 import requests
 import threading
@@ -17,7 +19,7 @@ from .socket import Callbacks, SocketHandler
 device = device.DeviceGenerator()
 
 class Client(Callbacks, SocketHandler):
-    def __init__(self, deviceId: str = None, proxies: dict = None, certificatePath = None, socket_trace = False, socketDebugging = False):
+    def __init__(self, deviceId: str = "2271017D5F917B37DAC9C325B10542BC9B63109292D882729D1813D5355404380E2F1A699A34629C10", proxies: dict = None, certificatePath = None, socket_trace = False, socketDebugging = False):
         self.api = "https://service.narvii.com/api/v1"
         self.authenticated = False
         self.configured = False
@@ -37,7 +39,7 @@ class Client(Callbacks, SocketHandler):
         self.userId = None
         self.account: objects.UserProfile = objects.UserProfile(None)
         self.profile: objects.UserProfile = objects.UserProfile(None)
-        self.check_device(self.device_id)
+        #self.check_device(self.device_id)
         
     def parse_headers(self, data = None):
         if not data:
@@ -177,44 +179,73 @@ class Client(Callbacks, SocketHandler):
         headers.sid = self.sid
         self.start()
         self.run_socket()
+    
+    def gen_captcha(self):
+        val = "".join(random.choices(string.ascii_uppercase + string.ascii_lowercase + "_-", k=462)).replace("--", "-")
+        return val
+
 
     def login(self, email: str, password: str):
-        """
-        Login into an account.
+        data = {
+                "auth_type": 0,
+                "email": email,
+                "recaptcha_challenge": self.gen_captcha(),
+                "recaptcha_version": "v3",
+                "secret": password
+            }
+        req = requests.post("https://aminoapps.com/api/auth", json=data)
+        if req.status_code!=200:
+            print(req.json)
+        
+        self.authenticated = True
+        self.json = None
+        self.sid = req.headers["set-cookie"]
+        try:
+            self.sid = self.sid[0: self.sid.index(";")]
+        except:
+            self.sid = self.sid
+            print(self.sid)
+        try:
+            self.login_sid(self.sid[4:])
+        except:
+            print(req.text)
+        
+        # """
+        # Login into an account.
 
-        **Parameters**
-            - **email** : Email of the account.
-            - **password** : Password of the account.
+        # **Parameters**
+        #     - **email** : Email of the account.
+        #     - **password** : Password of the account.
 
-        **Returns**
-            - **Success** : 200 (int)
+        # **Returns**
+        #     - **Success** : 200 (int)
 
-            - **Fail** : :meth:`Exceptions <amino.lib.util.exceptions>`
-        """
-        data = json.dumps({
-            "email": email,
-            "v": 2,
-            "secret": f"0 {password}",
-            "deviceID": self.device_id,
-            "clientType": 100,
-            "action": "normal",
-            "timestamp": int(timestamp() * 1000)
-        })
+        #     - **Fail** : :meth:`Exceptions <amino.lib.util.exceptions>`
+        # """
+        # data = json.dumps({
+        #     "email": email,
+        #     "v": 2,
+        #     "secret": f"0 {password}",
+        #     "deviceID": self.device_id,
+        #     "clientType": 100,
+        #     "action": "normal",
+        #     "timestamp": int(timestamp() * 1000)
+        # })
 
-        response = requests.post(f"{self.api}/g/s/auth/login", headers=self.parse_headers(data=data), data=data, proxies=self.proxies, verify=self.certificatePath)
-        self.run_socket()
-        if response.status_code != 200: return exceptions.CheckException(json.loads(response.text))
+        # response = requests.post(f"{self.api}/g/s/auth/login", headers=self.parse_headers(data=data), data=data, proxies=self.proxies, verify=self.certificatePath)
+        # self.run_socket()
+        # if response.status_code != 200: return exceptions.CheckException(json.loads(response.text))
 
-        else:
-            self.authenticated = True
-            self.json = json.loads(response.text)
-            self.sid = self.json["sid"]
-            self.userId = self.json["account"]["uid"]
-            self.account: objects.UserProfile = objects.UserProfile(self.json["account"]).UserProfile
-            self.profile: objects.UserProfile = objects.UserProfile(self.json["userProfile"]).UserProfile
-            headers.sid = self.sid
-            self.start()
-            return response.status_code
+        # else:
+        #     self.authenticated = True
+        #     self.json = json.loads(response.text)
+        #     self.sid = self.json["sid"]
+        #     self.userId = self.json["account"]["uid"]
+        #     self.account: objects.UserProfile = objects.UserProfile(self.json["account"]).UserProfile
+        #     self.profile: objects.UserProfile = objects.UserProfile(self.json["userProfile"]).UserProfile
+        #     headers.sid = self.sid
+        #     self.start()
+        #     return response.status_code
 
     def register(self, nickname: str, email: str, password: str, verificationCode: str, deviceId: str = device.device_id):
         """
