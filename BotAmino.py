@@ -5,12 +5,16 @@ import json
 from json import dumps, load
 from pathlib import Path
 from threading import Thread
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
 from unicodedata import normalize
 from string import punctuation
 from urllib.request import urlopen
 from datetime import datetime
-from .local_amino import Client, SubClient, ACM
+try:
+    from .local_amino import Client, SubClient, ACM
+except ImportError:
+    from local_amino import Client, SubClient, ACM
 from uuid import uuid4
 from inspect import getfullargspec
 
@@ -526,7 +530,16 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
             return
 
         args = Parameters(data, subClient)
-        Thread(target=self.execute, args=[type, args, type]).start()
+        # Thread(target=self.execute, args=[type, args, type]).start()
+        try:
+            with ThreadPoolExecutor() as ex:
+                th = ex.submit(self.execute, type, args, type)
+                val = th.result()
+            if val:
+                return val
+            return
+        except Exception:
+            Thread(target=self.execute, args=[type, args, type]).start()
 
     def on_member_event(self, data, type):
         try:
