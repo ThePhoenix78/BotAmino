@@ -17,20 +17,6 @@ from .lib.util import exceptions, headers, device, objects
 
 device = device.DeviceGenerator()
 headers.sid = client.Client().sid
-class VCHeaders:
-    def __init__(self, data = None):
-        vc_headers = {
-            "Accept-Language": "en-US",
-            "Content-Type": "application/json",
-            "User-Agent": "Amino/45725 CFNetwork/1126 Darwin/19.5.0",  # Closest server (this one for me)
-            "Host": "rt.applovin.com",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Connection": "Keep-Alive",
-            "Accept": "*/*"
-        }
-
-        if data: vc_headers["Content-Length"] = str(len(data))
-        self.vc_headers = vc_headers
 
 
 class SubClient(client.Client):
@@ -47,8 +33,6 @@ class SubClient(client.Client):
             self.community: objects.Community = client.Client().get_community_info(self.comId)
 
         if comId is None and aminoId is None: raise exceptions.NoCommunity()
-
-
 
         try: self.profile: objects.UserProfile = self.get_user_info(userId=profile.userId)
         except AttributeError: raise exceptions.FailedLogin()
@@ -1727,18 +1711,7 @@ class SubClient(client.Client):
         if response.status_code != 200: return exceptions.CheckException(json.loads(response.text))
         else: return json.loads(response.text)
 
-    def edit_titles(self, userId: str, titles: list, colors: list):
-        t = []
-        for title, color in zip(titles, colors): t.append({"title": title, "color": color})
-        data = json.dumps({
-            "adminOpName": 207,
-            "adminOpValue": {"titles": t}
-        })
-        req = requests.post(f"{self.api}/x{self.comId}/s/user-profile/{userId}/admin", headers=self._headers, data=data)
-        if req.status_code != 200: return exceptions.CheckException(json.loads(req.text))
-        return json.loads(req.text)
 
-    """
     def edit_titles(self, userId: str, titles: list, colors: list):
         tlt = []
         for titles, colors in zip(titles, colors):
@@ -1752,11 +1725,10 @@ class SubClient(client.Client):
             "timestamp": int(timestamp() * 1000)
         })
 
-        response = requests.post(f"{self.api}/x{self.comId}/s/user-profile/{userId}/admin", headers=self.parse_headers(data=data), data=data, proxies=self.proxies, verify=self.certificatePath)
+        response = requests.post(f"{self.apip}/x{self.comId}/s/user-profile/{userId}/admin", headers=headers.Headers().s_headers, data=data, proxies=self.proxies, verify=self.certificatePath)
         if response.status_code != 200: return exceptions.CheckException(json.loads(response.text))
         else: return json.loads(response.text)
 
-    """
     # TODO : List all warning texts
     def warn(self, userId: str, reason: str = None):
         data = json.dumps({
