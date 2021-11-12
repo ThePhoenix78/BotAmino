@@ -3,6 +3,7 @@ import json
 import websocket
 import threading
 import contextlib
+import requests
 
 from sys import _getframe as getframe
 
@@ -12,7 +13,6 @@ from .lib.util import objects
 class SocketHandler:
     def __init__(self, client, socket_trace = False, debug = False):
         if socket_trace: websocket.enableTrace(True)
-        self.socket_url = "wss://ws1.narvii.com"
         self.client = client
         self.debug = debug
         self.active = True
@@ -23,7 +23,7 @@ class SocketHandler:
         self.socket_stop = False
         self.socketDelay = 0
         self.socket_trace = socket_trace
-        self.socketDelayFetch = 120  # Reconnects every 120 seconds.
+        self.socketDelayFetch = 60  # Reconnects every 60 seconds.
 
     def run_socket(self):
         threading.Thread(target=self.reconnect_handler).start()
@@ -76,8 +76,7 @@ class SocketHandler:
         contextlib.suppress(self.socket.sock.pong(data))
 
     def handle_message(self, data):
-        self.client.handle_socket_message(data)
-        return
+        self.resolve(data)
 
     def send(self, data):
         if self.debug:
@@ -85,17 +84,25 @@ class SocketHandler:
 
         self.socket.send(data)
 
+    # from amino-new.py
+    def token(self):
+        header = {
+            "cookie": "sid="+self.client.sid
+        }
+        response = requests.get("https://aminoapps.com/api/chat/web-socket-url", headers=header)
+        if response.status_code != 200: return response.text
+        else: return json.loads(response.text)["result"]["url"]
+
     def start(self):
         if self.debug:
             print(f"[socket][start] Starting Socket")
 
         self.headers = {
-            "NDCDEVICEID": self.client.device_id,
-            "NDCAUTH": f"sid={self.client.sid}"
+            "cookie": "sid="+self.client.sid
         }
 
         self.socket = websocket.WebSocketApp(
-            f"{self.socket_url}/?signbody={self.client.device_id}%7C{int(time.time() * 1000)}",
+            self.token(),
             on_message = self.handle_message,
             on_open = self.on_open,
             on_close = self.on_close,
@@ -124,6 +131,7 @@ class SocketHandler:
                 print(f"[socket][close] Error while closing Socket : {closeError}")
 
         return
+
 
 class Callbacks:
     def __init__(self, client):

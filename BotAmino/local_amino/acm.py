@@ -59,7 +59,7 @@ class ACM(client.Client):
         else: return response.status_code
 
     def list_communities(self, start: int = 0, size: int = 25):
-        response = requests.get(f"{self.api}/g/s/community/managed?start={start}&size={size}", headers=headers.Headers().headers)
+        response = requests.get(f"{self.apip}/g/s/community/managed?start={start}&size={size}", headers=headers.Headers().s_headers)
         if response.status_code != 200: return exceptions.CheckException(json.loads(response.text))
         else: return objects.CommunityList(json.loads(response.text)["communityList"]).CommunityList
 

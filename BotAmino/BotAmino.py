@@ -5,16 +5,15 @@ import json
 from json import dumps, load
 from pathlib import Path
 from threading import Thread
-from concurrent.futures import ThreadPoolExecutor
+# from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
 from unicodedata import normalize
 from string import punctuation
 from urllib.request import urlopen
 from datetime import datetime
-try:
-    from .local_amino import Client, SubClient, ACM
-except ImportError:
-    from local_amino import Client, SubClient, ACM
+
+from .local_amino import Client, SubClient, ACM
+
 from uuid import uuid4
 from inspect import getfullargspec
 
@@ -22,8 +21,8 @@ from inspect import getfullargspec
 
 # API made by ThePhoenix78
 # Big optimisation thanks to SempreLEGIT#1378 ♥
-#small very small changes by meliodas
-#if login method is not working use sid
+# small very small changes by meliodas
+# if login method is not working use sid
 
 path_utilities = "utilities"
 path_amino = f'{path_utilities}/amino_list'
@@ -294,7 +293,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         self.botId = self.userId
         self.len_community = 0
         self.perms_list = []
-        self.prefix = "*"
+        self.prefix = "!"
         self.activity = False
         self.wait = 0
         self.bio = None
@@ -435,8 +434,6 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
             return json.loads(response.text)
         else: return bid
 
-
-
     def check(self, args, *can, id_=None):
         id_ = id_ if id_ else args.authorId
         foo = {'staff': args.subClient.is_in_staff,
@@ -530,7 +527,8 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
             return
 
         args = Parameters(data, subClient)
-        # Thread(target=self.execute, args=[type, args, type]).start()
+        Thread(target=self.execute, args=[type, args, type]).start()
+        """
         try:
             with ThreadPoolExecutor() as ex:
                 th = ex.submit(self.execute, type, args, type)
@@ -540,6 +538,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
             return
         except Exception:
             Thread(target=self.execute, args=[type, args, type]).start()
+        """
 
     def on_member_event(self, data, type):
         try:
@@ -941,9 +940,6 @@ class Bot(SubClient, ACM):
         print(bid)
         response = requests.post(f"https://service.narvii.com/api/v1/{comId}/s/chat/chat-bubble/{bid}", data=yo, headers=header)
         print("uploaded")
-
-
-
 
 
     def stop_instance(self):

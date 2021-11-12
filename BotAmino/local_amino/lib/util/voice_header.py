@@ -1,4 +1,5 @@
-from amino.lib.util import device
+"""
+from .util.device import device
 
 
 class Headers:
@@ -15,3 +16,4 @@ class Headers:
 
         if data: headers["Content-Length"] = str(len(data))
         self.headers = headers
+"""
