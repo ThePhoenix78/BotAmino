@@ -19,7 +19,6 @@ class SocketHandler:
         self.socket = None
         self.socket_thread = None
         self.reconnect = True
-        self.socket_stop = False
         self.socketDelay = 0
         self.socket_trace = socket_trace
         self.socketDelayFetch = 60  # Reconnects every 60 seconds.
@@ -41,8 +40,8 @@ class SocketHandler:
                 if self.debug:
                     print(f"[socket][reconnect_handler] socketDelay >= {self.socketDelayFetch}, Reconnecting Socket")
 
-                self.close()
-                self.start()
+                self.close_socket()
+                self.start_socket()
                 self.socketDelay = 0
 
             self.socketDelay += 5
@@ -83,6 +82,9 @@ class SocketHandler:
 
         self.socket.send(data)
 
+    def sendV2(self, data): self.socket2.send(json.dumps(data))
+    def recvV2(self): return json.loads(self.socket2.recv())
+
     # from amino-new.py
     def token(self):
         header = {
@@ -99,8 +101,7 @@ class SocketHandler:
             self.socket_url = req.json()["result"]["url"]
             return self.socket_url
 
-
-    def start(self, socket2: bool = False):
+    def start_socket(self, socket2: bool = False):
         if self.debug:
             print(f"[socket][start] Starting Socket")
 
@@ -128,13 +129,12 @@ class SocketHandler:
         if self.debug:
             print(f"[socket][start] Socket Started")
 
-    def close(self):
+    def close_socket(self):
         if self.debug:
             print(f"[socket][close] Closing Socket")
 
         self.reconnect = False
         self.active = False
-        self.socket_stop = True
         try:
             self.socket.close()
         except Exception as closeError:

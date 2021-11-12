@@ -179,7 +179,7 @@ class Client(Callbacks, SocketHandler):
         self.account: objects.UserProfile = self.get_user_info(uId)
         self.profile: objects.UserProfile = self.get_user_info(uId)
         headers.sid = self.sid
-        self.start()
+        self.start_socket()
         self.run_socket()
 
     def gen_captcha(self):
@@ -219,7 +219,7 @@ class Client(Callbacks, SocketHandler):
             self.account: objects.UserProfile = objects.UserProfile(self.json["account"]).UserProfile
             self.profile: objects.UserProfile = objects.UserProfile(self.json["userProfile"]).UserProfile
             headers.sid = self.sid
-            self.start()
+            self.start_socket()
             return response.status_code
 
     def register(self, nickname: str, email: str, password: str, verificationCode: str, deviceId: str = device.device_id):
