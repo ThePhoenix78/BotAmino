@@ -92,6 +92,14 @@ class SocketHandler:
         if response.status_code != 200: return response.text
         else: return json.loads(response.text)["result"]["url"]
 
+    def web_socket_url(self):
+        req = requests.get("https://aminoapps.com/api/chat/web-socket-url", headers={'cookie': self.sid})
+        if req.status_code != 200: return "Error!"
+        else:
+            self.socket_url = req.json()["result"]["url"]
+            return self.socket_url
+
+
     def start(self, socket2: bool = False):
         if self.debug:
             print(f"[socket][start] Starting Socket")
