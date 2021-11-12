@@ -100,7 +100,7 @@ class SocketHandler:
             "cookie": "sid="+self.sid
         }
 
-        if socket2 or True:
+        if socket2:
             self.socket2 = websocket.WebSocket()
             self.socket2.connect(self.web_socket_url(), header=self.headers)
 
