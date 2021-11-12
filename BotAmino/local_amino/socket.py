@@ -11,9 +11,8 @@ from .lib.util import objects
 
 
 class SocketHandler:
-    def __init__(self, client, socket_trace = False, debug = False):
+    def __init__(self, socket_trace = False, debug = False):
         if socket_trace: websocket.enableTrace(True)
-        self.client = client
         self.debug = debug
         self.active = True
         self.headers = None
@@ -87,19 +86,23 @@ class SocketHandler:
     # from amino-new.py
     def token(self):
         header = {
-            "cookie": "sid="+self.client.sid
+            "cookie": "sid="+self.sid
         }
         response = requests.get("https://aminoapps.com/api/chat/web-socket-url", headers=header)
         if response.status_code != 200: return response.text
         else: return json.loads(response.text)["result"]["url"]
 
-    def start(self):
+    def start(self, socket2: bool = False):
         if self.debug:
             print(f"[socket][start] Starting Socket")
 
         self.headers = {
-            "cookie": "sid="+self.client.sid
+            "cookie": "sid="+self.sid
         }
+
+        if socket2 or True:
+            self.socket2 = websocket.WebSocket()
+            self.socket2.connect(self.web_socket_url(), header=self.headers)
 
         self.socket = websocket.WebSocketApp(
             self.token(),
@@ -134,8 +137,7 @@ class SocketHandler:
 
 
 class Callbacks:
-    def __init__(self, client):
-        self.client = client
+    def __init__(self):
         self.handlers = {}
 
         self.methods = {
