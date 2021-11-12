@@ -47,8 +47,8 @@ class SubClient(client.Client):
             self.community: objects.Community = client.Client().get_community_info(self.comId)
 
         if comId is None and aminoId is None: raise exceptions.NoCommunity()
-        
-        
+
+
 
         try: self.profile: objects.UserProfile = self.get_user_info(userId=profile.userId)
         except AttributeError: raise exceptions.FailedLogin()
@@ -1008,12 +1008,12 @@ class SubClient(client.Client):
         response = requests.delete(f"{self.api}/x{self.comId}/s/chat/thread/{chatId}/member/{self.profile.userId}", headers=self.parse_headers(), proxies=self.proxies, verify=self.certificatePath)
         if response.status_code != 200: return exceptions.CheckException(json.loads(response.text))
         else: return response.status_code
-        
+
     def delete_chat(self,chatId: str):
         self.web_headers["cookie"]=f"sid={headers.sid}"
         request= requests.delete(f"https://aminoapps.com/api-p/x{self.comId}/s/chat/thread/{chatId}",headers=self.web_headers)
         return request.json()
-        
+
     def subscribe(self, userId: str, autoRenew: str = False, transactionId: str = None):
         if transactionId is None: transactionId = str(UUID(hexlify(urandom(16)).decode('ascii')))
 
@@ -1469,7 +1469,7 @@ class SubClient(client.Client):
         if "online" in status.lower(): status = 1
         elif "offline" in status.lower(): status = 2
         else: raise exceptions.WrongType(status)
-        
+
         data = {"ndcId": self.comId}
         response = requests.post("https://aminoapps.com/api/community/stats/web-user-active-time", json=data, headers=headers.Headers().web_headers, proxies=self.proxies, verify=self.certificatePath)
         if response.status_code != 200: return exceptions.CheckException(json.loads(response.text))
@@ -1728,6 +1728,18 @@ class SubClient(client.Client):
         else: return json.loads(response.text)
 
     def edit_titles(self, userId: str, titles: list, colors: list):
+        t = []
+        for title, color in zip(titles, colors): t.append({"title": title, "color": color})
+        data = json.dumps({
+            "adminOpName": 207,
+            "adminOpValue": {"titles": t}
+        })
+        req = requests.post(f"{self.api}/x{self.comId}/s/user-profile/{userId}/admin", headers=self._headers, data=data)
+        if req.status_code != 200: return exceptions.CheckException(json.loads(req.text))
+        return json.loads(req.text)
+
+    """
+    def edit_titles(self, userId: str, titles: list, colors: list):
         tlt = []
         for titles, colors in zip(titles, colors):
             tlt.append({"title": titles, "color": colors})
@@ -1744,6 +1756,7 @@ class SubClient(client.Client):
         if response.status_code != 200: return exceptions.CheckException(json.loads(response.text))
         else: return json.loads(response.text)
 
+    """
     # TODO : List all warning texts
     def warn(self, userId: str, reason: str = None):
         data = json.dumps({
@@ -1949,7 +1962,7 @@ class SubClient(client.Client):
         response = requests.post(f"{self.apip}/x{self.comId}/s/chat/thread/{chatId}/member/{userId}/invite-av-chat", headers=headers.Headers().s_headers, data=data, proxies=self.proxies, verify=self.certificatePath)
         if response.status_code != 200: return exceptions.CheckException(json.loads(response.text))
         else: return response.status_code
-    
+
     def add_poll_option(self, blogId: str, question: str):
         data = json.dumps({
             "mediaList": None,
