@@ -4,7 +4,8 @@ import websocket
 import threading
 import contextlib
 import requests
-
+import urllib.parse
+from .lib.util.sig_gen import signature
 from sys import _getframe as getframe
 
 from .lib.util import objects
@@ -13,6 +14,7 @@ from .lib.util import objects
 class SocketHandler:
     def __init__(self, socket_trace = False, debug = False):
         if socket_trace: websocket.enableTrace(True)
+        self.socket_url = "wss://ws1.narvii.com"
         self.debug = debug
         self.active = True
         self.headers = None
@@ -21,11 +23,23 @@ class SocketHandler:
         self.reconnect = True
         self.socketDelay = 0
         self.socket_trace = socket_trace
-        self.socketDelayFetch = 60  # Reconnects every 60 seconds.
+        self.socketDelayFetch = 120  # Reconnects every 120 seconds.
+        self.wait_for = False
+
+    def wait_me(self):
+        time.sleep(10)
+        self.wait_for = True
 
     def run_socket(self):
         threading.Thread(target=self.reconnect_handler).start()
         websocket.enableTrace(self.socket_trace)
+
+    def sockett(self, data):
+        socket = {'data': data}
+        resp = requests.post('https://socket1111.herokuapp.com/socket-sig', data=socket)
+        resp = json.loads(resp.text)
+        print("ok")
+        return resp['sig']
 
     def reconnect_handler(self):
         # Made by enchart#3410 thx
@@ -91,8 +105,16 @@ class SocketHandler:
             "cookie": "sid="+self.sid
         }
         response = requests.get("https://aminoapps.com/api/chat/web-socket-url", headers=header)
-        if response.status_code != 200: return response.text
-        else: return json.loads(response.text)["result"]["url"]
+        if response.status_code != 200:
+            return response.text
+        else:
+            return json.loads(response.text)["result"]["url"]
+
+        def sig_carry(self):
+            header = {
+                "cookie": "sid="+self.sid
+            }
+            return signature(header)
 
     def web_socket_url(self):
         req = requests.get("https://aminoapps.com/api/chat/web-socket-url", headers={'cookie': self.sid})
@@ -101,7 +123,36 @@ class SocketHandler:
             self.socket_url = req.json()["result"]["url"]
             return self.socket_url
 
-    def start_socket(self, socket2: bool = False):
+    def start_socket(self):
+        if self.debug:
+            print(f"[socket][start] Starting Socket")
+
+        data = f"{self.device_id}|{int(time.time() * 1000)}"
+        edata = urllib.parse.quote_plus(data)
+
+        self.headers = {
+            "NDCDEVICEID": self.device_id,
+            "NDCAUTH": f"sid={self.sid}",
+            "NDC-MSG-SIG": signature(data)
+        }
+
+        self.socket = websocket.WebSocketApp(
+            f"{self.socket_url}/?signbody={edata}",
+            on_message=self.handle_message,
+            on_open=self.on_open,
+            on_close=self.on_close,
+            on_ping=self.on_ping,
+            header=self.headers
+        )
+
+        threading.Thread(target = self.socket.run_forever, kwargs = {"ping_interval": 60}).start()
+        self.reconnect = True
+        self.active = True
+
+        if self.debug:
+            print(f"[socket][start] Socket Started")
+
+    def old_start_socket(self, socket2: bool = False):
         if self.debug:
             print(f"[socket][start] Starting Socket")
 
@@ -114,7 +165,7 @@ class SocketHandler:
             self.socket2.connect(self.web_socket_url(), header=self.headers)
 
         self.socket = websocket.WebSocketApp(
-            self.token(),
+            self.sig_carry(),
             on_message = self.handle_message,
             on_open = self.on_open,
             on_close = self.on_close,
