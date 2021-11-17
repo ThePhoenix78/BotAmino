@@ -38,7 +38,6 @@ class SocketHandler:
         socket = {'data': data}
         resp = requests.post('https://socket1111.herokuapp.com/socket-sig', data=socket)
         resp = json.loads(resp.text)
-        print("ok")
         return resp['sig']
 
     def reconnect_handler(self):
@@ -110,11 +109,11 @@ class SocketHandler:
         else:
             return json.loads(response.text)["result"]["url"]
 
-        def sig_carry(self):
-            header = {
-                "cookie": "sid="+self.sid
-            }
-            return signature(header)
+    def sig_carry(self):
+        header = {
+            "cookie": "sid="+self.sid
+        }
+        return signature(header)
 
     def web_socket_url(self):
         req = requests.get("https://aminoapps.com/api/chat/web-socket-url", headers={'cookie': self.sid})
