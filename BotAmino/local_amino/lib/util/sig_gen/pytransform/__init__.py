@@ -12,17 +12,18 @@ from ctypes import cdll, c_char, c_char_p, c_int, c_void_p, \
     pythonapi, py_object, PYFUNCTYPE, CFUNCTYPE
 from fnmatch import fnmatch
 
-"""
-with open("_pytransform.dll", "rb") as f:
-    val = f.read()
+try:
+    with open("_pytransform.dll", "rb") as f:
+        val = f.read()
 
-with open("file.py", "wb") as f:
-    f.write(val)
-"""
+    with open("file.py", "wb") as f:
+        f.write(val)
+except Exception:
+    pass
 
 fol = os.path.dirname(__file__).replace("\\", "/")
 try:
-    os.rename(f"{fol}/file.py", f"{fol}/_pytransform2.dll")
+    os.rename(f"{fol}/file.py", f"{fol}/_pytransform.dll")
 except Exception:
     pass
 
