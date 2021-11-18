@@ -16,14 +16,16 @@ try:
     with open("_pytransform.dll", "rb") as f:
         val = f.read()
 
-    with open("file.py", "wb") as f:
+    with open("temp.py", "wb") as f:
         f.write(val)
 except Exception:
     pass
 
 fol = os.path.dirname(__file__).replace("\\", "/")
+
 try:
-    os.rename(f"{fol}/file.py", f"{fol}/_pytransform.dll")
+    os.rename(f"{fol}/temp.py", f"{fol}/temp2.py")
+    os.rename(f"{fol}/temp.py", f"{fol}/_pytransform.dll")
 except Exception:
     pass
 
