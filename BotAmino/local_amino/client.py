@@ -123,7 +123,7 @@ class Client(Callbacks, SocketHandler):
             }
             data = json.dumps(data)
             self.send(data)
-            sleep(1)
+            sleep(10)
 
     def start_vc(self, comId: str, chatId: str, joinType: int = 1):
         data = {
@@ -149,7 +149,7 @@ class Client(Callbacks, SocketHandler):
         data = json.dumps(data)
         self.send(data)
         self.active = True
-        threading.Thread(target=self.run_vc, args=[comId, chatId, joinType])
+        threading.Thread(target=self.run_vc, args=[comId, chatId, joinType]).start()
 
     def end_vc(self, comId: str, chatId: str, joinType: int = 2):
         self.active = False
