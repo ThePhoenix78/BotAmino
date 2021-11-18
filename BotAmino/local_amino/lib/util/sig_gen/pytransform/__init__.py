@@ -4,6 +4,7 @@ import os
 import platform
 import sys
 import struct
+from shutil import copyfile
 
 # Because ctypes is new from Python 2.5, so pytransform doesn't work
 # before Python 2.5
@@ -12,6 +13,7 @@ from ctypes import cdll, c_char, c_char_p, c_int, c_void_p, \
     pythonapi, py_object, PYFUNCTYPE, CFUNCTYPE
 from fnmatch import fnmatch
 
+"""
 try:
     with open("_pytransform.dll", "rb") as f:
         val = f.read()
@@ -20,12 +22,12 @@ try:
         f.write(val)
 except Exception:
     pass
+"""
 
 fol = os.path.dirname(__file__).replace("\\", "/")
 
 try:
-    os.rename(f"{fol}/temp.py", f"{fol}/temp2.py")
-    os.rename(f"{fol}/temp.py", f"{fol}/_pytransform.dll")
+    copyfile(f"{fol}/temp.py", f"{fol}/_pytransform.dll")
 except Exception:
     pass
 
