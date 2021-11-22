@@ -186,7 +186,6 @@ class Client(Callbacks, SocketHandler):
         val = "".join(random.choices(string.ascii_uppercase + string.ascii_lowercase + "_-", k=462)).replace("--", "-")
         return val
 
-
     def login(self, email: str, password: str):
         """
         Login into an account.

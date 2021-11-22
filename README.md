@@ -1,3 +1,5 @@
+## For EDUCATIONAL PURPOSE only
+
 # AminoBot
 An API for bot amino based on Slimakoi's work
 
