@@ -9,9 +9,8 @@ class Headers:
             dev = DeviceGenerator(deviceId=deviceId)
         else:
             dev = DeviceGenerator()
-
         headers = {
-            "NDCDEVICEID": "2271017D5F917B37DAC9C325B10542BC9B63109292D882729D1813D5355404380E2F1A699A34629C10",
+            "NDCDEVICEID": dev.device_id,
             "NDC-MSG-SIG": dev.device_id_sig,
             "Accept-Language": "en-US",
             "Content-Type": "application/json; charset=utf-8",

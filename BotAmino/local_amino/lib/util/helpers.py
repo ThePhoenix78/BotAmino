@@ -1,3 +1,4 @@
+"""
 import json
 
 from hashlib import sha1
@@ -25,3 +26,4 @@ def decode_sid(sid: str) -> dict:
 def sid_to_uid(SID: str) -> str: return decode_sid(SID)["2"]
 
 def sid_to_ip_address(SID: str) -> str: return decode_sid(SID)["4"]
+"""

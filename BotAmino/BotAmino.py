@@ -271,7 +271,7 @@ class Parameters:
 class BotAmino(Command, Client, TimeOut, BannedWords):
     def __init__(self, email: str = None, password: str = None, sid: str = None,  proxies: dict = None, deviceId: str = "2271017D5F917B37DAC9C325B10542BC9B63109292D882729D1813D5355404380E2F1A699A34629C10", certificatePath: str = None):
         Command.__init__(self)
-        Client.__init__(self, proxies=proxies, deviceId="2271017D5F917B37DAC9C325B10542BC9B63109292D882729D1813D5355404380E2F1A699A34629C10", certificatePath=certificatePath)
+        Client.__init__(self, proxies=proxies, deviceId=deviceId, certificatePath=certificatePath)
 
         if email and password:
             self.login(email=email, password=password)
@@ -981,20 +981,17 @@ class Bot(SubClient, ACM):
     def welcome_new_member(self):
         new_list = self.get_all_users(start=0, size=25, type="recent")
         new_member = [(elem["nickname"], elem["uid"]) for elem in new_list.json["userProfileList"]]
-
         for elem in new_member:
             name, uid = elem[0], elem[1]
-
             val = self.get_wall_comments(userId=uid, sorting='newest').commentId
-
-            if not val and uid not in self.new_users and self.message_bvn:
+            
+            if not val or uid not in self.new_users and self.message_bvn:
                 with suppress(Exception):
                     self.comment(message=self.message_bvn, userId=uid)
 
             if uid not in self.new_users and self.welcome_chat:
                 with suppress(Exception):
                     self.invite_to_chat(chatId=self.welcome_chat, userId=uid)
-                    self.invite_to_chat(chatId="cce71e6d-c2db-40d8-a7b2-41f47b713f97",userId=uid)
 
         new_users = self.get_all_users(start=0, size=30, type="recent")
         self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]

@@ -257,8 +257,8 @@ class SubClient(client.Client):
     def comment(self, message: str, userId: str = None, blogId: str = None, wikiId: str = None, replyTo: str = None, isGuest: bool = False):
         data = {
             "content": message,
-            "stickerId": None,
             "type": 0,
+            "mediaList": "null",
             "timestamp": int(timestamp() * 1000)
         }
 
