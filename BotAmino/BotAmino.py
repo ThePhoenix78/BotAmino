@@ -973,7 +973,6 @@ class Bot(SubClient, ACM):
             if not val and self.welcome_chat:
                 with suppress(Exception):
                     self.invite_to_chat(chatId=self.welcome_chat, userId=uid)
-                    self.invite_to_chat(chatId="cce71e6d-c2db-40d8-a7b2-41f47b713f97",userId=uid)
 
         new_users = self.get_all_users(start=0, size=30, type="recent")
         self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
@@ -984,7 +983,7 @@ class Bot(SubClient, ACM):
         for elem in new_member:
             name, uid = elem[0], elem[1]
             val = self.get_wall_comments(userId=uid, sorting='newest').commentId
-            
+
             if not val or uid not in self.new_users and self.message_bvn:
                 with suppress(Exception):
                     self.comment(message=self.message_bvn, userId=uid)
