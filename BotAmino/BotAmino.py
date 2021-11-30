@@ -921,25 +921,22 @@ class Bot(SubClient, ACM):
                 return chat_id
         return False
 
-    def copy_bubble(self,chatId:str,replyId:str,comId:str):
+    def copy_bubble(self, chatId:str, replyId:str, comId:str):
         header={
-    'Accept-Language': 'en-US',
-    'Content-Type': 'application/octet-stream',
-    'User-Agent': 'Dalvik/2.1.0 (Linux; U; Android 7.1; LG-UK495 Build/MRA58K; com.narvii.amino.master/3.3.33180)',
-    'Host': 'service.narvii.com',
-    'Accept-Encoding': 'gzip',
-    'Connection': 'Keep-Alive',
-    }
+            'Accept-Language': 'en-US',
+            'Content-Type': 'application/octet-stream',
+            'User-Agent': 'Dalvik/2.1.0 (Linux; U; Android 7.1; LG-UK495 Build/MRA58K; com.narvii.amino.master/3.3.33180)',
+            'Host': 'service.narvii.com',
+            'Accept-Encoding': 'gzip',
+            'Connection': 'Keep-Alive',
+        }
         a=self.get_message_info(chatId=chatId,messageId=replyId).json["chatBubble"]["resourceUrl"]
-        print(a)
         with urlopen(a) as zipresp:
             yo=zipresp.read()
-        print(yo)
+
         response = requests.post(f"https://service.narvii.com/api/v1/x{comId}/s/chat/chat-bubble/templates/107147e9-05c5-405f-8553-af65d2823457/generate", data=yo, headers=header)
         bid=json.loads(response.text)['chatBubble']['bubbleId']
-        print(bid)
         response = requests.post(f"https://service.narvii.com/api/v1/{comId}/s/chat/chat-bubble/{bid}", data=yo, headers=header)
-        print("uploaded")
 
 
     def stop_instance(self):
