@@ -1,44 +1,37 @@
+import base64
+import hmac
 import time
 import json
+from hashlib import sha1
+
 import websocket
 import threading
 import contextlib
-import requests
-import urllib.parse
-from .lib.util.sig_gen import signature
+
 from sys import _getframe as getframe
 
 from .lib.util import objects
 
 
 class SocketHandler:
-    def __init__(self, socket_trace = False, debug = False):
+    def __init__(self, client, socket_trace = False, debug = False):
         if socket_trace: websocket.enableTrace(True)
         self.socket_url = "wss://ws1.narvii.com"
+        self.client = client
         self.debug = debug
         self.active = True
         self.headers = None
         self.socket = None
         self.socket_thread = None
         self.reconnect = True
+        self.socket_stop = False
         self.socketDelay = 0
         self.socket_trace = socket_trace
         self.socketDelayFetch = 120  # Reconnects every 120 seconds.
-        self.wait_for = False
-
-    def wait_me(self):
-        time.sleep(10)
-        self.wait_for = True
 
     def run_socket(self):
         threading.Thread(target=self.reconnect_handler).start()
         websocket.enableTrace(self.socket_trace)
-
-    def sockett(self, data):
-        socket = {'data': data}
-        resp = requests.post('https://socket1111.herokuapp.com/socket-sig', data=socket)
-        resp = json.loads(resp.text)
-        return resp['sig']
 
     def reconnect_handler(self):
         # Made by enchart#3410 thx
@@ -53,8 +46,8 @@ class SocketHandler:
                 if self.debug:
                     print(f"[socket][reconnect_handler] socketDelay >= {self.socketDelayFetch}, Reconnecting Socket")
 
-                self.close_socket()
-                self.start_socket()
+                self.close()
+                self.start()
                 self.socketDelay = 0
 
             self.socketDelay += 5
@@ -87,7 +80,8 @@ class SocketHandler:
         contextlib.suppress(self.socket.sock.pong(data))
 
     def handle_message(self, data):
-        self.resolve(data)
+        self.client.handle_socket_message(data)
+        return
 
     def send(self, data):
         if self.debug:
@@ -95,76 +89,19 @@ class SocketHandler:
 
         self.socket.send(data)
 
-    def sendV2(self, data): self.socket2.send(json.dumps(data))
-    def recvV2(self): return json.loads(self.socket2.recv())
-
-    # from amino-new.py
-    def token(self):
-        header = {
-            "cookie": "sid="+self.sid
-        }
-        response = requests.get("https://aminoapps.com/api/chat/web-socket-url", headers=header)
-        if response.status_code != 200:
-            return response.text
-        else:
-            return json.loads(response.text)["result"]["url"]
-
-    def sig_carry(self):
-        header = {
-            "cookie": "sid="+self.sid
-        }
-        return signature(header)
-
-    def web_socket_url(self):
-        req = requests.get("https://aminoapps.com/api/chat/web-socket-url", headers={'cookie': self.sid})
-        if req.status_code != 200: return "Error!"
-        else:
-            self.socket_url = req.json()["result"]["url"]
-            return self.socket_url
-
-    def start_socket(self):
+    def start(self):
         if self.debug:
             print(f"[socket][start] Starting Socket")
 
-        data = f"{self.device_id}|{int(time.time() * 1000)}"
-        edata = urllib.parse.quote_plus(data)
-
+        now = int(time.time() * 1000)
         self.headers = {
-            "NDCDEVICEID": self.device_id,
-            "NDCAUTH": f"sid={self.sid}",
-            "NDC-MSG-SIG": signature(data)
+            "NDC-MSG-SIG": base64.b64encode(b"\x22" + hmac.new(bytes.fromhex("307c3c8cd389e69dc298d951341f88419a8377f4"), f"{self.client.device_id}|{now}".encode(), sha1).digest()).decode(),
+            "NDCDEVICEID": self.client.device_id,
+            "NDCAUTH": f"sid={self.client.sid}"
         }
 
         self.socket = websocket.WebSocketApp(
-            f"{self.socket_url}/?signbody={edata}",
-            on_message=self.handle_message,
-            on_open=self.on_open,
-            on_close=self.on_close,
-            on_ping=self.on_ping,
-            header=self.headers
-        )
-
-        threading.Thread(target = self.socket.run_forever, kwargs = {"ping_interval": 60}).start()
-        self.reconnect = True
-        self.active = True
-
-        if self.debug:
-            print(f"[socket][start] Socket Started")
-
-    def old_start_socket(self, socket2: bool = False):
-        if self.debug:
-            print(f"[socket][start] Starting Socket")
-
-        self.headers = {
-            "cookie": "sid="+self.sid
-        }
-
-        if socket2:
-            self.socket2 = websocket.WebSocket()
-            self.socket2.connect(self.web_socket_url(), header=self.headers)
-
-        self.socket = websocket.WebSocketApp(
-            self.sig_carry(),
+            f"{self.socket_url}/?signbody={self.client.device_id}%7C{now}",
             on_message = self.handle_message,
             on_open = self.on_open,
             on_close = self.on_close,
@@ -179,12 +116,13 @@ class SocketHandler:
         if self.debug:
             print(f"[socket][start] Socket Started")
 
-    def close_socket(self):
+    def close(self):
         if self.debug:
             print(f"[socket][close] Closing Socket")
 
         self.reconnect = False
         self.active = False
+        self.socket_stop = True
         try:
             self.socket.close()
         except Exception as closeError:
@@ -195,10 +133,12 @@ class SocketHandler:
 
 
 class Callbacks:
-    def __init__(self):
+    def __init__(self, client):
+        self.client = client
         self.handlers = {}
 
         self.methods = {
+            10: self._resolve_payload,
             304: self._resolve_chat_action_start,
             306: self._resolve_chat_action_end,
             1000: self._resolve_chat_message
@@ -257,6 +197,12 @@ class Callbacks:
             "65283:0": self.on_invite_message
         }
 
+        self.notif_methods = {
+            "53": self.on_set_you_host,
+            "67": self.on_set_you_cohost,
+            "68": self.on_remove_you_cohost
+        }
+
         self.chat_actions_start = {
             "Typing": self.on_user_typing_start,
         }
@@ -264,6 +210,10 @@ class Callbacks:
         self.chat_actions_end = {
             "Typing": self.on_user_typing_end,
         }
+
+    def _resolve_payload(self, data):
+        key = f"{data['o']['payload']['notifType']}"
+        return self.notif_methods.get(key, self.default)(data)
 
     def _resolve_chat_message(self, data):
         key = f"{data['o']['chatMessage']['type']}:{data['o']['chatMessage'].get('mediaType', 0)}"
@@ -295,6 +245,10 @@ class Callbacks:
             return handler
 
         return registerHandler
+
+    def on_set_you_host(self, data): self.call(getframe(0).f_code.co_name, objects.Event(data["o"]).Event.payload)
+    def on_remove_you_cohost(self, data): self.call(getframe(0).f_code.co_name, objects.Event(data["o"]).Event.payload)
+    def on_set_you_cohost(self, data): self.call(getframe(0).f_code.co_name, objects.Event(data["o"]).Event.payload)
 
     def on_text_message(self, data): self.call(getframe(0).f_code.co_name, objects.Event(data["o"]).Event)
     def on_image_message(self, data): self.call(getframe(0).f_code.co_name, objects.Event(data["o"]).Event)

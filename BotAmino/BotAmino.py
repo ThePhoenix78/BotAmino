@@ -7,15 +7,15 @@ from pathlib import Path
 from threading import Thread
 # from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
-from unicodedata import normalize
-from string import punctuation
 from urllib.request import urlopen
 from datetime import datetime
+from random import choice
 
 from .local_amino import Client, SubClient, ACM
+from .commands import *
+from .extensions import *
 
 from uuid import uuid4
-from inspect import getfullargspec
 
 # this is Slimakoi's API with some of my patches
 
@@ -37,257 +37,6 @@ with suppress(Exception):
 
 def print_exception(exc):
     print(repr(exc))
-
-
-class Command:
-    def __init__(self):
-        self.commands = {}
-        self.conditions = {}
-
-    def execute(self, commande, data, type: str = "command"):
-        com = self.commands[type][commande]
-        arg = getfullargspec(com).args
-        arg.pop(0)
-        s = len(arg)
-        dico = {}
-        if s:
-            dico = {key: value for key, value in zip(arg, data.message.split()[0:s])}
-
-        if self.conditions[type].get(commande, None):
-            if self.conditions[type][commande](data):
-                return self.commands[type][commande](data, **dico)
-            return
-        return self.commands[type][commande](data, **dico)
-
-    def categorie_exist(self, type: str):
-        return type in self.commands.keys()
-
-    def add_categorie(self, type):
-        if type not in self.commands.keys():
-            self.commands[type] = {}
-
-    def add_condition(self, type):
-        if type not in self.conditions.keys():
-            self.conditions[type] = {}
-
-    def commands_list(self):
-        return [command for command in self.commands["command"].keys()]
-
-    def answer_list(self):
-        return [command for command in self.commands["answser"].keys()]
-
-    def command(self, name=None, condition=None):
-        type = "command"
-        self.add_categorie(type)
-        self.add_condition(type)
-        if isinstance(name, str):
-            name = [name]
-        elif not name:
-            name = []
-
-        def add_command(command_funct):
-            name.append(command_funct.__name__)
-            if callable(condition):
-                for command in name:
-                    self.conditions[type][command] = condition
-            for command in name:
-                self.commands[type][command.lower()] = command_funct
-            return command_funct
-
-        return add_command
-
-    def answer(self, name, condition=None):
-        type = "answer"
-        self.add_categorie(type)
-        self.add_condition(type)
-
-        if isinstance(name, str):
-            name = [name]
-        elif not name:
-            name = []
-
-        def add_command(command_funct):
-            # name.append(command_funct.__name__)
-            if callable(condition):
-                for command in name:
-                    self.conditions[type][command] = condition
-
-            for command in name:
-                self.commands[type][command.lower()] = command_funct
-            return command_funct
-
-        return add_command
-
-    def on_member_join_chat(self, condition=None):
-        type = "on_member_join_chat"
-        self.add_categorie(type)
-        self.add_condition(type)
-        if callable(condition):
-            self.conditions[type][type] = condition
-
-        def add_command(command_funct):
-            self.commands[type][type] = command_funct
-            return command_funct
-        return add_command
-
-    def on_member_leave_chat(self, condition=None):
-        type = "on_member_leave_chat"
-        self.add_categorie(type)
-        self.add_condition(type)
-        if callable(condition):
-            self.conditions[type][type] = condition
-
-        def add_command(command_funct):
-            self.commands[type][type] = command_funct
-            return command_funct
-        return add_command
-
-    def on_message(self, condition=None):
-        type = "on_message"
-        self.add_categorie(type)
-        self.add_condition(type)
-        if callable(condition):
-            self.conditions[type][type] = condition
-
-        def add_command(command_funct):
-            self.commands[type][type] = command_funct
-            return command_funct
-        return add_command
-
-    def on_other(self, condition=None):
-        type = "on_other"
-        self.add_categorie(type)
-        self.add_condition(type)
-        if callable(condition):
-            self.conditions[type][type] = condition
-
-        def add_command(command_funct):
-            self.commands[type][type] = command_funct
-            return command_funct
-        return add_command
-
-    def on_delete(self, condition=None):
-        type = "on_delete"
-        self.add_categorie(type)
-        self.add_condition(type)
-        if callable(condition):
-            self.conditions[type][type] = condition
-
-        def add_command(command_funct):
-            self.commands[type][type] = command_funct
-            return command_funct
-        return add_command
-
-    def on_remove(self, condition=None):
-        type = "on_remove"
-        self.add_categorie(type)
-        self.add_condition(type)
-        if callable(condition):
-            self.conditions[type][type] = condition
-
-        def add_command(command_funct):
-            self.commands[type][type] = command_funct
-            return command_funct
-        return add_command
-
-    def on_all(self, condition=None):
-        type = "on_all"
-        self.add_categorie(type)
-        self.add_condition(type)
-        if callable(condition):
-            self.conditions[type][type] = condition
-
-        def add_command(command_funct):
-            self.commands[type][type] = command_funct
-            return command_funct
-        return add_command
-
-    def on_event(self, name, condition=None):
-        type = "on_event"
-        self.add_categorie(type)
-        self.add_condition(type)
-
-        if isinstance(name, str):
-            name = [name]
-        elif not name:
-            name = []
-
-        def add_command(command_funct):
-            # name.append(command_funct.__name__)
-            if callable(condition):
-                for command in name:
-                    self.conditions[type][command] = condition
-
-            for command in name:
-                self.commands[type][command] = command_funct
-            return command_funct
-
-        return add_command
-
-
-class TimeOut:
-    users_dict = {}
-
-    def time_user(self, uid, end: int = 5):
-        if uid not in self.users_dict.keys():
-            self.users_dict[uid] = {"start": 0, "end": end}
-            Thread(target=self.timer, args=[uid]).start()
-
-    def timer(self, uid):
-        while self.users_dict[uid]["start"] <= self.users_dict[uid]["end"]:
-            self.users_dict[uid]["start"] += 1
-            slp(1)
-        del self.users_dict[uid]
-
-    def timed_out(self, uid):
-        if uid in self.users_dict.keys():
-            return self.users_dict[uid]["start"] >= self.users_dict[uid]["end"]
-        return True
-
-
-class BannedWords:
-    def filtre_message(self, message, code):
-        para = normalize('NFD', message).encode(code, 'ignore').decode("utf8").strip().lower()
-        para = para.translate(str.maketrans("", "", punctuation))
-        return para
-
-    def check_banned_words(self, args):
-        for word in ("ascii", "utf8"):
-            with suppress(Exception):
-                para = self.filtre_message(args.message, word).split()
-                if para != [""]:
-                    with suppress(Exception):
-                        [args.subClient.delete_message(args.chatId, args.messageId, reason=f"Banned word : {elem}", asStaff=True) for elem in para if elem in args.subClient.banned_words]
-
-
-class Parameters:
-    __slots__ = (
-                    "subClient", "chatId", "authorId", "author", "message", "messageId",
-                    "authorIcon", "comId", "replySrc", "replyMsg", "replyId", "info"
-                 )
-
-    def __init__(self, data, subClient):
-        self.subClient = subClient
-        self.chatId = data.message.chatId
-        self.authorId = data.message.author.userId
-        self.author = data.message.author.nickname
-        self.message = data.message.content
-        self.messageId = data.message.messageId
-        self.authorIcon = data.message.author.icon
-        self.comId = data.comId
-
-        self.replySrc = None
-        self.replyId = None
-        if data.message.extensions and data.message.extensions.get('replyMessage', None) and data.message.extensions['replyMessage'].get('mediaValue', None):
-            self.replySrc = data.message.extensions['replyMessage']['mediaValue'].replace('_00.', '_hq.')
-            self.replyId = data.message.extensions['replyMessage']['messageId']
-
-        self.replyMsg = None
-        if data.message.extensions and data.message.extensions.get('replyMessage', None) and data.message.extensions['replyMessage'].get('content', None):
-            self.replyMsg = data.message.extensions['replyMessage']['content']
-            self.replyId = data.message.extensions['replyMessage']['messageId']
-
-        self.info = data
 
 
 class BotAmino(Command, Client, TimeOut, BannedWords):
@@ -864,7 +613,6 @@ class Bot(SubClient, ACM):
 
     def ask_all_members(self, message, lvl: int = 20, type_bool: int = 1):
         def ask(uid):
-            print(uid)
             try:
                 self.start_chat(userId=[uid], message=message)
             except Exception:
@@ -1092,11 +840,23 @@ class Bot(SubClient, ACM):
     def passive(self):
         def upt_activity():
             timeNow = int(datetime.timestamp(datetime.now()))
-            timeEnd = timeNow + 30
+            timeEnd = timeNow + 300
+            try:
+                self.send_active_obj(startTime=timeNow, endTime=timeEnd)
+            except Exception:
+                pass
 
         def change_bio_and_welcome_members():
             if self.welcome_chat or self.message_bvn:
                 Thread(target=self.welcome_new_member).start()
+            try:
+                if isinstance(self.bio_contents, list):
+                    self.edit_profile(content=choice(self.bio_contents))
+
+                elif isinstance(self.bio_contents, str):
+                    self.edit_profile(content=self.bio_contents)
+            except Exception as e:
+                print_exception(e)
 
         def feature_chats():
             try:
@@ -1117,16 +877,20 @@ class Bot(SubClient, ACM):
         k = 0
         while self.marche:
             change_bio_and_welcome_members()
-            if j >= 240:
+            if j >= 24:
                 feature_chats()
                 j = 0
-            if k >= 2880:
+            if k >= 288:
                 feature_users()
                 k = 0
 
             if self.activity:
+                try:
+                    self.activity_status('on')
+                except Exception:
+                    pass
                 upt_activity()
 
-            slp(30)
+            slp(300)
             j += 1
             k += 1

@@ -1,7 +1,3 @@
-"""
-from .util.device import device
-
-
 class Headers:
     def __init__(self, data = None):
         headers = {
@@ -16,4 +12,3 @@ class Headers:
 
         if data: headers["Content-Length"] = str(len(data))
         self.headers = headers
-"""

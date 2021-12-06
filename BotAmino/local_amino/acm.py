@@ -4,10 +4,11 @@ from time import time as timestamp
 from typing import BinaryIO
 
 from . import client
-from .lib.util import exceptions, headers, device, objects
+from .lib.util import device, headers, exceptions, objects
 
 device = device.DeviceGenerator()
 headers.sid = client.Client().sid
+
 
 class ACM(client.Client):
     def __init__(self, profile: objects.UserProfile, comId: str = None):
@@ -59,7 +60,7 @@ class ACM(client.Client):
         else: return response.status_code
 
     def list_communities(self, start: int = 0, size: int = 25):
-        response = requests.get(f"{self.apip}/g/s/community/managed?start={start}&size={size}", headers=headers.Headers().s_headers)
+        response = requests.get(f"{self.api}/g/s/community/managed?start={start}&size={size}", headers=headers.Headers().headers)
         if response.status_code != 200: return exceptions.CheckException(json.loads(response.text))
         else: return objects.CommunityList(json.loads(response.text)["communityList"]).CommunityList
 
