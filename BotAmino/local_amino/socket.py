@@ -27,7 +27,7 @@ class SocketHandler:
         self.socket_stop = False
         self.socketDelay = 0
         self.socket_trace = socket_trace
-        self.socketDelayFetch = 120  # Reconnects every 120 seconds.
+        self.socketDelayFetch = 60  # Reconnects every 60 seconds.
 
     def run_socket(self):
         threading.Thread(target=self.reconnect_handler).start()
@@ -46,15 +46,15 @@ class SocketHandler:
                 if self.debug:
                     print(f"[socket][reconnect_handler] socketDelay >= {self.socketDelayFetch}, Reconnecting Socket")
 
-                self.close()
-                self.start()
+                self.close_socket()
+                self.start_socket()
                 self.socketDelay = 0
 
             self.socketDelay += 5
 
             if not self.reconnect:
                 if self.debug:
-                    print(f"[socket][reconnect_handler] reconnect is False, breaking")
+                    print("[socket][reconnect_handler] reconnect is False, breaking")
                 break
 
             time.sleep(5)
@@ -89,7 +89,7 @@ class SocketHandler:
 
         self.socket.send(data)
 
-    def start(self):
+    def start_socket(self):
         if self.debug:
             print(f"[socket][start] Starting Socket")
 
@@ -116,7 +116,7 @@ class SocketHandler:
         if self.debug:
             print(f"[socket][start] Socket Started")
 
-    def close(self):
+    def close_socket(self):
         if self.debug:
             print(f"[socket][close] Closing Socket")
 
