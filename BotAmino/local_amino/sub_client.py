@@ -57,7 +57,7 @@ class SubClient(client.Client):
     def parse_headers(self, data = None):
         if data is not None:
             if isinstance(data, dict):  data = json.dumps(data)
-            return headers.Headers(data=data, deviceId=self.device_id, sig=base64.b64encode(b"\x22" + hmac.new(bytes.fromhex("307c3c8cd389e69dc298d951341f88419a8377f4"), data.encode(), sha1).digest()).decode()).headers
+            return headers.Headers(data=data, deviceId=self.device_id, sig=requests.get(f"https://emerald-dream.herokuapp.com/signature/{data}").json()["signature"]).headers
         else:
             return headers.Headers(deviceId=self.device_id).headers
 
@@ -438,9 +438,7 @@ class SubClient(client.Client):
         data = {"userActiveTimeChunkList": [{"start": startTime, "end": endTime}], "timestamp": timestamp, "optInAdsFlags": optInAdsFlags, "timezone": tz} 
         if timers: data["userActiveTimeChunkList"] = timers 
         data = json_minify(json.dumps(data)) 
-        mac = hmac.new(bytes.fromhex("307c3c8cd389e69dc298d951341f88419a8377f4"), data.encode("utf-8"), sha1) 
-        signature = base64.b64encode(bytes.fromhex("22") + mac.digest()).decode("utf-8") 
-        response = requests.post(f"{self.api}/x{self.comId}/s/community/stats/user-active-time", headers=headers.Headers(data=data, sig=signature, deviceId=self.device_id).headers, data=data, proxies=self.proxies, verify=self.certificatePath) 
+        response = requests.post(f"{self.api}/x{self.comId}/s/community/stats/user-active-time", headers=self.parse_headers(data=data), data=data, proxies=self.proxies, verify=self.certificatePath) 
         if response.status_code != 200: return exceptions.CheckException(json.loads(response.text)) 
         else: return response.status_code
 
