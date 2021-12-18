@@ -2,7 +2,7 @@ from time import sleep as slp
 from sys import exit
 import requests
 import json
-from json import dumps, load
+from json import dumps, load, loads
 from pathlib import Path
 from threading import Thread
 # from concurrent.futures import ThreadPoolExecutor
@@ -40,7 +40,7 @@ def print_exception(exc):
 
 
 class BotAmino(Command, Client, TimeOut, BannedWords):
-    def __init__(self, email: str = None, password: str = None, sid: str = None,  proxies: dict = None, deviceId: str = "2271017D5F917B37DAC9C325B10542BC9B63109292D882729D1813D5355404380E2F1A699A34629C10", certificatePath: str = None):
+    def __init__(self, email: str = None, password: str = None, sid: str = None,  proxies: dict = None, deviceId: str = "", certificatePath: str = None):
         Command.__init__(self)
         Client.__init__(self, proxies=proxies, deviceId=deviceId, certificatePath=certificatePath)
 
@@ -652,8 +652,21 @@ class Bot(SubClient, ACM):
                 return chat_id
         return False
 
-    def copy_bubble(self, chatId:str, replyId:str, comId:str):
-        header={
+    def upload_bubble(self,file,comId):
+        data=file
+        response = requests.post(f"https://service.narvii.com/api/v1/x{comId}/s/chat/chat-bubble/templates/107147e9-05c5-405f-8553-af65d2823457/generate", data=data, headers=self.headers)
+        bid=json.loads(response.text)['chatBubble']['bubbleId']
+        print(bid)
+        response = requests.post(f"https://service.narvii.com/api/v1/x{comId}/s/chat/chat-bubble/{bid}", data=data, headers=self.headers)
+        if response.status_code !=200:
+            return json.loads(response.text)
+        else: return bid
+
+    def copy_bubble(self, chatId: str, replyId: str, comId: str = None):
+        if not comId:
+            comId = self.community_id
+
+        header = {
             'Accept-Language': 'en-US',
             'Content-Type': 'application/octet-stream',
             'User-Agent': 'Dalvik/2.1.0 (Linux; U; Android 7.1; LG-UK495 Build/MRA58K; com.narvii.amino.master/3.3.33180)',
@@ -661,14 +674,14 @@ class Bot(SubClient, ACM):
             'Accept-Encoding': 'gzip',
             'Connection': 'Keep-Alive',
         }
-        a=self.get_message_info(chatId=chatId,messageId=replyId).json["chatBubble"]["resourceUrl"]
+        a = self.get_message_info(chatId=chatId, messageId=replyId).json["chatBubble"]["resourceUrl"]
+
         with urlopen(a) as zipresp:
-            yo=zipresp.read()
+            yo = zipresp.read()
 
         response = requests.post(f"https://service.narvii.com/api/v1/x{comId}/s/chat/chat-bubble/templates/107147e9-05c5-405f-8553-af65d2823457/generate", data=yo, headers=header)
-        bid=json.loads(response.text)['chatBubble']['bubbleId']
+        bid = loads(response.text)['chatBubble']['bubbleId']
         response = requests.post(f"https://service.narvii.com/api/v1/{comId}/s/chat/chat-bubble/{bid}", data=yo, headers=header)
-
 
     def stop_instance(self):
         self.marche = False
