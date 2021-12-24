@@ -5,6 +5,9 @@ from contextlib import suppress
 from unicodedata import normalize
 from string import punctuation
 
+from .local_amino import objects
+from .Bot import Bot
+
 
 class TimeOut:
     users_dict = {}
@@ -47,25 +50,25 @@ class Parameters:
                     "authorIcon", "comId", "replySrc", "replyMsg", "replyId", "info"
                  )
 
-    def __init__(self, data, subClient):
-        self.subClient = subClient
-        self.chatId = data.message.chatId
-        self.authorId = data.message.author.userId
-        self.author = data.message.author.nickname
-        self.message = data.message.content
-        self.messageId = data.message.messageId
-        self.authorIcon = data.message.author.icon
-        self.comId = data.comId
+    def __init__(self, data: objects.Event, subClient: Bot):
+        self.subClient: Bot = subClient
+        self.chatId: str = data.message.chatId
+        self.authorId: str = data.message.author.userId
+        self.author: str = data.message.author.nickname
+        self.message: str = data.message.content
+        self.messageId: str = data.message.messageId
+        self.authorIcon: str = data.message.author.icon
+        self.comId: str = data.comId
 
-        self.replySrc = None
-        self.replyId = None
+        self.replySrc: str = None
+        self.replyId: str = None
         if data.message.extensions and data.message.extensions.get('replyMessage', None) and data.message.extensions['replyMessage'].get('mediaValue', None):
             self.replySrc = data.message.extensions['replyMessage']['mediaValue'].replace('_00.', '_hq.')
             self.replyId = data.message.extensions['replyMessage']['messageId']
 
-        self.replyMsg = None
+        self.replyMsg: str = None
         if data.message.extensions and data.message.extensions.get('replyMessage', None) and data.message.extensions['replyMessage'].get('content', None):
-            self.replyMsg = data.message.extensions['replyMessage']['content']
-            self.replyId = data.message.extensions['replyMessage']['messageId']
+            self.replyMsg: str = data.message.extensions['replyMessage']['content']
+            self.replyId: str = data.message.extensions['replyMessage']['messageId']
 
-        self.info = data
+        self.info: objects.Event = data
