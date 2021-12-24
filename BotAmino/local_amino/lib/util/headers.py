@@ -1,8 +1,11 @@
 import requests
 
-from . import device
-sid = None
+from json import loads
 
+from . import device
+
+sid = None
+session = requests.Session()
 
 class Headers:
     def __init__(self, data = None, type = None, deviceId: str = None, sig: str = None):
@@ -25,5 +28,6 @@ class Headers:
         if sid: headers["NDCAUTH"] = f"sid={sid}"
         if type: headers["Content-Type"] = type
         if sig: headers["NDC-MSG-SIG"] = sig
-        if data is not None and sig is None and isinstance(data, bytes) is False: headers["NDC-MSG-SIG"] = requests.get(f"https://emerald-dream.herokuapp.com/signature/{data}").json()["signature"]
+        if data is not None and sig is None and isinstance(data, bytes) is False:
+            headers["NDC-MSG-SIG"] = loads(session.get(f"http://aminoed.uk.to/api/generator/ndc-msg-sig?data={data}").text)["message"]
         self.headers = headers
