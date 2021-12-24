@@ -11,6 +11,7 @@ from .local_amino import Client, SubClient, ACM
 from .commands import *
 from .extensions import *
 
+
 path_utilities = "utilities"
 path_amino = f'{path_utilities}/amino_list'
 
@@ -81,7 +82,7 @@ class Bot(SubClient, ACM):
         self.favorite_users = self.get_file_info("favorite_users")
         self.favorite_chats = self.get_file_info("favorite_chats")
         self.update_file()
-        #self.activity_status("on")
+        # self.activity_status("on")
         new_users = self.get_all_users(start=0, size=30, type="recent")
 
         self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
@@ -256,6 +257,10 @@ class Bot(SubClient, ACM):
     def get_chat_id(self, chat: str = None):
         with suppress(Exception):
             return self.get_from_code(f"http://aminoapps.com/c/{chat}").objectId
+
+        with suppress(Exception):
+            chati = self.get_from_code(f"{chat}").objectId
+            return chati
 
         val = self.get_public_chat_threads()
         for title, chat_id in zip(val.title, val.chatId):
