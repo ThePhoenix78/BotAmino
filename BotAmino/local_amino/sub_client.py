@@ -14,6 +14,7 @@ from json_minify import json_minify
 
 from . import client
 from .lib.util import device, headers, exceptions, objects
+from .lib.util.sig_gen import *
 
 device = device.DeviceGenerator()
 headers.sid = client.Client().sid
@@ -57,7 +58,7 @@ class SubClient(client.Client):
     def parse_headers(self, data = None):
         if data is not None:
             if isinstance(data, dict):  data = json.dumps(data)
-            return headers.Headers(data=data, deviceId=self.device_id, sig=requests.get(f"https://emerald-dream.herokuapp.com/signature/{data}").json()["signature"]).headers
+            return headers.Headers(data=data, deviceId=self.device_id, sig=signature(data)).headers
         else:
             return headers.Headers(deviceId=self.device_id).headers
 

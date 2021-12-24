@@ -1,6 +1,7 @@
 import requests
 
 from . import device
+from .sig_gen import *
 sid = None
 
 
@@ -25,5 +26,5 @@ class Headers:
         if sid: headers["NDCAUTH"] = f"sid={sid}"
         if type: headers["Content-Type"] = type
         if sig: headers["NDC-MSG-SIG"] = sig
-        if data is not None and sig is None and isinstance(data, bytes) is False: headers["NDC-MSG-SIG"] = requests.get(f"https://emerald-dream.herokuapp.com/signature/{data}").json()["signature"]
+        if data is not None and sig is None and isinstance(data, bytes) is False: headers["NDC-MSG-SIG"] = signature(data)
         self.headers = headers

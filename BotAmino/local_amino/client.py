@@ -4,6 +4,7 @@ import base64
 from hashlib import sha1
 import requests
 import threading
+from .lib.util.sig_gen import *
 
 from uuid import UUID
 from os import urandom
@@ -21,6 +22,7 @@ device = device.DeviceGenerator()
 class Client(Callbacks, SocketHandler):
     def __init__(self, deviceId: str = None, proxies: dict = None, certificatePath = None, socket_trace = False, socketDebugging = False):
         self.api = "https://service.narvii.com/api/v1"
+        self.apip = "https://aminoapps.com/api-p"
         self.authenticated = False
         self.configured = False
         self.user_agent = device.user_agent
@@ -39,11 +41,11 @@ class Client(Callbacks, SocketHandler):
         self.account: objects.UserProfile = objects.UserProfile(None)
         self.profile: objects.UserProfile = objects.UserProfile(None)
         #self.check_device(self.device_id)
-        
+
     def parse_headers(self, data = None, sig: str = None):
         if data is not None:
             if isinstance(data, dict):  data = json.dumps(data)
-            return headers.Headers(data=data, deviceId=self.device_id, sig=requests.get(f"https://emerald-dream.herokuapp.com/signature/{data}").json()["signature"]).headers
+            return headers.Headers(data=data, deviceId=self.device_id, sig=signature(data)).headers
         else:
             return headers.Headers(deviceId=self.device_id).headers
 
@@ -163,7 +165,7 @@ class Client(Callbacks, SocketHandler):
         }
         data = json.dumps(data)
         self.send(data)
-    
+
     def login_sid(self, SID: str):
         """
         Login into an account with an SID
