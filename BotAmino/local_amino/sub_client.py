@@ -11,7 +11,6 @@ from json_minify import json_minify
 
 from . import client
 from .lib.util import device, headers, exceptions, objects
-# from .lib.util.sig_gen import *
 
 device = device.DeviceGenerator()
 headers.sid = client.Client().sid

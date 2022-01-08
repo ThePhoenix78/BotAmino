@@ -2,7 +2,6 @@ import json
 import base64
 import requests
 import threading
-# from .lib.util.sig_gen import *
 
 from uuid import UUID
 from os import urandom

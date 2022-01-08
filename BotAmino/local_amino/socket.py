@@ -8,11 +8,13 @@ import requests
 from sys import _getframe as getframe
 
 from .lib.util import objects
+from .lib.util.sig_gen import signature
 
 
 class SocketHandler:
     def __init__(self, client, socket_trace = False, debug = False):
-        if socket_trace: websocket.enableTrace(True)
+        if socket_trace:
+            websocket.enableTrace(True)
         self.client = client
         self.debug = debug
         self.active = True
@@ -95,8 +97,7 @@ class SocketHandler:
         self.headers = {
             "NDCDEVICEID": self.client.device_id,
             "NDCAUTH": f"sid={self.client.sid}",
-            "NDC-MSG-SIG": json.loads(self.session.get(
-                f"http://aminoed.uk.to/api/generator/ndc-msg-sig?data={data}").text)["message"]
+            "NDC-MSG-SIG": signature(data)
         }
 
         self.socket = websocket.WebSocketApp(
@@ -129,6 +130,7 @@ class SocketHandler:
                 print(f"[socket][close] Error while closing Socket : {closeError}")
 
         return
+
 
 class Callbacks:
     def __init__(self, client):
