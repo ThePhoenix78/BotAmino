@@ -8,13 +8,11 @@ import requests
 from sys import _getframe as getframe
 
 from .lib.util import objects
-from .lib.util.sig_gen import signature
 
 
 class SocketHandler:
     def __init__(self, client, socket_trace = False, debug = False):
-        if socket_trace:
-            websocket.enableTrace(True)
+        if socket_trace: websocket.enableTrace(True)
         self.client = client
         self.debug = debug
         self.active = True
@@ -26,7 +24,6 @@ class SocketHandler:
         self.socketDelay = 0
         self.socket_trace = socket_trace
         self.socketDelayFetch = 60  # Reconnects every 60 seconds.
-        self.session = requests.Session()
 
     def run_socket(self):
         threading.Thread(target=self.reconnect_handler).start()
@@ -88,20 +85,25 @@ class SocketHandler:
 
         self.socket.send(data)
 
+    # from amino-new.py
+    def token(self):
+        header = {
+            "cookie": "sid="+self.client.sid
+        }
+        response = requests.get("https://aminoapps.com/api/chat/web-socket-url", headers=header)
+        if response.status_code != 200: return response.text
+        else: return json.loads(response.text)["result"]["url"]
+
     def start(self):
         if self.debug:
             print(f"[socket][start] Starting Socket")
 
-        data = f"{self.client.device_id}%7C{int(time.time() * 1000)}"
-
         self.headers = {
-            "NDCDEVICEID": self.client.device_id,
-            "NDCAUTH": f"sid={self.client.sid}",
-            "NDC-MSG-SIG": signature(data)
+            "cookie": "sid="+self.client.sid
         }
 
         self.socket = websocket.WebSocketApp(
-            f"wss://ws3.narvii.com/?signbody={data}",
+            self.token(),
             on_message = self.handle_message,
             on_open = self.on_open,
             on_close = self.on_close,
@@ -109,7 +111,7 @@ class SocketHandler:
             header = self.headers
         )
 
-        threading.Thread(target = self.socket.run_forever).start()
+        threading.Thread(target = self.socket.run_forever, kwargs = {"ping_interval": 60}).start()
         self.reconnect = True
         self.active = True
 
@@ -130,7 +132,6 @@ class SocketHandler:
                 print(f"[socket][close] Error while closing Socket : {closeError}")
 
         return
-
 
 class Callbacks:
     def __init__(self, client):
