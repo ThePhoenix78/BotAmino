@@ -1,4 +1,4 @@
-import hmac
+# import hmac
 import json
 import base64
 from hashlib import sha1
@@ -39,7 +39,7 @@ class Client(Callbacks, SocketHandler):
         self.account: objects.UserProfile = objects.UserProfile(None)
         self.profile: objects.UserProfile = objects.UserProfile(None)
         #self.check_device(self.device_id)
-        
+
     def parse_headers(self, data = None):
         if data is not None:
             return headers.Headers(data=data, deviceId=self.device_id).headers
@@ -106,7 +106,7 @@ class Client(Callbacks, SocketHandler):
         }
         data = json.dumps(data)
         self.send(data)
-    
+
     def run_vc(self, comId: str, chatId: str, joinType: str):
         while self.active:
             data = {
@@ -120,7 +120,7 @@ class Client(Callbacks, SocketHandler):
             }
             data = json.dumps(data)
             self.send(data)
-    
+
     def start_vc(self, comId: str, chatId: str, joinType: int = 1):
         data = {
             "o": {
@@ -162,7 +162,7 @@ class Client(Callbacks, SocketHandler):
         }
         data = json.dumps(data)
         self.send(data)
-    
+
     def login_sid(self, SID: str):
         """
         Login into an account with an SID

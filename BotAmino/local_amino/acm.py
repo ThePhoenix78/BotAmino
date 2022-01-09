@@ -1,18 +1,18 @@
-import requests
+# import requests
 import json
 from time import time as timestamp
 from typing import BinaryIO
 
-from . import client
+from .client import Client
 from .lib.util import device, headers, exceptions, objects
 
 device = device.DeviceGenerator()
-headers.sid = client.Client().sid
+headers.sid = Client().sid
 
 
-class ACM(client.Client):
+class ACM(Client):
     def __init__(self, profile: objects.UserProfile, comId: str = None):
-        client.Client.__init__(self)
+        Client.__init__(self)
 
         self.profile = profile
         self.comId = comId

@@ -1,43 +1,27 @@
-import hmac
+# import hmac
 import json
 import base64
 import requests
 
 from uuid import UUID
 from os import urandom
-from hashlib import sha1
+# from hashlib import sha1
 from time import timezone
 from typing import BinaryIO
 from binascii import hexlify
 from time import time as timestamp
 from json_minify import json_minify
 
-from . import client
+from .client import Client
 from .lib.util import device, headers, exceptions, objects
 
 device = device.DeviceGenerator()
-headers.sid = client.Client().sid
+headers.sid = Client().sid
 
 
-class VCHeaders:
-    def __init__(self, data = None):
-        vc_headers = {
-            "Accept-Language": "en-US",
-            "Content-Type": "application/json",
-            "User-Agent": "Amino/45725 CFNetwork/1126 Darwin/19.5.0",  # Closest server (this one for me)
-            "Host": "rt.applovin.com",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Connection": "Keep-Alive",
-            "Accept": "*/*"
-        }
-
-        if data: vc_headers["Content-Length"] = str(len(data))
-        self.vc_headers = vc_headers
-
-
-class SubClient(client.Client):
+class SubClient(Client):
     def __init__(self, comId: str = None, aminoId: str = None, *, profile: objects.UserProfile):
-        client.Client.__init__(self)
+        Client.__init__(self)
         self.vc_connect = False
 
         if comId is not None:
@@ -45,8 +29,8 @@ class SubClient(client.Client):
             self.community: objects.Community = self.get_community_info(comId)
 
         if aminoId is not None:
-            self.comId = client.Client().search_community(aminoId).comId[0]
-            self.community: objects.Community = client.Client().get_community_info(self.comId)
+            self.comId = self.search_community(aminoId).comId[0]
+            self.community: objects.Community = self.get_community_info(self.comId)
 
         if comId is None and aminoId is None: raise exceptions.NoCommunity()
 
@@ -433,12 +417,12 @@ class SubClient(client.Client):
         if response.status_code != 200: return exceptions.CheckException(json.loads(response.text))
         else: return response.status_code
 
-    def send_active_obj(self, startTime: int = None, endTime: int = None, optInAdsFlags: int = 2147483647, tz: int = -timezone // 1000, timers: list = None, timestamp: int = int(timestamp() * 1000)): 
-        data = {"userActiveTimeChunkList": [{"start": startTime, "end": endTime}], "timestamp": timestamp, "optInAdsFlags": optInAdsFlags, "timezone": tz} 
-        if timers: data["userActiveTimeChunkList"] = timers 
-        data = json_minify(json.dumps(data)) 
-        response = requests.post(f"{self.api}/x{self.comId}/s/community/stats/user-active-time", headers=self.parse_headers(data=data), data=data, proxies=self.proxies, verify=self.certificatePath) 
-        if response.status_code != 200: return exceptions.CheckException(json.loads(response.text)) 
+    def send_active_obj(self, startTime: int = None, endTime: int = None, optInAdsFlags: int = 2147483647, tz: int = -timezone // 1000, timers: list = None, timestamp: int = int(timestamp() * 1000)):
+        data = {"userActiveTimeChunkList": [{"start": startTime, "end": endTime}], "timestamp": timestamp, "optInAdsFlags": optInAdsFlags, "timezone": tz}
+        if timers: data["userActiveTimeChunkList"] = timers
+        data = json_minify(json.dumps(data))
+        response = requests.post(f"{self.api}/x{self.comId}/s/community/stats/user-active-time", headers=self.parse_headers(data=data), data=data, proxies=self.proxies, verify=self.certificatePath)
+        if response.status_code != 200: return exceptions.CheckException(json.loads(response.text))
         else: return response.status_code
 
     def activity_status(self, status: str):
@@ -1000,7 +984,7 @@ class SubClient(client.Client):
         response = requests.delete(f"{self.api}/x{self.comId}/s/chat/thread/{chatId}/member/{self.profile.userId}", headers=self.parse_headers(), proxies=self.proxies, verify=self.certificatePath)
         if response.status_code != 200: return exceptions.CheckException(json.loads(response.text))
         else: return response.status_code
-        
+
     def delete_chat(self, chatId: str):
         """
         Delete a Chat.
@@ -1016,7 +1000,7 @@ class SubClient(client.Client):
         response = requests.delete(f"{self.api}/x{self.comId}/s/chat/thread/{chatId}", headers=self.parse_headers(), proxies=self.proxies, verify=self.certificatePath)
         if response.status_code != 200: return exceptions.CheckException(json.loads(response.text))
         else: return response.status_code
-        
+
     def subscribe(self, userId: str, autoRenew: str = False, transactionId: str = None):
         if transactionId is None: transactionId = str(UUID(hexlify(urandom(16)).decode('ascii')))
 
