@@ -1,15 +1,10 @@
+import base64
+import hmac
+from hashlib import sha1
 import requests
 
-from json import loads
-
 from . import device
-from .sig_gen import signature
-
 sid = None
-
-sid = None
-session = requests.Session()
-
 
 class Headers:
     def __init__(self, data = None, type = None, deviceId: str = None, sig: str = None):
@@ -32,6 +27,5 @@ class Headers:
         if sid: headers["NDCAUTH"] = f"sid={sid}"
         if type: headers["Content-Type"] = type
         if sig: headers["NDC-MSG-SIG"] = sig
-        if data is not None and sig is None and isinstance(data, bytes) is False:
-            headers["NDC-MSG-SIG"] = signature(data)
+        if data is not None and sig is None and isinstance(data, bytes) is False: headers["NDC-MSG-SIG"] = base64.b64encode(b"\x32" + hmac.new(bytes.fromhex("fbf98eb3a07a9042ee5593b10ce9f3286a69d4e2"), data.encode(), sha1).digest()).decode()
         self.headers = headers
