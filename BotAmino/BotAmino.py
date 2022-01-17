@@ -1187,16 +1187,16 @@ class Bot(SubClient, ACM):
         k = 0
         while self.marche:
             change_bio_and_welcome_members()
-            if j >= 24:
+            if j >= 240:
                 feature_chats()
                 j = 0
-            if k >= 288:
+            if k >= 2880:
                 feature_users()
                 k = 0
 
             if self.activity:
                 upt_activity()
 
-            slp(300)
+            slp(30)
             j += 1
             k += 1
