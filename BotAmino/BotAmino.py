@@ -1009,7 +1009,7 @@ class Bot(SubClient, ACM):
         self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
 
     def welcome_new_member(self):
-        new_list = self.get_all_users(start=0, size=25, type="recent")
+        new_list = self.get_all_users(start=0, size=5, type="recent")
         new_member = [(elem["nickname"], elem["uid"]) for elem in new_list.json["userProfileList"]]
 
         for elem in new_member:
