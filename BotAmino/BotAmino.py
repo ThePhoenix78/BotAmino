@@ -253,14 +253,13 @@ class BannedWords:
         for word in ("ascii", "utf8"):
             with suppress(Exception):
                 para = self.filtre_message(args.message, word).split()
-                if para == [""]:
-                    return
-                with suppress(Exception):
-                    checkme = [elem for elem in para if elem in args.subClient.banned_words]
-                    if len(checkme) > 1 and staff:
-                        args.subClient.delete_message(args.chatId, args.messageId, reason=f"Banned word : {checkme}", asStaff=staff)
-                    elif len(checkme) > 1:
-                        args.subClient.delete_message(args.chatId, args.messageId, asStaff=staff)
+                if para != [""]:
+                    with suppress(Exception):
+                        checkme = [elem for elem in para if elem in args.subClient.banned_words]
+                        if len(checkme) > 1 and staff:
+                            args.subClient.delete_message(args.chatId, args.messageId, reason=f"Banned word : {choice(checkme)}", asStaff=staff)
+                        if len(checkme) > 1:
+                            args.subClient.delete_message(args.chatId, args.messageId, asStaff=staff)
 
 
 class Parameters:
@@ -595,10 +594,8 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
             if self.check(args, 'staff', 'bot') and subClient.banned_words:
                 self.check_banned_words(args)
 
-            """
-            elif subClient.banned_words:
-                self.check_banned_words(args, False)
-            """
+            # elif subClient.banned_words:
+            #    self.check_banned_words(args, False)
 
             if not self.timed_out(args.authorId) and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
                 subClient.send_message(args.chatId, self.spam_message)
@@ -1009,7 +1006,7 @@ class Bot(SubClient, ACM):
         self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
 
     def welcome_new_member(self):
-        new_list = self.get_all_users(start=0, size=5, type="recent")
+        new_list = self.get_all_users(start=0, size=25, type="recent")
         new_member = [(elem["nickname"], elem["uid"]) for elem in new_list.json["userProfileList"]]
 
         for elem in new_member:
@@ -1187,16 +1184,16 @@ class Bot(SubClient, ACM):
         k = 0
         while self.marche:
             change_bio_and_welcome_members()
-            if j >= 240:
+            if j >= 24:
                 feature_chats()
                 j = 0
-            if k >= 2880:
+            if k >= 288:
                 feature_users()
                 k = 0
 
             if self.activity:
                 upt_activity()
 
-            slp(30)
+            slp(300)
             j += 1
             k += 1
