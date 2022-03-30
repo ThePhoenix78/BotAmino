@@ -5,7 +5,7 @@ __title__ = 'BotAmino'
 __author__ = 'ThePhoenix78'
 __license__ = 'MIT'
 __copyright__ = 'Copyright 2021-2022 ThePhoenix78'
-__version__ = '1.20.3.2'
+__version__ = '1.7.9
 
 # thanks to vedansh#4039 ♥
 
