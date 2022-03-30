@@ -7,8 +7,9 @@ from contextlib import suppress
 from unicodedata import normalize
 from string import punctuation
 from random import choice
-# from datetime import datetime
-from .local_amino import Client, SubClient, ACM, objects
+#from datetime import datetime
+import aminofix as amino
+from amino import Client, SubClient, ACM, objects
 from uuid import uuid4
 from inspect import getfullargspec
 from urllib.request import urlopen
@@ -17,7 +18,7 @@ import requests
 import time
 
 # this is Slimakoi's API with some of my patches
-
+# Modified by vedansh#4039
 # API made by ThePhoenix78
 # Big optimisation thanks to SempreLEGIT#1378 ♥
 
@@ -249,18 +250,13 @@ class BannedWords:
         para = para.translate(str.maketrans("", "", punctuation))
         return para
 
-    def check_banned_words(self, args, staff=True):
+    def check_banned_words(self, args):
         for word in ("ascii", "utf8"):
             with suppress(Exception):
                 para = self.filtre_message(args.message, word).split()
-                if para == [""]:
-                    return
-                with suppress(Exception):
-                    checkme = [elem for elem in para if elem in args.subClient.banned_words]
-                    if len(checkme) > 1 and staff:
-                        args.subClient.delete_message(args.chatId, args.messageId, reason=f"Banned word : {checkme}", asStaff=staff)
-                    elif len(checkme) > 1:
-                        args.subClient.delete_message(args.chatId, args.messageId, asStaff=staff)
+                if para != [""]:
+                    with suppress(Exception):
+                        [args.subClient.delete_message(args.chatId, args.messageId, reason=f"Banned word : {elem}", asStaff=True) for elem in para if elem in args.subClient.banned_words]
 
 
 class Parameters:
@@ -592,13 +588,8 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
             if "on_message" in self.commands.keys():
                 Thread(target=self.execute, args=["on_message", args, "on_message"]).start()
 
-            if self.check(args, 'staff', 'bot') and subClient.banned_words:
+            if not self.check(args, 'staff', 'bot') and subClient.banned_words:
                 self.check_banned_words(args)
-
-            """
-            elif subClient.banned_words:
-                self.check_banned_words(args, False)
-            """
 
             if not self.timed_out(args.authorId) and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
                 subClient.send_message(args.chatId, self.spam_message)
@@ -1009,7 +1000,7 @@ class Bot(SubClient, ACM):
         self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
 
     def welcome_new_member(self):
-        new_list = self.get_all_users(start=0, size=5, type="recent")
+        new_list = self.get_all_users(start=0, size=25, type="recent")
         new_member = [(elem["nickname"], elem["uid"]) for elem in new_list.json["userProfileList"]]
 
         for elem in new_member:
@@ -1151,7 +1142,7 @@ class Bot(SubClient, ACM):
             timeEnd = timeNow + 300
             try:
                 self.send_active_obj(startTime=timeNow, endTime=timeEnd)
-            except Exception:
+            except Exception as activeError:
                 pass
 
         def change_bio_and_welcome_members():
