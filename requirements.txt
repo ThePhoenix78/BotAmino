@@ -1,4 +1,4 @@
-Amino.fix
+amino.fix
 schedule
 reportlab
 argparse
