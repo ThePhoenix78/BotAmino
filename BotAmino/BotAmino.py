@@ -250,13 +250,13 @@ class BannedWords:
         para = para.translate(str.maketrans("", "", punctuation))
         return para
 
-    def check_banned_words(self, args):
+    def check_banned_words(self, args, staff=True):
         for word in ("ascii", "utf8"):
             with suppress(Exception):
                 para = self.filtre_message(args.message, word).split()
                 if para != [""]:
                     with suppress(Exception):
-                        [args.subClient.delete_message(args.chatId, args.messageId, reason=f"Banned word : {elem}", asStaff=True) for elem in para if elem in args.subClient.banned_words]
+                        [args.subClient.delete_message(args.chatId, args.messageId, reason=f"Banned word : {elem}", asStaff=staff) for elem in para if elem in args.subClient.banned_words]
 
 
 class Parameters:
@@ -588,7 +588,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
             if "on_message" in self.commands.keys():
                 Thread(target=self.execute, args=["on_message", args, "on_message"]).start()
 
-            if not self.check(args, 'staff', 'bot') and subClient.banned_words:
+            if self.check(args, 'staff', 'bot') and subClient.banned_words:
                 self.check_banned_words(args)
 
             if not self.timed_out(args.authorId) and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
@@ -1000,7 +1000,7 @@ class Bot(SubClient, ACM):
         self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
 
     def welcome_new_member(self):
-        new_list = self.get_all_users(start=0, size=25, type="recent")
+        new_list = self.get_all_users(start=0, size=5, type="recent")
         new_member = [(elem["nickname"], elem["uid"]) for elem in new_list.json["userProfileList"]]
 
         for elem in new_member:
