@@ -7,7 +7,7 @@ from contextlib import suppress
 from unicodedata import normalize
 from string import punctuation
 from random import choice
-#from datetime import datetime
+# from datetime import datetime
 from aminofix import Client, SubClient, ACM, objects
 from uuid import uuid4
 from inspect import getfullargspec
@@ -322,6 +322,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         self.spam_message = "You are spamming, be careful"
         self.lock_message = "Command locked sorry"
         self.launched = False
+        self.message_bvn_status = True
 
     def tradlist(self, sub):
         sublist = []
@@ -350,6 +351,9 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
 
     def generate_transaction_id(self):
         return str(uuid4())
+
+    def set_message_bvn_status(self, status: bool):
+        self.message_bvn_status = status
 
     def start_video_chat(self, comId: str, chatId: str, joinType: int = 1):
         data = {
@@ -1007,7 +1011,7 @@ class Bot(SubClient, ACM):
 
             val = self.get_wall_comments(userId=uid, sorting='newest').commentId
 
-            if not val and uid not in self.new_users and self.message_bvn:
+            if not val and uid not in self.new_users and self.message_bvn and self.message_bvn_status:
                 with suppress(Exception):
                     self.comment(message=self.message_bvn, userId=uid)
 
