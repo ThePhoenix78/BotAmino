@@ -260,7 +260,7 @@ class BannedWords:
 
 class Parameters:
     __slots__ = (
-                    "subClient", "chatId", "authorId", "author", "message", "messageId",
+                    "subClient", "chatId", "authorId", "author", "message", "messageId","level","reputation","json",
                     "authorIcon", "comId", "replySrc", "replyMsg", "replyId", "info"
                  )
 
@@ -272,6 +272,12 @@ class Parameters:
         self.message = data.message.content
         self.messageId = data.message.messageId
         self.authorIcon = data.message.author.icon
+        try: self.level = data.message.json["author"]["level"]
+        except: pass
+        try: self.json = data.message.json
+        except: pass
+        try: self.reputation = data.message.json["author"]["reputation"]
+        except: pass
         self.comId = data.comId
 
         self.replySrc = None
