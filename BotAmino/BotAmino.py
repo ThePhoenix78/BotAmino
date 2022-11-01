@@ -8,7 +8,8 @@ from unicodedata import normalize
 from string import punctuation
 from random import choice
 # from datetime import datetime
-from aminofix import Client, SubClient, ACM, objects
+# from aminofix import Client, SubClient, ACM, objects
+from amino import Client, SubClient, ACM, objects
 from uuid import uuid4
 from inspect import getfullargspec
 from urllib.request import urlopen
@@ -709,7 +710,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
 
     def launch_on_live_user_join(self):
         @self.event("on_live_user_update")
-        def on_group_member_leave(data):
+        def on_live_user_update(data):
             self.on_member_event(data, "on_member_join_amino")
 
 
