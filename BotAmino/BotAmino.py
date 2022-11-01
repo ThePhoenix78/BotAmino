@@ -346,6 +346,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         self.launched = False
         self.message_bvn_status = True
         self.show_online = True
+        self.double_check = False
 
     def tradlist(self, sub):
         sublist = []
@@ -603,6 +604,9 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
 
             if self.check(args, 'staff', 'bot') and subClient.banned_words:
                 self.check_banned_words(args)
+
+            elif self.double_check and subClient.banned_words:
+                self.check_banned_words(args, False)
 
             if not self.timed_out(args.authorId) and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
                 subClient.send_message(args.chatId, self.spam_message)
