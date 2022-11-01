@@ -16,6 +16,7 @@ from urllib.request import urlopen
 import requests
 import time
 
+# check if push works
 # this is Slimakoi's API with some of my patches
 # Modified by vedansh#4039
 # API made by ThePhoenix78
