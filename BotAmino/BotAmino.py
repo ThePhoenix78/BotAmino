@@ -8,8 +8,8 @@ from unicodedata import normalize
 from string import punctuation
 from random import choice
 # from datetime import datetime
-# from aminofix import Client, SubClient, ACM, objects
-from amino import Client, SubClient, ACM, objects
+from aminofix import Client, SubClient, ACM, objects
+# from amino import Client, SubClient, ACM, objects
 from uuid import uuid4
 from inspect import getfullargspec
 from urllib.request import urlopen
