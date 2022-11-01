@@ -142,6 +142,19 @@ class Command:
             return command_funct
         return add_command
 
+    def on_member_join_amino(self, condition=None):
+        type = "on_member_join_amino"
+        self.add_categorie(type)
+        self.add_condition(type)
+
+        if callable(condition):
+            self.conditions[type][type] = condition
+
+        def add_command(command_funct):
+            self.commands[type][type] = command_funct
+            return command_funct
+        return add_command
+
     def on_message(self, condition=None):
         type = "on_message"
         self.add_categorie(type)
