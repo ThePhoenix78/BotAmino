@@ -271,7 +271,10 @@ class BannedWords:
                 para = self.filtre_message(args.message, word).split()
                 if para != [""]:
                     with suppress(Exception):
-                        [args.subClient.delete_message(args.chatId, args.messageId, reason=f"Banned word : {elem}", asStaff=staff) for elem in para if elem in args.subClient.banned_words]
+                        for elem in para:
+                            if elem in args.subClient.banned_words:
+                                args.subClient.delete_message(args.chatId, args.messageId, reason=f"Banned word : {elem}\nAuthor : {args.author}", asStaff=staff)
+                                return
 
 
 class Parameters:
