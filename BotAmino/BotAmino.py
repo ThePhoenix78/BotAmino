@@ -16,6 +16,7 @@ from urllib.request import urlopen
 import requests
 import time
 
+# check if push works
 # this is Slimakoi's API with some of my patches
 # Modified by vedansh#4039
 # API made by ThePhoenix78
@@ -120,6 +121,7 @@ class Command:
         type = "on_member_join_chat"
         self.add_categorie(type)
         self.add_condition(type)
+
         if callable(condition):
             self.conditions[type][type] = condition
 
@@ -329,6 +331,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         self.lock_message = "Command locked sorry"
         self.launched = False
         self.message_bvn_status = True
+        self.show_online = True
 
     def tradlist(self, sub):
         sublist = []
@@ -500,19 +503,15 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         if passive:
             self.communaute[commu].passive()
 
-    def launch(self, passive: bool = False):
-        amino_list = self.sub_clients()
-        self.len_community = len(amino_list.comId)
-        [Thread(target=self.threadLaunch, args=[commu, passive]).start() for commu in amino_list.comId]
-
-        if self.launched:
-            return
-
+    def launch_events(self):
         if self.categorie_exist("command") or self.categorie_exist("answer"):
             self.launch_text_message()
 
         if self.categorie_exist("on_member_join_chat"):
             self.launch_on_member_join_chat()
+
+        if self.categorie_exist("on_member_join_amino"):
+            self.launch_on_live_user_join()
 
         if self.categorie_exist("on_member_leave_chat"):
             self.launch_on_member_leave_chat()
@@ -528,6 +527,16 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
 
         if self.categorie_exist("on_all"):
             self.launch_all_message()
+
+    def launch(self, passive: bool = False):
+        amino_list = self.sub_clients()
+        self.len_community = len(amino_list.comId)
+        [Thread(target=self.threadLaunch, args=[commu, passive]).start() for commu in amino_list.comId]
+
+        if self.launched:
+            return
+
+        self.launch_events()
 
         self.launched = True
 
@@ -539,26 +548,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         if self.launched:
             return
 
-        if self.categorie_exist("command") or self.categorie_exist("answer"):
-            self.launch_text_message()
-
-        if self.categorie_exist("on_member_join_chat"):
-            self.launch_on_member_join_chat()
-
-        if self.categorie_exist("on_member_leave_chat"):
-            self.launch_on_member_leave_chat()
-
-        if self.categorie_exist("on_other"):
-            self.launch_other_message()
-
-        if self.categorie_exist("on_remove"):
-            self.launch_removed_message()
-
-        if self.categorie_exist("on_delete"):
-            self.launch_delete_message()
-
-        if self.categorie_exist("on_all"):
-            self.launch_all_message()
+        self.launch_events()
 
         self.launched = True
 
@@ -703,6 +693,11 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
             @self.event("on_group_member_leave")
             def on_group_member_leave(data):
                 self.on_member_event(data, "on_member_leave_chat")
+
+    def launch_on_live_user_join(self):
+        @self.event("on_live_user_update")
+        def on_group_member_leave(data):
+            self.on_member_event(data, "on_member_join_amino")
 
 
 class Bot(SubClient, ACM):
@@ -909,8 +904,8 @@ class Bot(SubClient, ACM):
             community_staff = [elem["uid"] for elem in community_staff_list]
         except Exception:
             community_staff_list = ""
-        else:
-            return community_staff
+
+        return community_staff
 
     def get_user_id(self, name_or_id):
         members = self.get_all_users(size=1).json['userProfileCount']
@@ -1154,17 +1149,9 @@ class Bot(SubClient, ACM):
             except Exception as activeError:
                 pass
 
-        def change_bio_and_welcome_members():
-            if self.welcome_chat or self.message_bvn:
-                Thread(target=self.welcome_new_member).start()
+        def show_online():
             try:
                 self.activity_status('on')
-                if isinstance(self.bio_contents, list):
-                    self.edit_profile(content=choice(self.bio_contents))
-
-                elif isinstance(self.bio_contents, str):
-                    self.edit_profile(content=self.bio_contents)
-
             except Exception as e:
                 print_exception(e)
 
@@ -1186,7 +1173,8 @@ class Bot(SubClient, ACM):
         j = 0
         k = 0
         while self.marche:
-            change_bio_and_welcome_members()
+            if self.show_online:
+                show_online()
             if j >= 240:
                 feature_chats()
                 j = 0
