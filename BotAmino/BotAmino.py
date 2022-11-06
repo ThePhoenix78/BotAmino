@@ -606,10 +606,10 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
             if "on_message" in self.commands.keys():
                 Thread(target=self.execute, args=["on_message", args, "on_message"]).start()
 
-            if self.check(args, 'staff', 'bot') and subClient.banned_words and self.self_check:
+            if self.check(args, 'staff', 'bot') and subClient.banned_words and not self.self_check:
                 self.check_banned_words(args)
 
-            elif self.double_check and subClient.banned_words and self.self_check:
+            elif self.double_check and subClient.banned_words and not self.self_check:
                 self.check_banned_words(args, False)
 
             if not self.timed_out(args.authorId) and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
