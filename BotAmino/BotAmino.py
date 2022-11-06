@@ -350,6 +350,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         self.message_bvn_status = True
         self.show_online = True
         self.double_check = False
+        self.self_check = False
 
     def tradlist(self, sub):
         sublist = []
@@ -605,10 +606,10 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
             if "on_message" in self.commands.keys():
                 Thread(target=self.execute, args=["on_message", args, "on_message"]).start()
 
-            if self.check(args, 'staff', 'bot') and subClient.banned_words:
+            if self.check(args, 'staff', 'bot') and subClient.banned_words and not self.self_check:
                 self.check_banned_words(args)
 
-            elif self.double_check and subClient.banned_words:
+            elif self.double_check and subClient.banned_words and not self.self_check:
                 self.check_banned_words(args, False)
 
             if not self.timed_out(args.authorId) and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
@@ -1167,7 +1168,7 @@ class Bot(SubClient, ACM):
             timeEnd = timeNow + 300
             try:
                 self.send_active_obj(startTime=timeNow, endTime=timeEnd)
-            except Exception as activeError:
+            except Exception as e:
                 pass
 
         def show_online():
