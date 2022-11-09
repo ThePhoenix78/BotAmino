@@ -104,13 +104,13 @@ class Command:
         return add_command
 
     def command(self, name=None, condition=None):
-        return self.trigger("command", name, condition)
+        return self.on_trigger("command", name, condition)
 
     def answer(self, name, condition=None):
-        return self.trigger("answer", name, condition)
+        return self.on_trigger("answer", name, condition)
 
     def on_event(self, name, condition=None):
-        return self.trigger("on_event", name, condition)
+        return self.on_trigger("on_event", name, condition)
 
     def on_member_join_chat(self, condition=None):
         return self.create_event("on_member_join_chat", condition)
