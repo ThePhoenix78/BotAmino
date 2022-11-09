@@ -6,21 +6,17 @@ from threading import Thread
 from contextlib import suppress
 from unicodedata import normalize
 from string import punctuation
-from random import choice
-# from datetime import datetime
 from aminofix import Client, SubClient, ACM, objects
 # from amino import Client, SubClient, ACM, objects
 from uuid import uuid4
 from inspect import getfullargspec
 from urllib.request import urlopen
-# from zipfile import ZipFile
 import requests
 import time
 
-# check if push works
+# API made by ThePhoenix78
 # this is Slimakoi's API with some of my patches
 # Modified by vedansh#4039
-# API made by ThePhoenix78
 # Big optimisation thanks to SempreLEGIT#1378 ♥
 
 
@@ -76,8 +72,7 @@ class Command:
     def answer_list(self):
         return [command for command in self.commands["answser"].keys()]
 
-    def command(self, name=None, condition=None):
-        type = "command"
+    def on_trigger(self, type, name=None, condition=None):
         self.add_categorie(type)
         self.add_condition(type)
         if isinstance(name, str):
@@ -96,147 +91,50 @@ class Command:
 
         return add_command
 
+    def create_event(self, type, condition=None):
+        self.add_categorie(type)
+        self.add_condition(type)
+
+        if callable(condition):
+            self.conditions[type][type] = condition
+
+        def add_command(command_funct):
+            self.commands[type][type] = command_funct
+            return command_funct
+        return add_command
+
+    def command(self, name=None, condition=None):
+        return self.trigger("command", name, condition)
+
     def answer(self, name, condition=None):
-        type = "answer"
-        self.add_categorie(type)
-        self.add_condition(type)
-
-        if isinstance(name, str):
-            name = [name]
-        elif not name:
-            name = []
-
-        def add_command(command_funct):
-            # name.append(command_funct.__name__)
-            if callable(condition):
-                for command in name:
-                    self.conditions[type][command] = condition
-
-            for command in name:
-                self.commands[type][command.lower()] = command_funct
-            return command_funct
-
-        return add_command
-
-    def on_member_join_chat(self, condition=None):
-        type = "on_member_join_chat"
-        self.add_categorie(type)
-        self.add_condition(type)
-
-        if callable(condition):
-            self.conditions[type][type] = condition
-
-        def add_command(command_funct):
-            self.commands[type][type] = command_funct
-            return command_funct
-        return add_command
-
-    def on_member_leave_chat(self, condition=None):
-        type = "on_member_leave_chat"
-        self.add_categorie(type)
-        self.add_condition(type)
-        if callable(condition):
-            self.conditions[type][type] = condition
-
-        def add_command(command_funct):
-            self.commands[type][type] = command_funct
-            return command_funct
-        return add_command
-
-    def on_member_join_amino(self, condition=None):
-        type = "on_member_join_amino"
-        self.add_categorie(type)
-        self.add_condition(type)
-
-        if callable(condition):
-            self.conditions[type][type] = condition
-
-        def add_command(command_funct):
-            self.commands[type][type] = command_funct
-            return command_funct
-        return add_command
-
-    def on_message(self, condition=None):
-        type = "on_message"
-        self.add_categorie(type)
-        self.add_condition(type)
-        if callable(condition):
-            self.conditions[type][type] = condition
-
-        def add_command(command_funct):
-            self.commands[type][type] = command_funct
-            return command_funct
-        return add_command
-
-    def on_other(self, condition=None):
-        type = "on_other"
-        self.add_categorie(type)
-        self.add_condition(type)
-        if callable(condition):
-            self.conditions[type][type] = condition
-
-        def add_command(command_funct):
-            self.commands[type][type] = command_funct
-            return command_funct
-        return add_command
-
-    def on_delete(self, condition=None):
-        type = "on_delete"
-        self.add_categorie(type)
-        self.add_condition(type)
-        if callable(condition):
-            self.conditions[type][type] = condition
-
-        def add_command(command_funct):
-            self.commands[type][type] = command_funct
-            return command_funct
-        return add_command
-
-    def on_remove(self, condition=None):
-        type = "on_remove"
-        self.add_categorie(type)
-        self.add_condition(type)
-        if callable(condition):
-            self.conditions[type][type] = condition
-
-        def add_command(command_funct):
-            self.commands[type][type] = command_funct
-            return command_funct
-        return add_command
-
-    def on_all(self, condition=None):
-        type = "on_all"
-        self.add_categorie(type)
-        self.add_condition(type)
-        if callable(condition):
-            self.conditions[type][type] = condition
-
-        def add_command(command_funct):
-            self.commands[type][type] = command_funct
-            return command_funct
-        return add_command
+        return self.trigger("answer", name, condition)
 
     def on_event(self, name, condition=None):
-        type = "on_event"
-        self.add_categorie(type)
-        self.add_condition(type)
+        return self.trigger("on_event", name, condition)
 
-        if isinstance(name, str):
-            name = [name]
-        elif not name:
-            name = []
+    def on_member_join_chat(self, condition=None):
+        return self.create_event("on_member_join_chat", condition)
 
-        def add_command(command_funct):
-            # name.append(command_funct.__name__)
-            if callable(condition):
-                for command in name:
-                    self.conditions[type][command] = condition
+    def on_member_leave_chat(self, condition=None):
+        return self.create_event("on_member_leave_chat", condition)
 
-            for command in name:
-                self.commands[type][command] = command_funct
-            return command_funct
+    def on_member_join_amino(self, condition=None):
+        return self.create_event("on_member_join_amino", condition)
 
-        return add_command
+    def on_message(self, condition=None):
+        return self.create_event("on_message", condition)
+
+    def on_other(self, condition=None):
+        return self.create_event("on_other", condition)
+
+    def on_delete(self, condition=None):
+        return self.create_event("on_delete", condition)
+
+    def on_remove(self, condition=None):
+        return self.create_event("on_remove", condition)
+
+    def on_all(self, condition=None):
+        return self.create_event("on_all", condition)
 
 
 class TimeOut:
@@ -677,42 +575,42 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
 
     def launch_delete_message(self):
         try:
-            @self.callbacks.event("on_delete_message")
+            @self.event("on_delete_message")
             def on_delete_message(data):
                 self.message_analyse(data, "on_delete")
         except AttributeError:
-            @self.event("on_delete_message")
+            @self.callbacks.event("on_delete_message")
             def on_delete_message(data):
                 self.message_analyse(data, "on_delete")
 
     def launch_removed_message(self):
         for type_name in ("on_chat_removed_message", "on_text_message_force_removed", "on_text_message_removed_by_admin", "on_delete_message"):
             try:
-                @self.callbacks.event(type_name)
+                @self.event(type_name)
                 def on_chat_removed(data):
                     self.message_analyse(data, "on_remove")
             except AttributeError:
-                @self.event(type_name)
+                @self.callbacks.event(type_name)
                 def on_chat_removed(data):
                     self.message_analyse(data, "on_remove")
 
     def launch_on_member_join_chat(self):
         try:
-            @self.callbacks.event("on_group_member_join")
+            @self.event("on_group_member_join")
             def on_group_member_join(data):
                 self.on_member_event(data, "on_member_join_chat")
         except AttributeError:
-            @self.event("on_group_member_join")
+            @self.callbacks.event("on_group_member_join")
             def on_group_member_join(data):
                 self.on_member_event(data, "on_member_join_chat")
 
     def launch_on_member_leave_chat(self):
         try:
-            @self.callbacks.event("on_group_member_leave")
+            @self.event("on_group_member_leave")
             def on_group_member_leave(data):
                 self.on_member_event(data, "on_member_leave_chat")
         except AttributeError:
-            @self.event("on_group_member_leave")
+            @self.callbacks.event("on_group_member_leave")
             def on_group_member_leave(data):
                 self.on_member_event(data, "on_member_leave_chat")
 
@@ -1168,7 +1066,7 @@ class Bot(SubClient, ACM):
             timeEnd = timeNow + 300
             try:
                 self.send_active_obj(startTime=timeNow, endTime=timeEnd)
-            except Exception as e:
+            except Exception:
                 pass
 
         def show_online():
