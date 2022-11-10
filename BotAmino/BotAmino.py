@@ -871,6 +871,27 @@ class Bot(SubClient, ACM):
             size -= 100
             st += 100
 
+    def get_all_chat_users(self, chatId, lvl: int = 20, type_bool: int = 1):
+        size = self.get_chat_thread(chatId=chatId).json["membersCount"]
+
+        st = 0
+        liste = []
+        while size > 0:
+            value = size
+            if value > 100:
+                value = 100
+            users = self.get_chat_users(chatId=chatId, start=st, size=value).json
+            if type_bool == 1:
+                liste.extend([user["uid"] for user in users if user["level"] == lvl])
+            elif type_bool == 2:
+                liste.extend([user["uid"] for user in users if user["level"] <= lvl])
+            elif type_bool == 3:
+                liste.extend([user["uid"] for user in users if user["level"] >= lvl])
+            size -= 100
+            st += 100
+
+        return liste
+
     def ask_amino_staff(self, message):
         self.start_chat(userId=self.community_staff, message=message)
 
