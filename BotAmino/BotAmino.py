@@ -53,6 +53,7 @@ class Command:
             if self.conditions[type][commande](data):
                 return self.commands[type][commande](data, **dico)
             return
+
         return self.commands[type][commande](data, **dico)
 
     def categorie_exist(self, type: str):
@@ -75,6 +76,7 @@ class Command:
     def on_trigger(self, type, name=None, condition=None):
         self.add_categorie(type)
         self.add_condition(type)
+
         if isinstance(name, str):
             name = [name]
         elif not name:
@@ -177,7 +179,7 @@ class BannedWords:
 
 class Parameters:
     __slots__ = (
-                    "subClient", "chatId", "authorId", "author", "message", "messageId","level","reputation","json",
+                    "subClient", "chatId", "authorId", "author", "message", "messageId", "level", "reputation", "json",
                     "authorIcon", "comId", "replySrc", "replyMsg", "replyId", "info"
                  )
 
@@ -189,12 +191,18 @@ class Parameters:
         self.message = data.message.content
         self.messageId = data.message.messageId
         self.authorIcon = data.message.author.icon
-        try: self.level = data.message.json["author"]["level"]
-        except: pass
-        try: self.json = data.message.json
-        except: pass
-        try: self.reputation = data.message.json["author"]["reputation"]
-        except: pass
+        try:
+            self.level = data.message.json["author"]["level"]
+        except Exception:
+            pass
+        try:
+            self.json = data.message.json
+        except Exception:
+            pass
+        try:
+            self.reputation = data.message.json["author"]["reputation"]
+        except Exception:
+            pass
         self.comId = data.comId
 
         self.replySrc = None
@@ -212,22 +220,27 @@ class Parameters:
 
 
 class BotAmino(Command, Client, TimeOut, BannedWords):
-    def __init__(self, email: str = None, password: str = None, sid: str = None, deviceId: str = None, proxies: str = None, certificatePath: str = None):
+    def __init__(self, email: str = None, password: str = None, sid: str = None, deviceId: str = None, proxies: str = None, certificatePath: str = None, prefix: str = "!"):
         Command.__init__(self)
         Client.__init__(self, deviceId=deviceId, certificatePath=certificatePath, proxies=proxies)
 
         if email and password:
             self.login(email=email, password=password)
+
         elif sid:
             self.login_sid(SID=sid)
+
         else:
             try:
                 with open(path_client, "r") as file_:
                     para = file_.readlines()
+
                 self.login(email=para[0].strip(), password=para[1].strip())
+
             except FileNotFoundError:
                 with open(path_client, 'w') as file_:
                     file_.write('email\npassword')
+
                 print("Please enter your email and password in the file client.txt")
                 print("-----end-----")
                 exit(1)
@@ -236,14 +249,14 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         self.botId = self.userId
         self.len_community = 0
         self.perms_list = []
-        self.prefix = "!"
+        self.prefix = prefix
         self.activity = False
         self.wait = 0
         self.bio = None
         self.self_callable = False
         self.no_command_message = ""
-        self.spam_message = "You are spamming, be careful"
-        self.lock_message = "Command locked sorry"
+        self.spam_message = ""
+        self.lock_message = ""
         self.launched = False
         self.message_bvn_status = True
         self.show_online = True
@@ -510,15 +523,15 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
             elif self.double_check and subClient.banned_words and not self.self_check:
                 self.check_banned_words(args, False)
 
-            if not self.timed_out(args.authorId) and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
+            if not self.timed_out(args.authorId) and args.message.startswith(subClient.prefix) and not self.check(args, "bot") and self.spam_message:
                 subClient.send_message(args.chatId, self.spam_message)
                 return
 
             elif "command" in self.commands.keys() and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
-                print(f"{args.author} : {args.message}")
+                print(f"[C] {args.author} : {args.message}")
                 command = args.message.lower().split()[0][len(subClient.prefix):]
 
-                if command in subClient.locked_command:
+                if command in subClient.locked_command and self.lock_message:
                     subClient.send_message(args.chatId, self.lock_message)
                     return
 
@@ -532,18 +545,14 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
                 return
 
             elif "answer" in self.commands.keys() and args.message.lower() in self.commands["answer"] and not self.check(args, "bot"):
-                print(f"{args.author} : {args.message}")
+                print(f"[A] {args.author} : {args.message}")
                 self.time_user(args.authorId, self.wait)
                 Thread(target=self.execute, args=[args.message.lower(), args, "answer"]).start()
                 return
-        try:
-            @self.callbacks.event("on_text_message")
-            def on_text_message(data):
-                text_message(data)
-        except Exception:
-            @self.event("on_text_message")
-            def on_text_message(data):
-                text_message(data)
+
+        @self.event("on_text_message")
+        def on_text_message(data):
+            text_message(data)
 
     def launch_other_message(self):
         for type_name in ("on_strike_message", "on_voice_chat_not_answered",
@@ -552,67 +561,37 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
                           "on_video_chat_not_declined", "on_voice_chat_start", "on_video_chat_start",
                           "on_voice_chat_end", "on_video_chat_end", "on_screen_room_start",
                           "on_screen_room_end", "on_avatar_chat_start", "on_avatar_chat_end"):
-            try:
-                @self.callbacks.event(type_name)
-                def on_other_message(data):
-                    self.message_analyse(data, "on_other")
-            except AttributeError:
-                @self.event(type_name)
-                def on_other_message(data):
-                    self.message_analyse(data, "on_other")
+
+            @self.event(type_name)
+            def on_other_message(data):
+                self.message_analyse(data, "on_other")
 
     def launch_all_message(self):
-        try:
-            for x in (self.chat_methods):
-                @self.event(self.chat_methods[x].__name__)
-                def on_all_message(data):
-                    self.message_analyse(data, "on_all")
-        except AttributeError:
-            for x in (self.callbacks.chat_methods):
-                @self.callbacks.event(self.callbacks.chat_methods[x].__name__)
-                def on_all_message(data):
-                    self.message_analyse(data, "on_all")
+        for x in (self.chat_methods):
+            @self.event(self.chat_methods[x].__name__)
+            def on_all_message(data):
+                self.message_analyse(data, "on_all")
 
     def launch_delete_message(self):
-        try:
-            @self.event("on_delete_message")
-            def on_delete_message(data):
-                self.message_analyse(data, "on_delete")
-        except AttributeError:
-            @self.callbacks.event("on_delete_message")
-            def on_delete_message(data):
-                self.message_analyse(data, "on_delete")
+        @self.event("on_delete_message")
+        def on_delete_message(data):
+            self.message_analyse(data, "on_delete")
 
     def launch_removed_message(self):
         for type_name in ("on_chat_removed_message", "on_text_message_force_removed", "on_text_message_removed_by_admin", "on_delete_message"):
-            try:
-                @self.event(type_name)
-                def on_chat_removed(data):
-                    self.message_analyse(data, "on_remove")
-            except AttributeError:
-                @self.callbacks.event(type_name)
-                def on_chat_removed(data):
-                    self.message_analyse(data, "on_remove")
+            @self.event(type_name)
+            def on_chat_removed(data):
+                self.message_analyse(data, "on_remove")
 
     def launch_on_member_join_chat(self):
-        try:
-            @self.event("on_group_member_join")
-            def on_group_member_join(data):
-                self.on_member_event(data, "on_member_join_chat")
-        except AttributeError:
-            @self.callbacks.event("on_group_member_join")
-            def on_group_member_join(data):
-                self.on_member_event(data, "on_member_join_chat")
+        @self.event("on_group_member_join")
+        def on_group_member_join(data):
+            self.on_member_event(data, "on_member_join_chat")
 
     def launch_on_member_leave_chat(self):
-        try:
-            @self.event("on_group_member_leave")
-            def on_group_member_leave(data):
-                self.on_member_event(data, "on_member_leave_chat")
-        except AttributeError:
-            @self.callbacks.event("on_group_member_leave")
-            def on_group_member_leave(data):
-                self.on_member_event(data, "on_member_leave_chat")
+        @self.event("on_group_member_leave")
+        def on_group_member_leave(data):
+            self.on_member_event(data, "on_member_leave_chat")
 
     def launch_on_live_user_join(self):
         @self.event("on_live_user_update")
@@ -682,9 +661,10 @@ class Bot(SubClient, ACM):
         self.favorite_chats = self.get_file_info("favorite_chats")
         self.update_file()
         self.activity_status("on")
-        new_users = self.get_all_users(start=0, size=30, type="recent")
-
-        self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
+        self.new_users = []
+        if self.message_bvn:
+            new_users = self.get_all_users(start=0, size=30, type="recent")
+            self.new_users = [elem["uid"] for elem in new_users.json["userProfileList"]]
 
     def create_community_file(self):
         with open(f'{path_amino}/{self.community_amino_id}.json', 'w', encoding='utf8') as file:
@@ -926,6 +906,7 @@ class Bot(SubClient, ACM):
     def check_new_member(self):
         if not (self.message_bvn or self.welcome_chat):
             return
+
         new_list = self.get_all_users(start=0, size=25, type="recent")
         new_member = [(elem["nickname"], elem["uid"]) for elem in new_list.json["userProfileList"]]
         for elem in new_member:
@@ -1078,6 +1059,7 @@ class Bot(SubClient, ACM):
             if t["title"] != title:
                 tlist.append(t["title"])
                 clist.append(t["color"])
+            
         self.edit_titles(uid, tlist, clist)
         return True
 
