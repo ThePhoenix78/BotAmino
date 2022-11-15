@@ -57,46 +57,46 @@ print("ready")
 
 ## There is also built-in functions that might be useful:
 
-• add_title(userId, title, color) : add a title to an user
+- add_title(userId, title, color) : add a title to an user
 
-• remove_title(userId, title) : remove the title given to the user
+- remove_title(userId, title) : remove the title given to the user
 
-• follow_user(userId) : follow the user in parameters
+- follow_user(userId) : follow the user in parameters
 
-• unfollow_user(userId) : unfollow the user in parameters
+- unfollow_user(userId) : unfollow the user in parameters
 
-• leave_all_chats() : leave all the chats for a given community
+- leave_all_chats() : leave all the chats for a given community
 
-• join_all_chat() : join all the publics chat of an Amino
+- join_all_chat() : join all the publics chat of an Amino
 
-• get_chats() : return a list of the publics chatrooms
+- get_chats() : return a list of the publics chatrooms
 
-• join_chatroom(chat_name_or_link) : join the chat for the given link/name
+- join_chatroom(chat_name_or_link) : join the chat for the given link/name
 
-• pay(nb_of_coins, blogId, chatId, objectId, transactionId) : give coins in balance, transactionId not necessary (automatically generated if not put)
+- pay(nb_of_coins, blogId, chatId, objectId, transactionId) : give coins in balance, transactionId not necessary (automatically generated if not put)
 
-• get_wallet_amount() : return the number of coin of the bot
+- get_wallet_amount() : return the number of coin of the bot
 
-• get_member_title(userId) : return the titles of the member
+- get_member_title(userId) : return the titles of the member
 
-• get_member_level(userId) : return the level of the member [1-20]
+- get_member_level(userId) : return the level of the member [1-20]
 
-• leave_community() : leave the current community
+- leave_community() : leave the current community
 
-• get_chat_id(chat) : return the id of the chat (link supported)
+- get_chat_id(chat) : return the id of the chat (link supported)
 
-• ask_amino_staff(message) : send the message to all the curators/leader of the amino
+- ask_amino_staff(message) : send the message to all the curators/leader of the amino
 
-• get_user_id(name_or_id) : return a tuple with the name and the userId (name, uid)
+- get_user_id(name_or_id) : return a tuple with the name and the userId (name, uid)
 
-• get_staff(community) : return the staff of the given community (communityId or aminoId)
+- get_staff(community) : return the staff of the given community (communityId or aminoId)
 
-• accept_role(noticeId, chatId) : accept a promotion or a chat transfert
+- accept_role(noticeId, chatId) : accept a promotion or a chat transfert
 
-• generate_transaction_id() : create a transactionId
+- generate_transaction_id() : create a transactionId
 
-• ask_all_members(message) : will send a message in pv to all member by group of 100
+- ask_all_members(message) : will send a message in pv to all member by group of 100
 
-• is_it_bot(userId) : check if the user is the bot account
+- is_it_bot(userId) : check if the user is the bot account
 
-• add_community("aminoId") : add manually a community to the bot (nice for join amino command)
+- add_community("aminoId") : add manually a community to the bot (nice for join amino command)
