@@ -312,23 +312,31 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         if self.type_exist("command") or self.type_exist("answer"):
             self.launch_text_message()
 
+        if self.type_exist("on_delete"):
+            @self.event("on_delete_message")
+            def on_delete_message(data):
+                self.data_analyse(data, "on_delete")
+
         if self.type_exist("on_member_join_chat"):
-            self.launch_on_member_join_chat()
+            @self.event("on_group_member_join")
+            def on_group_member_join(data):
+                self.data_analyse(data, "on_member_join_chat", True)
 
         if self.type_exist("on_member_join_amino"):
-            self.launch_on_live_user_join()
+            @self.event("on_live_user_update")
+            def on_live_user_update(data):
+                self.data_analyse(data, "on_member_join_amino", True)
 
         if self.type_exist("on_member_leave_chat"):
-            self.launch_on_member_leave_chat()
+            @self.event("on_group_member_leave")
+            def on_group_member_leave(data):
+                self.data_analyse(data, "on_member_leave_chat", True)
 
         if self.type_exist("on_other"):
             self.launch_other_message()
 
         if self.type_exist("on_remove"):
             self.launch_removed_message()
-
-        if self.type_exist("on_delete"):
-            self.launch_delete_message()
 
         if self.type_exist("on_all"):
             self.launch_all_message()
@@ -434,31 +442,11 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
             def on_all_message(data):
                 self.data_analyse(data, "on_all")
 
-    def launch_delete_message(self):
-        @self.event("on_delete_message")
-        def on_delete_message(data):
-            self.data_analyse(data, "on_delete")
-
     def launch_removed_message(self):
         for type_name in ("on_chat_removed_message", "on_text_message_force_removed", "on_text_message_removed_by_admin", "on_delete_message"):
             @self.event(type_name)
             def on_chat_removed(data):
                 self.data_analyse(data, "on_remove")
-
-    def launch_on_member_join_chat(self):
-        @self.event("on_group_member_join")
-        def on_group_member_join(data):
-            self.data_analyse(data, "on_member_join_chat", True)
-
-    def launch_on_member_leave_chat(self):
-        @self.event("on_group_member_leave")
-        def on_group_member_leave(data):
-            self.data_analyse(data, "on_member_leave_chat", True)
-
-    def launch_on_live_user_join(self):
-        @self.event("on_live_user_update")
-        def on_live_user_update(data):
-            self.data_analyse(data, "on_member_join_amino", True)
 
 
 class Bot(SubClient, ACM):
