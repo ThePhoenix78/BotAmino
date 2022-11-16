@@ -1,6 +1,6 @@
 from time import sleep as slp
 from sys import exit
-from json import dumps, load, loads
+from json import dumps, load
 from pathlib import Path
 from threading import Thread
 from contextlib import suppress
@@ -10,8 +10,6 @@ from aminofix import Client, SubClient, ACM, objects
 from easy_events import Events, Parameters
 from uuid import uuid4
 from sys import _getframe as getframe
-from urllib.request import urlopen
-import requests
 import time
 
 # API made by ThePhoenix78
@@ -371,58 +369,61 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         elif on_member_event and not self.check(args, "bot"):
             Thread(target=self.process_data, args=[args, type]).start()
 
+    def on_text_message(self, data):
+        try:
+            commuId = data.comId
+            subClient = self.get_community(commuId)
+        except Exception:
+            return
+
+        args = self.build_parameters(data, subClient)
+        command = args._command
+
+        if self.type_exist("on_message"):
+            args._command = self.get_events("on_message")[0].names[0]
+            Thread(target=self.process_data, args=[args, "on_message"]).start()
+
+        if self.check(args, 'staff', 'bot') and subClient.banned_words and not self.self_check:
+            self.check_banned_words(args)
+
+        elif self.double_check and subClient.banned_words and not self.self_check:
+            self.check_banned_words(args, False)
+
+        if not self.timed_out(args.authorId) and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
+            if self.spam_message:
+                subClient.send_message(args.chatId, self.spam_message)
+            return
+
+        elif self.type_exist("command") and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
+            print(f"[C] {args.author} : {args.message}")
+
+            if command in subClient.locked_command:
+                if self.lock_message:
+                    subClient.send_message(args.chatId, self.lock_message)
+                return
+
+            self.time_user(args.authorId, self.wait)
+            args.message = args._parameters = ' '.join(args.message.split()[1:])
+
+            if self.grab_event(command, "command"):
+                Thread(target=self.process_data, args=[args, "command"]).start()
+
+            elif self.no_command_message:
+                subClient.send_message(args.chatId, self.no_command_message)
+
+            return
+
+        elif self.type_exist("answer") and self.grab_event(command, "answer") and not self.check(args, "bot"):
+            print(f"[A] {args.author} : {args.message}")
+            self.time_user(args.authorId, self.wait)
+            args = self.build_parameters(data, subClient, "")
+            args._command = self.grab_event(command, "answer").names[0]
+            Thread(target=self.process_data, args=[args, "answer"]).start()
+
     def launch_text_message(self):
         @self.event("on_text_message")
-        def on_text_message(data):
-            try:
-                commuId = data.comId
-                subClient = self.get_community(commuId)
-            except Exception:
-                return
-
-            args = self.build_parameters(data, subClient)
-            command = args._command
-
-            if self.type_exist("on_message"):
-                args._command = self.get_events("on_message")[0].names[0]
-                Thread(target=self.process_data, args=[args, "on_message"]).start()
-
-            if self.check(args, 'staff', 'bot') and subClient.banned_words and not self.self_check:
-                self.check_banned_words(args)
-
-            elif self.double_check and subClient.banned_words and not self.self_check:
-                self.check_banned_words(args, False)
-
-            if not self.timed_out(args.authorId) and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
-                if self.spam_message:
-                    subClient.send_message(args.chatId, self.spam_message)
-                return
-
-            elif self.type_exist("command") and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
-                print(f"[C] {args.author} : {args.message}")
-
-                if command in subClient.locked_command:
-                    if self.lock_message:
-                        subClient.send_message(args.chatId, self.lock_message)
-                    return
-
-                self.time_user(args.authorId, self.wait)
-                args.message = args._parameters = ' '.join(args.message.split()[1:])
-
-                if self.grab_event(command, "command"):
-                    Thread(target=self.process_data, args=[args, "command"]).start()
-
-                elif self.no_command_message:
-                    subClient.send_message(args.chatId, self.no_command_message)
-
-                return
-
-            elif self.type_exist("answer") and self.grab_event(command, "answer") and not self.check(args, "bot"):
-                print(f"[A] {args.author} : {args.message}")
-                self.time_user(args.authorId, self.wait)
-                args = self.build_parameters(data, subClient, "")
-                args._command = self.grab_event(command, "answer").names[0]
-                Thread(target=self.process_data, args=[args, "answer"]).start()
+        def launch_on_text_message(data):
+            self.on_text_message(data)
 
     def launch_other_message(self):
         for type_name in ("on_strike_message", "on_voice_chat_not_answered",
@@ -607,26 +608,6 @@ class Bot(SubClient, ACM):
 
     def is_agent(self, uid):
         return uid == self.community_leader_agent_id
-
-    def copy_bubble(self, chatId: str, replyId: str, comId: str = None):
-        if not comId:
-            comId = self.community_id
-        header = {
-            'Accept-Language': 'en-US',
-            'Content-Type': 'application/octet-stream',
-            'User-Agent': 'Dalvik/2.1.0 (Linux; U; Android 7.1; LG-UK495 Build/MRA58K; com.narvii.amino.master/3.3.33180)',
-            'Host': 'service.narvii.com',
-            'Accept-Encoding': 'gzip',
-            'Connection': 'Keep-Alive',
-        }
-        a = self.get_message_info(chatId=chatId, messageId=replyId).json["chatBubble"]["resourceUrl"]
-
-        with urlopen(a) as zipresp:
-            yo = zipresp.read()
-
-        response = requests.post(f"https://service.narvii.com/api/v1/x{comId}/s/chat/chat-bubble/templates/107147e9-05c5-405f-8553-af65d2823457/generate", data=yo, headers=header)
-        bid = loads(response.text)['chatBubble']['bubbleId']
-        response = requests.post(f"https://service.narvii.com/api/v1/{comId}/s/chat/chat-bubble/{bid}", data=yo, headers=header)
 
     def accept_role(self, rid: str = None):
         with suppress(Exception):
