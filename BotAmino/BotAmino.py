@@ -6,7 +6,7 @@ from threading import Thread
 from contextlib import suppress
 from unicodedata import normalize
 from string import punctuation
-from aminofix import Client, SubClient, ACM, objects
+from amino import Client, SubClient, ACM, objects
 from uuid import uuid4
 from inspect import getfullargspec
 import time
@@ -293,117 +293,43 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         return str(uuid4())
 
     def start_video_chat(self, comId: str, chatId: str, joinType: int = 1):
-        data = {
-            "o": {
-                "ndcId": comId,
-                "threadId": chatId,
-                "joinRole": joinType,
-                "id": "2154531"  # Need to change?
-            },
-            "t": 112
-        }
+        data = {"o": {"ndcId": comId, "threadId": chatId, "joinRole": joinType, "id": "2154531"}, "t": 112}
         data = dumps(data)
         self.send(data)
 
-        data = {
-            "o": {
-                "ndcId": int(comId),
-                "threadId": chatId,
-                "joinRole": joinType,
-                "channelType": 4,
-                "id": "2154531"  # Need to change?
-            },
-            "t": 108
-        }
+        data = {"o": {"ndcId": int(comId), "threadId": chatId, "joinRole": joinType, "channelType": 4, "id": "2154531"}, "t": 108}
         data = dumps(data)
         self.send(data)
 
     def start_screen_room(self, comId: str, chatId: str, joinType: int = 1):
-        data = {
-            "o": {
-                "ndcId": comId,
-                "threadId": chatId,
-                "joinRole": joinType,
-                "id": "2154531"  # Need to change?
-            },
-            "t": 112
-        }
+        data = {"o": {"ndcId": comId, "threadId": chatId, "joinRole": joinType, "id": "2154531"}, "t": 112}
         data = dumps(data)
         self.send(data)
 
-        data = {
-            "o": {
-                "ndcId": int(comId),
-                "threadId": chatId,
-                "joinRole": joinType,
-                "channelType": 5,
-                "id": "2154531"  # Need to change?
-            },
-            "t": 108
-        }
+        data = {"o": {"ndcId": int(comId), "threadId": chatId, "joinRole": joinType, "channelType": 5, "id": "2154531"}, "t": 108}
         data = dumps(data)
         self.send(data)
 
     def join_screen_room(self, comId: str, chatId: str, joinType: int = 1):
-        data = {
-            "o":
-                {
-                    "ndcId": int(comId),
-                    "threadId": chatId,
-                    "joinRole": 2,
-                    "id": "72446"
-                },
-            "t": 112
-        }
+        data = {"o": {"ndcId": int(comId), "threadId": chatId, "joinRole": 2, "id": "72446"}, "t": 112}
         data = dumps(data)
         self.send(data)
 
     def start_voice_room(self, comId: str, chatId: str, joinType: int = 1):
-        data = {
-            "o": {
-                "ndcId": comId,
-                "threadId": chatId,
-                "joinRole": joinType,
-                "id": "2154531"  # Need to change?
-            },
-            "t": 112
-        }
+        data = {"o": {"ndcId": comId, "threadId": chatId, "joinRole": joinType, "id": "2154531"}, "t": 112}
         data = dumps(data)
         self.send(data)
-        data = {
-            "o": {
-                "ndcId": comId,
-                "threadId": chatId,
-                "channelType": 1,
-                "id": "2154531"  # Need to change?
-            },
-            "t": 108
-        }
+        data = {"o": {"ndcId": comId, "threadId": chatId, "channelType": 1, "id": "2154531"}, "t": 108}
         data = dumps(data)
         self.send(data)
 
     def end_voice_room(self, comId: str, chatId: str, joinType: int = 2):
-        data = {
-            "o": {
-                "ndcId": comId,
-                "threadId": chatId,
-                "joinRole": joinType,
-                "id": "2154531"  # Need to change?
-            },
-            "t": 112
-        }
+        data = {"o": {"ndcId": comId, "threadId": chatId, "joinRole": joinType, "id": "2154531"}, "t": 112}
         data = dumps(data)
         self.send(data)
 
     def show_online(self, comId):
-        data = {
-            "o": {
-                "actions": ["Browsing"],
-                "target": f"ndc://x{comId}/",
-                "ndcId": int(comId),
-                "id": "82333"
-            },
-            "t":304}
+        data = {"o": {"actions": ["Browsing"], "target": f"ndc://x{comId}/", "ndcId": int(comId), "id": "82333"}, "t": 304}
         data = dumps(data)
         slp(2)
         self.send(data)
@@ -1080,8 +1006,8 @@ class Bot(SubClient, ACM):
             except Exception as e:
                 print_exception(e)
 
-        # feature_chats()
-        # feature_users()
+        #feature_chats()
+        #feature_users()
 
         j = 0
         k = 0
