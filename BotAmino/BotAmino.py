@@ -6,7 +6,7 @@ from threading import Thread
 from contextlib import suppress
 from unicodedata import normalize
 from string import punctuation
-from amino import Client, SubClient, ACM, objects
+from aminofix import Client, SubClient, ACM, objects
 from uuid import uuid4
 from inspect import getfullargspec
 import time
