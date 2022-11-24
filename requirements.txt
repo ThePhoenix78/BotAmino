@@ -2,4 +2,3 @@ amino.fix
 schedule
 reportlab
 argparse
-easy-events>=1.8.0
