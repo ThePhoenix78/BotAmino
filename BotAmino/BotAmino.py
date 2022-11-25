@@ -72,7 +72,7 @@ class Command:
     def on_trigger(self, type, name=None, condition=None):
         self.add_categorie(type)
         self.add_condition(type)
-        
+
         if isinstance(name, str):
             name = [name]
         elif not name:
@@ -196,10 +196,11 @@ class Parameters:
             self.reputation = data.message.json["author"]["reputation"]
         except Exception:
             pass
-        
+
         self.comId = data.comId
         self.replySrc = None
         self.replyId = None
+
         if data.message.extensions and data.message.extensions.get('replyMessage', None) and data.message.extensions['replyMessage'].get('mediaValue', None):
             self.replySrc = data.message.extensions['replyMessage']['mediaValue'].replace('_00.', '_hq.')
             self.replyId = data.message.extensions['replyMessage']['messageId']
@@ -208,6 +209,16 @@ class Parameters:
         if data.message.extensions and data.message.extensions.get('replyMessage', None) and data.message.extensions['replyMessage'].get('content', None):
             self.replyMsg = data.message.extensions['replyMessage']['content']
             self.replyId = data.message.extensions['replyMessage']['messageId']
+
+        self.mentions = None
+
+        try:
+            self.role = data.message.author.role
+        except Exception:
+            self.role = None
+
+        if data.message.extensions and data.message.extensions.get('mentionedArray', None):
+             self.mentions = data.message.extensions["mentionedArray"]
 
         self.info: objects.Event = data
 
@@ -219,24 +230,24 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
 
         if email and password:
             self.login(email=email, password=password)
-        
+
         elif sid:
             self.login_sid(SID=sid)
-        
+
         elif secret:
         	self.login_secret(email=email,secret=secret)
-        
+
         else:
             try:
                 with open(path_client, "r") as file_:
                     para = file_.readlines()
-                
+
                 self.login(email=para[0].strip(), password=para[1].strip())
-            
+
             except FileNotFoundError:
                 with open(path_client, 'w') as file_:
                     file_.write('email\npassword')
-                
+
                 print("Please enter your email and password in the file client.txt")
                 print("-----end-----")
                 exit(1)
@@ -967,7 +978,7 @@ class Bot(SubClient, ACM):
             if t["title"] != title:
                 tlist.append(t["title"])
                 clist.append(t["color"])
-            
+
         self.edit_titles(uid, tlist, clist)
         return True
 
