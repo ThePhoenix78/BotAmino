@@ -1,6 +1,6 @@
 ## For EDUCATIONAL PURPOSE only
 
-# AminoBot
+# BotAmino
 An API for bot amino based on Slimakoi's work
 
 Discord server https://discord.gg/KZgKktQ6Rt
