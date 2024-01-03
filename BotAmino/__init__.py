@@ -46,7 +46,7 @@ if not typing.TYPE_CHECKING:
     finally:
         del loads, urlopen
 
-if __version__ != __newest__:
+if __version__ < __newest__:
     print(f"New version of {__title__} available: {__newest__} (Using {__version__})")
 else:
     print(f"version : {__version__}")
