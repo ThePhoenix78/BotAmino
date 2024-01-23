@@ -219,7 +219,7 @@ def extract_annotations(callback: typing.Callable[..., typing.Any]) -> typing.Di
     return {}
 
 
-def validate_lite_callback(callback: typing.Callable[[Parameters], typing.Any]):
+def validate_lite_callback(callback: typing.Callable[..., typing.Any]) -> None:
     sign = inspect.signature(callback)
     if not sign.parameters:
         raise ValueError("Invalid callback. An argument for BotAmino.Parameters is required") from None
@@ -236,7 +236,7 @@ def validate_lite_callback(callback: typing.Callable[[Parameters], typing.Any]):
         raise ValueError("Invalid parameters. Lite callback should have only 1 parameter")
 
 
-def validate_callback(callback: typing.Callable[..., typing.Any]):
+def validate_callback(callback: typing.Callable[..., typing.Any]) -> None:
     sign = inspect.signature(callback)
     if not sign.parameters:
         raise ValueError("Invalid callback. An argument for BotAmino.Parameters is required") from None
