@@ -7,7 +7,7 @@ Discord server https://discord.gg/KZgKktQ6Rt
 
 This API has been made for people who aren't very good at programming or people who want to do easy stuff!
 
-## How does this API works?
+## How does this API work?
 
 It works like the Amino.py's API but with added features like commands or answer
 for example:
