@@ -1,0 +1,54 @@
+[project]
+name = "BotAmino"
+description = "A library to create Amino bots"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {file="LICENSE"}
+authors = [
+    {name="ThePhoenix78", email="thephoenix778@gmail.com"}
+]
+maintainers = [
+    {name="ViktorSky", email="viktorbotsprojects@gmail.com"},
+    {name="FabioGaming", email="contact.fabiogaming@gmail.com"}
+]
+dependencies = [
+    "amino.fix"
+]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent"
+]
+keywords = [
+    "BotAmino",
+    "bot",
+    "amino",
+    "aminoapps"
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+dev = [
+    "mypy>=1.8.0",
+    "typing-extensions>=4.9.0",
+    "pytest>=7.0",
+    "twine>=4.0.2",
+    "wheel>=0.42.0"
+]
+
+[project.urls]
+Documentation = "https://BotAmino.readthedocs.io/"
+Source = "https://github.com/ThePhoenix78/BotAmino/"
+
+[tool.setuptools]
+packages = ["BotAmino", "BotAmino-stubs"]
+
+[tool.setuptools.package-data]
+"*" = ["*.py", "*.pyi"]
+
+[tool.setuptools.dynamic]
+version = {attr="BotAmino.__version__"}
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"

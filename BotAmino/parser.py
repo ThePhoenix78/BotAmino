@@ -1,3 +1,4 @@
+import collections
 import contextlib
 import enum
 import inspect
@@ -49,11 +50,15 @@ class Argument:
         self.end = end
 
 
+class Empty:
+    """Marker object for empty parameter default values."""
+
+
 def parse_args(message, feature='default'):
     return [Argument(m.group('key'), m.group('value'), m.start(), m.end()) for m in re.finditer(PATTERNS[feature], message)]
 
 
-def from_array_group(text, dtype):
+def from_array_group(text, dtype, default=Empty):
     assert DataGroup.ARRAY.supported(dtype), 'Invalid dtype. Expected %s, got %r' % (DataGroup.ARRAY, dtype)
     origin, args = typing.get_origin(dtype) or tuple, typing.get_args(dtype) or (typing.Any, ...)
     arguments = list(map(lambda s: s.strip(), text.split(ARRAY_SEPARATOR)))
@@ -69,27 +74,41 @@ def from_array_group(text, dtype):
         if expected not in ALLOW_TYPES:
             value = build_value(value, expected)
         result.append(value)
-    return origin(result)
+    try:
+        return origin(result)
+    except Exception:
+        if default is Empty:
+            raise
+        return default
 
-
-def from_boolean_group(text, dtype):
+def from_boolean_group(text, dtype, default=Empty):
     assert DataGroup.BOOLEAN.supported(dtype), 'Invalid dtype. Expected %s, got %r' % (DataGroup.BOOLEAN, dtype)
     for bool_value, pattern in BOOL_REGEX.items():
         if pattern.match(text):
             return dtype(bool_value)
-    return dtype()
+    try:
+        return dtype()
+    except Exception:
+        if default is Empty:
+            raise
+        return default
 
 
-def from_list_group(text, dtype):
+def from_list_group(text, dtype, default=Empty):
     assert DataGroup.LIST.supported(dtype), 'Invalid dtype. Expected %s, got %r' % (DataGroup.LIST, dtype)
     origin, args = typing.get_origin(dtype) or dtype, typing.get_args(dtype)
     expected = args[0] if args else typing.Any
-    partial = from_array_group(text, tuple)
+    partial = from_array_group(text, tuple, default)
     result = [build_value(value, expected) for value in partial]
-    return origin(result)
+    try:
+        return origin(result)
+    except Exception:
+        if default is Empty:
+            raise
+        return default
 
 
-def from_literal_group(text, dtype):
+def from_literal_group(text, dtype, default=Empty):
     assert DataGroup.LITERAL.supported(dtype), 'Invalid dtype. Expected %s, got %r' % (DataGroup.LITERAL, dtype)
     args = typing.get_args(dtype)
     dtypes = set(type(arg) for arg in args)
@@ -98,10 +117,12 @@ def from_literal_group(text, dtype):
         if value in args:
             return value
     else:
-        return args[0]
+        if default is Empty:
+            return args[0]  # first literal argument
+        return default
 
 
-def from_mapping_group(text, dtype):
+def from_mapping_group(text, dtype, default=Empty):
     assert DataGroup.MAPPING.supported(dtype), 'Invalid dtype. Expected %s, got %r' % (DataGroup.MAPPING, dtype)
     origin, args = typing.get_origin(dtype) or dtype, typing.get_args(dtype) or (typing.Any, typing.Any)
     result = {}
@@ -112,10 +133,15 @@ def from_mapping_group(text, dtype):
     key = build_value(k, args[0])
     value = build_value(v, args[1])
     result[key] = value
-    return origin(result)
+    try:
+        return origin(result)
+    except Exception:
+        if default is Empty:
+            raise
+        return default
 
 
-def from_numeric_group(text, dtype):
+def from_numeric_group(text, dtype, default=Empty):
     assert DataGroup.NUMERIC.supported(dtype), 'Invalid dtype. Expected %s, got %r' % (DataGroup.NUMERIC, dtype)
     text = text.replace('i', 'j') # math imaginary char
     try:
@@ -126,25 +152,34 @@ def from_numeric_group(text, dtype):
         else:
             raise ValueError
     except ValueError:
-        return dtype()
+        if default is Empty:
+            return dtype()
+        return default
 
 
-def from_text_group(text, dtype):
+def from_text_group(text, dtype, default=Empty):
     assert DataGroup.TEXT.supported(dtype), 'Invalid dtype. Expected %s, got %r' % (DataGroup.TEXT, dtype)
     if issubclass(dtype, (bytearray, bytes)):
         return dtype(text, encoding='utf-8', errors='ignore')
     elif issubclass(dtype, str):
         return dtype(text)
     else:
-        return dtype()
+        if default is Empty:
+            return dtype()
+        return default
 
 
-def from_custom_group(text, dtype):
+def from_custom_group(text, dtype, default=Empty):
     assert DataGroup.CUSTOM.supported(dtype), 'Invalid dtype. Expected %s, got %r' % (DataGroup.CUSTOM, dtype)
-    return dtype(text)
+    try:
+        return dtype(text)
+    except Exception:
+        if default is Empty:
+            raise
+        return default
 
 
-GroupInfo = typing.NamedTuple("GroupInfo", [("dtypes", typing.Tuple[type, ...]), ("converter", typing.Callable[[str, type], typing.Any])])
+GroupInfo = collections.namedtuple("GroupInfo", ['dtypes', 'converter'])
 
 class DataGroup(enum.Enum):
     ARRAY = GroupInfo((tuple,), from_array_group)
@@ -177,13 +212,13 @@ def build_value(text, annotation, param=None):
     if annotation in ALLOW_TYPES:
         annotation = str
     group = DataGroup.get_group(annotation)
+    inspect._empty
+    default = Empty if param is None or param.default is param.empty else param.default
     if group is None:
-        if param is None or param.default is param.empty:
-            return None
-        return param.default
+        return default
     if not isinstance(text, str):
         text = ''
-    return group.value.converter(text.strip(), annotation)
+    return group.value.converter(text.strip(), annotation, default)
 
 
 def supported_annotation(annotation):

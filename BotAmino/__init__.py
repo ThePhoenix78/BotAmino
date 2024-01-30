@@ -3,7 +3,6 @@
 # API made by ThePhoenix78
 # Modified by vedansh#4039
 # Big optimisation thanks to SempreLEGIT#1378 ♥
-# Type hint support by ViktorSky
 from .bannedwords import *
 from .bot import *
 from .botamino import *

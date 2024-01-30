@@ -1,3 +1,4 @@
+# Type hint support by ViktorSky
 from .bannedwords import *
 from .bot import *
 from .botamino import *

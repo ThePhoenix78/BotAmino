@@ -12,7 +12,8 @@ __all__ = (
     "PATH_CLIENT",
     "PATH_UTILITIES",
     'CustomType',
-    'print_exception'
+    'print_exception',
+    'safe_exit'
 )
 
 # constants
