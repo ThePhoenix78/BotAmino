@@ -20,7 +20,7 @@ class Command:
             return
         arguments = parse_args(data.message, data.subClient.client.parser_feature)
         args, kwargs = bind_callback(callback, data, arguments)
-        return callback(data, *args, **kwargs)
+        return callback(*args, **kwargs)
 
     def categorie_exist(self, category):
         """Check if the given callback-category exists"""
