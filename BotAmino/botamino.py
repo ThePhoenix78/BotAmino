@@ -111,7 +111,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
 
     def parse_headers(self, data=None, type=None):
         headers = super().parse_headers(data=data, type=type)
-        if data:
+        if data and not type:
             headers["Content-Type"] = "application/json; charset=utf-8"
         headers["User-Agent"] = "Apple iPhone13 iOS v16.1.2 Main/3.13.1"
         headers["Host"] = "service.aminoapps.com"
