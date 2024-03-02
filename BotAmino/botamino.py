@@ -109,6 +109,14 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         self.lock_message = "Command locked sorry"
         self.launched = False
 
+    def parse_headers(self, data=None, type=None):
+        headers = super().parse_headers(data=data, type=type)
+        if data:
+            headers["Content-Type"] = "application/json; charset=utf-8"
+        headers["User-Agent"] = "Apple iPhone13 iOS v16.1.2 Main/3.13.1"
+        headers["Host"] = "service.aminoapps.com"
+        return headers
+
     @property
     def len_community(self):
         """Launched communities"""
