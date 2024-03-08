@@ -43,6 +43,13 @@ class Bot(SubClient, ACM):
         bio=None,
         activity=False
     ):
+
+        # self.client = client
+        # self.prefix = prefix
+        # self.bio_contents = bio
+        # self.activity = activity
+        # self.marche = True
+
         comId, aminoId = None, None
         if isinstance(community, int):
             comId = community
@@ -58,11 +65,13 @@ class Bot(SubClient, ACM):
             proxies=client.proxies,
             certificatePath=client.certificatePath
         )
+
         self.client = client
         self.prefix = prefix
         self.bio_contents = bio
         self.activity = activity
         self.marche = True
+
         self.community_amino_id = self.community.aminoId
         self.community_id = self.community.comId
         self.community_leader_agent_id = self.community.agent.userId
@@ -93,6 +102,7 @@ class Bot(SubClient, ACM):
         with contextlib.suppress(Exception):
             self.activity_status("on")
         self.new_users = self.get_all_users(start=0, size=30, type="recent").profile.userId
+
 
     def parse_headers(self, data=None, type=None):
         headers = super().parse_headers(data=data, type=type)
