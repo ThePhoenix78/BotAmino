@@ -45,6 +45,9 @@ class Bot(SubClient, ACM):  # type: ignore
         self.userId: str
         self.account: UserProfile  # incorrect object (account not profile)
         self.profile: UserProfile
+
+    def parse_headers(self, data: Optional[str] = None, type: Optional[str] = None) -> Dict[str, Any]: ...
+
     @property
     def community_filename(self) -> str: ...
     def create_community_file(self) -> None: ...
