@@ -17,7 +17,7 @@ __all__ = (
 )
 
 # constants
-PY39 = sys.version_info >= (3, 10)
+PY10 = sys.version_info >= (3, 10)
 NO_ICON_URL = "https://wa1.aminoapps.com/static/img/user-icon-placeholder.png"
 PATH_UTILITIES = "utilities"
 PATH_AMINO = os.path.join(PATH_UTILITIES, "amino_list")
