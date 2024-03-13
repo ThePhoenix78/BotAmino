@@ -6,7 +6,7 @@ import re
 import typing
 # internal
 from .parameters import Parameters
-from .utils import PY39, REGEX_FALSE, REGEX_TRUE, CustomType
+from .utils import PY10, REGEX_FALSE, REGEX_TRUE, CustomType
 
 __all__ = (
     'build_value',
@@ -26,7 +26,7 @@ BOOL_REGEX = {
     False: REGEX_FALSE
 }
 TYPE_WRAPPER = [typing.Annotated, typing.Union]
-if PY39:
+if PY10:
     import types
     TYPE_WRAPPER.append(types.UnionType)
 
