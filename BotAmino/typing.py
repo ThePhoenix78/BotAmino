@@ -1,6 +1,4 @@
-import typing
-import typing_extensions
-# internal
+import typing_extensions as typing
 from .parameters import Parameters
 
 __all__ = (
@@ -14,7 +12,7 @@ __all__ = (
 
 # types
 LiteCallback = typing.Callable[[Parameters], typing.Any]
-Callback = typing.Callable[typing_extensions.Concatenate[Parameters, ...], typing.Any]
+Callback = typing.Callable[typing.Concatenate[Parameters, ...], typing.Any]
 Condition = typing.Callable[[Parameters], bool]
 
 # type-vars
