@@ -1,12 +1,26 @@
-from typing import Any, Dict, Iterable, List, Literal, Optional, Union
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Literal,
+    Optional,
+    Union
+)
 from aminofix import Client  # type: ignore
-from aminofix.lib.util.objects import Event, UserProfile  # type: ignore
+from aminofix.lib.util.objects import (  # type: ignore
+    Event,
+    UserProfile
+)
 from .bannedwords import BannedWords
 from .bot import Bot
 from .command import Command
 from .parameters import Parameters
 from .timeout import TimeOut
-from .typing import CallbackCategory, ParserFeature
+from .typing import (
+    CallbackCategory,
+    ParserFeature
+)
 
 __all__ = ('BotAmino',)
 
