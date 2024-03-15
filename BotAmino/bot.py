@@ -10,7 +10,11 @@ import contextlib
 from aminofix import ACM, SubClient
 from aminofix.lib.util.exceptions import CheckException
 # internal
-from .utils import PATH_AMINO, PATH_UTILITIES, print_exception
+from .utils import (
+    PATH_AMINO,
+    PATH_UTILITIES,
+    print_exception
+)
 
 __all__ = ('Bot',)
 
