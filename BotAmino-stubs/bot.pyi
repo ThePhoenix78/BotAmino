@@ -1,4 +1,13 @@
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union, overload
+from typing import (
+    Any,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Union,
+    overload
+)
 from aminofix import ACM, SubClient  # type: ignore
 from aminofix.lib.util.objects import ThreadList, UserProfile  # type: ignore
 from .botamino import BotAmino
