@@ -1,4 +1,9 @@
-from typing_extensions import Any, Callable, Concatenate, Literal, TypeVar
+from typing import Any, Callable, Literal, TypeVar
+from sys import version_info
+if version_info >= (3, 10):
+    from typing import Concatenate
+else:
+    from typing_extensions import Concatenate
 from .parameters import Parameters
 
 __all__ = (
