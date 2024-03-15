@@ -1,5 +1,7 @@
-import typing_extensions as typing
+import typing
+import typing_extensions
 from .parameters import Parameters
+from .utils import PY10
 
 __all__ = (
     'Callback',
@@ -11,9 +13,12 @@ __all__ = (
 )
 
 # types
-LiteCallback = typing.Callable[[Parameters], typing.Any]
-Callback = typing.Callable[typing.Concatenate[Parameters, ...], typing.Any]
 Condition = typing.Callable[[Parameters], bool]
+LiteCallback = typing.Callable[[Parameters], typing.Any]
+if PY10:
+    Callback = typing.Callable[typing.Concatenate[Parameters, ...], typing.Any]
+else:
+    Callback = typing.Callable[typing_extensions.Concatenate[Parameters, ...], typing.Any]
 
 # type-vars
 LiteCallbackT = typing.TypeVar("LiteCallbackT", bound=LiteCallback)
