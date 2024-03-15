@@ -1,4 +1,9 @@
-from typing import Any, Callable, Literal, TypeVar
+from typing import (
+    Any,
+    Callable,
+    Literal,
+    TypeVar
+)
 from sys import version_info
 if version_info >= (3, 10):
     from typing import Concatenate
@@ -12,7 +17,7 @@ __all__ = (
     'CallbackCategory',
     'Condition',
     'Events',
-    'ParserFeature',
+    'ParserFeature'
 )
 
 # types
@@ -89,6 +94,6 @@ Events = Literal[
 ]
 
 ParserFeature = Literal[
-    'default',
-    'quotedkey',
+    "default",
+    "quotedkey"
 ]
