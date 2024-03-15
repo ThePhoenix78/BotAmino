@@ -1,6 +1,11 @@
 import collections.abc
 # internal
-from .parser import bind_callback, parse_args, validate_callback, validate_lite_callback
+from .parser import (
+    bind_callback,
+    parse_args,
+    validate_callback,
+    validate_lite_callback
+)
 
 __all__ = ('Command',)
 
