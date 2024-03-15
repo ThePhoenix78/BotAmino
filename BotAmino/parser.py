@@ -7,7 +7,12 @@ import typing
 import typing_extensions
 # internal
 from .parameters import Parameters
-from .utils import PY10, REGEX_FALSE, REGEX_TRUE, CustomType
+from .utils import (
+    PY10,
+    REGEX_FALSE,
+    REGEX_TRUE,
+    CustomType
+)
 
 __all__ = (
     'build_value',
