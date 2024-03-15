@@ -1,4 +1,7 @@
-from abc import ABCMeta, abstractmethod
+from abc import (
+    ABCMeta,
+    abstractmethod
+)
 from contextlib import suppress
 from re import Pattern
 from types import TracebackType
@@ -14,7 +17,7 @@ __all__ = (
     'safe_exit'
 )
 
-PY39: bool
+PY10: bool
 NO_ICON_URL: str
 PATH_UTILITIES: str
 PATH_AMINO: str
