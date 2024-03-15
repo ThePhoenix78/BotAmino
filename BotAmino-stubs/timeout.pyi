@@ -1,4 +1,7 @@
-from typing import Dict, Literal
+from typing import (
+    Dict,
+    Literal
+)
 
 __all__ = ('TimeOut',)
 
