@@ -8,8 +8,14 @@ from typing import (
     Union,
     overload
 )
-from aminofix import ACM, SubClient  # type: ignore
-from aminofix.lib.util.objects import ThreadList, UserProfile  # type: ignore
+from aminofix import (  # type: ignore
+    ACM,
+    SubClient
+)
+from aminofix.lib.util.objects import (  # type: ignore
+    ThreadList,
+    UserProfile
+)
 from .botamino import BotAmino
 
 __all__ = ('Bot',)
