@@ -1,4 +1,8 @@
-from typing import Any, Dict, Optional
+from typing import (
+    Any,
+    Dict,
+    Optional
+)
 from aminofix.lib.util.objects import Event  # type: ignore
 from .bot import Bot
 
