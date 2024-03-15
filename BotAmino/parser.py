@@ -4,6 +4,7 @@ import enum
 import inspect
 import re
 import typing
+import typing_extensions
 # internal
 from .parameters import Parameters
 from .utils import PY10, REGEX_FALSE, REGEX_TRUE, CustomType
@@ -25,10 +26,12 @@ BOOL_REGEX = {
     True: REGEX_TRUE,
     False: REGEX_FALSE
 }
-TYPE_WRAPPER = [typing.Annotated, typing.Union]
+TYPE_WRAPPER = [typing.Union]
 if PY10:
     import types
-    TYPE_WRAPPER.append(types.UnionType)
+    TYPE_WRAPPER.extend([typing.Annotated, types.UnionType])
+else:
+    TYPE_WRAPPER.append(typing_extensions.Annotated)
 
 PATTERNS = {
     'default': DEFAULT_REGEX,
