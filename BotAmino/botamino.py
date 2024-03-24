@@ -64,6 +64,8 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         Command parser feature.
         `default` : Capture quoted positional and key arguments
         `quotedkey` : allows the key to be enclosed in quotes
+    language : `str`, `optional`
+        The amino language. Default is `en`.
 
     """
     def __init__(
@@ -72,9 +74,11 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         password=None,
         sid=None,
         deviceId=None,
+        smdeviceId=None,
         proxies=None,
         certificatePath=None,
-        parser_feature='default'
+        parser_feature='default',
+        language='en'
     ):
         Command.__init__(self)
         Client.__init__(self, deviceId=deviceId, proxies=proxies, certificatePath=certificatePath)
@@ -95,6 +99,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
                 print(f"Please enter your email and password in the file {PATH_CLIENT}")
                 print("-----end-----")
                 safe_exit(1)
+        self.smdevice_id = smdeviceId or str(uuid.uuid4())
         self.parser_feature = parser_feature
         self.communaute = {}
         self.botId = self.userId
@@ -108,11 +113,19 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         self.spam_message = "You are spamming, be careful"
         self.lock_message = "Command locked sorry"
         self.launched = False
+        self.language = language
 
     def parse_headers(self, data=None, type=None):
         headers = super().parse_headers(data=data, type=type)
-        headers["User-Agent"] = "Apple iPhone13 iOS v16.1.2 Main/3.13.1"
-        headers["Host"] = "service.aminoapps.com"
+        headers.update({
+            "SMDEVICEID": self.smdevice_id,
+            "NDCDEVICEID": self.device_id,
+            "NDCLANG": self.language,
+            "User-Agent": "Apple iPhone13 iOS v16.1.2 Main/3.13.1",
+            "Host": "service.aminoapps.com"
+        })
+        if self.userId:
+            headers["AUID"] = self.userId
         return headers
 
     @property

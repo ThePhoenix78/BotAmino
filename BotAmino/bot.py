@@ -98,11 +98,25 @@ class Bot(SubClient, ACM):
             self.activity_status("on")
         self.new_users = self.get_all_users(start=0, size=30, type="recent").profile.userId
 
+    @property
+    def smdevice_id(self):
+        return self.client.smdevice_id
+
+    @smdevice_id.setter
+    def smdevice_id(self, value):
+        self.client.smdevice_id = value
 
     def parse_headers(self, data=None, type=None):
         headers = super().parse_headers(data=data, type=type)
-        headers["User-Agent"] = "Apple iPhone13 iOS v16.1.2 Main/3.13.1"
-        headers["Host"] = "service.aminoapps.com"
+        headers.update({
+            "SMDEVICEID": self.smdevice_id,
+            "NDCDEVICEID": self.device_id,
+            "NDCLANG": self.client.language,
+            "User-Agent": "Apple iPhone13 iOS v16.1.2 Main/3.13.1",
+            "Host": "service.aminoapps.com"
+        })
+        if self.userId:
+            headers["AUID"] = self.userId
         return headers
 
     @property

@@ -52,10 +52,13 @@ class BotAmino(Command, Client, TimeOut, BannedWords):  # type: ignore
         password: Optional[str] = None,
         sid: Optional[str] = None,
         deviceId: Optional[str] = None,
+        smdeviceId: Optional[str] = None,
         proxies: Optional[Dict[str, str]] = None,
         certificatePath: Optional[str] = None,
-        parser_feature: ParserFeature = 'default'
+        parser_feature: ParserFeature = 'default',
+        language: str = 'en'
     ) -> None:
+        self.smdevice_id: str
         self.parser_feature: ParserFeature
         self.communaute: Dict[int, Bot]
         self.botId: str
@@ -79,6 +82,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):  # type: ignore
         self.userId: str
         self.account: UserProfile  # incorrect object (account not profile)
         self.profile: UserProfile
+        self.language: str
     def parse_headers(self, data: Optional[str] = None, type: Optional[str] = None) -> Dict[str, Any]: ...
     @property
     def len_community(self) -> int: ...
