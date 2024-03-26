@@ -80,6 +80,9 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         parser_feature='default',
         language='en'
     ):
+        self.smdevice_id = smdeviceId or str(uuid.uuid4())
+        self.parser_feature = parser_feature
+        self.language = language
         Command.__init__(self)
         Client.__init__(self, deviceId=deviceId, proxies=proxies, certificatePath=certificatePath)
         TimeOut.__init__(self)
@@ -99,10 +102,8 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
                 print(f"Please enter your email and password in the file {PATH_CLIENT}")
                 print("-----end-----")
                 safe_exit(1)
-        self.smdevice_id = smdeviceId or str(uuid.uuid4())
-        self.parser_feature = parser_feature
-        self.communaute = {}
         self.botId = self.userId
+        self.communaute = {}
         self.perms_list = []
         self.prefix = "!"
         self.wait = 0
@@ -113,7 +114,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         self.spam_message = "You are spamming, be careful"
         self.lock_message = "Command locked sorry"
         self.launched = False
-        self.language = language
+        
 
     def parse_headers(self, data=None, type=None):
         headers = super().parse_headers(data=data, type=type)

@@ -60,6 +60,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):  # type: ignore
     ) -> None:
         self.smdevice_id: str
         self.parser_feature: ParserFeature
+        self.language: str
         self.communaute: Dict[int, Bot]
         self.botId: str
         self.perms_list: List[str]
@@ -82,7 +83,6 @@ class BotAmino(Command, Client, TimeOut, BannedWords):  # type: ignore
         self.userId: str
         self.account: UserProfile  # incorrect object (account not profile)
         self.profile: UserProfile
-        self.language: str
     def parse_headers(self, data: Optional[str] = None, type: Optional[str] = None) -> Dict[str, Any]: ...
     @property
     def len_community(self) -> int: ...
