@@ -114,7 +114,8 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         self.spam_message = "You are spamming, be careful"
         self.lock_message = "Command locked sorry"
         self.launched = False
-        
+        if hasattr(self, "client"):
+            delattr(self, "client")
 
     def parse_headers(self, data=None, type=None):
         headers = super().parse_headers(data=data, type=type)
@@ -318,9 +319,14 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
     def check(self, args, *can, id_=None):
         """Check if the user is this bot or staff member"""
         id_ = id_ if id_ else args.authorId
-        foo = {'staff': args.subClient.is_in_staff,
-               'bot': self.is_it_bot,
-               'admin': self.is_it_admin}
+        foo = {
+            'admin': self.is_it_admin,
+            'bot': self.is_it_bot,
+            'agent': args.subClient.is_agent,
+            'curator': args.subClient.is_curator,
+            'leader': args.subClient.is_leader,
+            'staff': args.subClient.is_in_staff
+        }
         for i in can:
             if foo[i](id_):
                 return True

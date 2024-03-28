@@ -2,6 +2,8 @@ import os
 import time
 import random
 import json
+import inspect
+import functools
 import urllib.request
 import operator
 import threading
@@ -17,6 +19,17 @@ from .utils import (
 )
 
 __all__ = ('Bot',)
+
+
+def update_profile_required(func):
+    @functools.wraps(func)
+    def wrapper(self: Bot, *args, **kwargs):
+        result = func(self, *args, **kwargs)
+        time.sleep(0.3)
+        self.profile = self.get_user_info(self.userId)
+        return result
+    wrapper.__signature__ = inspect.signature(func)
+    return wrapper
 
 
 class Bot(SubClient, ACM):
@@ -38,6 +51,7 @@ class Bot(SubClient, ACM):
         The bot can send activity time.
 
     """
+    lock = threading.Lock()
 
     def __init__(
         self,
@@ -52,6 +66,8 @@ class Bot(SubClient, ACM):
             comId = community
         else:
             aminoId = community
+        self.smdevice_id = client.smdevice_id
+        self.language = client.language
         # ACM initializer not required
         super().__init__(
             comId=comId,
@@ -98,20 +114,12 @@ class Bot(SubClient, ACM):
             self.activity_status("on")
         self.new_users = self.get_all_users(start=0, size=30, type="recent").profile.userId
 
-    @property
-    def smdevice_id(self):
-        return self.client.smdevice_id
-
-    @smdevice_id.setter
-    def smdevice_id(self, value):
-        self.client.smdevice_id = value
-
     def parse_headers(self, data=None, type=None):
         headers = super().parse_headers(data=data, type=type)
         headers.update({
             "SMDEVICEID": self.smdevice_id,
             "NDCDEVICEID": self.device_id,
-            "NDCLANG": self.client.language,
+            "NDCLANG": self.language,
             "User-Agent": "Apple iPhone13 iOS v16.1.2 Main/3.13.1",
             "Host": "service.aminoapps.com"
         })
@@ -393,24 +401,25 @@ class Bot(SubClient, ACM):
 
     def check_new_member(self):
         """Welcome new community members"""
-        if not (self.message_bvn or self.welcome_chat):
-            return
-        new_list = self.get_all_users(start=0, size=250, type="recent")
-        time.sleep(1)
-        self.new_users = self.new_users[:750]
-        values = zip(new_list.profile.nickname, new_list.profile.userId, new_list.profile.commentsCount)
-        for name, uid, commentsCount in values:
-            if commentsCount:
-                continue
-            if self.message_bvn:
-                with contextlib.suppress(Exception):
-                    self.comment(message=self.message_bvn, userId=uid)
-                    time.sleep(2.0)
-            if self.welcome_chat:
-                with contextlib.suppress(Exception):
-                    self.send_message(self.welcome_chat, message=f"Welcome here \u200e\u200f\u200e\u200f@{name}!\u202c\u202d", mentionUserIds=[uid])
-                    time.sleep(2.0)
-            self.new_users.append(uid)
+        with self.lock:
+            if not (self.message_bvn or self.welcome_chat):
+                return
+            new_list = self.get_all_users(start=0, size=250, type="recent")
+            time.sleep(1)
+            self.new_users = self.new_users[:750]
+            values = zip(new_list.profile.nickname, new_list.profile.userId, new_list.profile.commentsCount)
+            for name, uid, commentsCount in values:
+                if commentsCount:
+                    continue
+                if self.message_bvn:
+                    with contextlib.suppress(Exception):
+                        self.comment(message=self.message_bvn, userId=uid)
+                        time.sleep(3)
+                if self.welcome_chat:
+                    with contextlib.suppress(Exception):
+                        self.send_message(self.welcome_chat, message=f"Welcome here \u200e\u200f\u200e\u200f@{name}!\u202c\u202d", mentionUserIds=[uid])
+                        time.sleep(3)
+                self.new_users.append(uid)
 
     def welcome_new_member(self):
         """Welcome new community members"""
@@ -418,23 +427,39 @@ class Bot(SubClient, ACM):
 
     def feature_chats(self):
         """Feature all favorite chats"""
-        if not self.is_in_staff(self.userId):
-            return
-        for chatId in self.favorite_chats:
-            with contextlib.suppress(Exception):
-                self.favorite(time=1, chatId=chatId)
-                time.sleep(5)
+        with self.lock:
+            if not self.is_in_staff(self.userId):
+                return
+            for chatId in self.favorite_chats:
+                with contextlib.suppress(Exception):
+                    self.favorite(time=1, chatId=chatId)
+                    time.sleep(5)
 
     def feature_users(self):
         """Feature all favorite users"""
-        if not self.is_in_staff(self.userId):
-            return
-        featured = self.get_featured_users().profile.userId
-        for userId in self.favorite_users:
-            if userId not in featured:
-                with contextlib.suppress(Exception):
-                    self.favorite(time=1, userId=userId)
-                    time.sleep(2.0)
+        with self.lock:
+            if not self.is_in_staff(self.userId):
+                return
+            featured = self.get_featured_users().profile.userId
+            for userId in self.favorite_users:
+                if userId not in featured:
+                    with contextlib.suppress(Exception):
+                        self.favorite(time=1, userId=userId)
+                        time.sleep(5)
+
+    def update_bot_profile(self):
+        """Update the bot profile"""
+        with self.lock:
+            profile = self.profile
+            bio = self.bio_contents
+            if not bio:
+                return
+            if isinstance(bio, str):
+                content = bio
+            else:
+                content = random.choice(bio)
+            if content != profile.content:
+                self.edit_profile(content=content)
 
     def get_member_level(self, uid):
         """Get user level"""
@@ -624,6 +649,7 @@ class Bot(SubClient, ACM):
     def passive(self):
         """Internal method to perform bot activities"""
         with print_exception(Exception):
+            self.update_bot_profile()
             self.feature_chats()
             self.feature_users()
         j = 0
@@ -632,11 +658,7 @@ class Bot(SubClient, ACM):
             if self.welcome_chat or self.message_bvn:
                 self.welcome_new_member()
             with print_exception(Exception):
-                bio_contents = self.bio_contents
-                if isinstance(bio_contents, list):
-                    self.edit_profile(content=random.choice(bio_contents))
-                elif isinstance(bio_contents, str):
-                    self.edit_profile(content=bio_contents)
+                self.update_bot_profile()
             if j >= 240:
                 self.feature_chats()
                 j = 0
@@ -651,3 +673,8 @@ class Bot(SubClient, ACM):
             time.sleep(30)
             j += 1
             k += 1
+
+    edit_profile = update_profile_required(SubClient.edit_profile)
+    follow = update_profile_required(SubClient.follow)
+    unfollow = update_profile_required(SubClient.unfollow)
+    activity_status = update_profile_required(SubClient.activity_status)
