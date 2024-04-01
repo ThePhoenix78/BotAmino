@@ -23,7 +23,7 @@ __all__ = ('Bot',)
 
 def update_profile_required(func):
     @functools.wraps(func)
-    def wrapper(self: "Bot", *args, **kwargs):
+    def wrapper(self: Bot, *args, **kwargs):
         result = func(self, *args, **kwargs)
         time.sleep(0.3)
         self.profile = self.get_user_info(self.userId)

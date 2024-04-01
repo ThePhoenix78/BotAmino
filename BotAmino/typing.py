@@ -1,7 +1,8 @@
+import collections.abc
 import typing
 import typing_extensions
+
 from .parameters import Parameters
-from .utils import PY10
 
 __all__ = (
     'Callback',
@@ -12,17 +13,15 @@ __all__ = (
     'ParserFeature',
 )
 
+P = typing_extensions.ParamSpec("P")
 # types
-Condition = typing.Callable[[Parameters], bool]
-LiteCallback = typing.Callable[[Parameters], typing.Any]
-if PY10:
-    Callback = typing.Callable[typing.Concatenate[Parameters, ...], typing.Any]
-else:
-    Callback = typing.Callable[typing_extensions.Concatenate[Parameters, ...], typing.Any]
+Condition = collections.abc.Callable[[Parameters], bool]
+LiteCallback = collections.abc.Callable[[Parameters], typing.Any]
+Callback = collections.abc.Callable[typing_extensions.Concatenate[Parameters, P], typing.Any]
 
 # type-vars
 LiteCallbackT = typing.TypeVar("LiteCallbackT", bound=LiteCallback)
-CallbackT = typing.TypeVar("CallbackT", bound=Callback)
+CallbackT = typing.TypeVar("CallbackT", bound=collections.abc.Callable[..., typing.Any])
 
 CallbackCategory = typing.Literal[
     "answer",

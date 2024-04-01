@@ -1,14 +1,10 @@
+from collections.abc import Callable
 from typing import (
     Any,
-    Callable,
     Literal,
     TypeVar
 )
-from sys import version_info
-if version_info >= (3, 10):
-    from typing import Concatenate
-else:
-    from typing_extensions import Concatenate
+from typing_extensions import Concatenate, ParamSpec
 from .parameters import Parameters
 
 __all__ = (
@@ -19,15 +15,16 @@ __all__ = (
     'Events',
     'ParserFeature'
 )
+P = ParamSpec("P")
 
 # types
-LiteCallback = Callable[[Parameters], Any]
-Callback = Callable[Concatenate[Parameters, ...], Any]
 Condition = Callable[[Parameters], bool]
+LiteCallback = Callable[[Parameters], Any]
+Callback = Callable[Concatenate[Parameters, P], Any]
 
 # type-vars
 LiteCallbackT = TypeVar("LiteCallbackT", bound=LiteCallback)
-CallbackT = TypeVar("CallbackT", bound=Callback)
+CallbackT = TypeVar("CallbackT", bound=Callable[..., Any])
 
 CallbackCategory = Literal[
     "answer",
