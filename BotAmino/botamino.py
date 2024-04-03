@@ -73,6 +73,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         email=None,
         password=None,
         sid=None,
+        secret=None,
         deviceId=None,
         smdeviceId=None,
         proxies=None,
@@ -91,6 +92,8 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
             self.login(email=email, password=password)
         elif sid:
             self.login_sid(sid)
+        elif secret:
+            self.login_secret(secret=secret)
         else:
             try:
                 with open(PATH_CLIENT, "r") as f:
