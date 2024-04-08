@@ -117,8 +117,6 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         self.spam_message = "You are spamming, be careful"
         self.lock_message = "Command locked sorry"
         self.launched = False
-        if hasattr(self, "client"):
-            delattr(self, "client")
 
     def parse_headers(self, data=None, type=None):
         headers = super().parse_headers(data=data, type=type)
