@@ -9,7 +9,7 @@ from typing import (
     Union,
     overload
 )
-from typing_extensions import Never
+from typing_extensions import Self
 from aminofix import Client  # type: ignore
 from aminofix.lib.util.objects import (  # type: ignore
     BlogList,
@@ -75,7 +75,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):  # type: ignore
         self.lock_message: str
         self.launched: bool
         # fixed Client annotations
-        self.client: Never
+        self.client: Self
         self.certificatePath: Optional[str]
         self.device_id: str
         self.json: Dict[str, Any]
