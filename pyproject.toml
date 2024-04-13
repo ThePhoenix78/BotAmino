@@ -38,7 +38,10 @@ Documentation = "https://BotAmino.readthedocs.io/"
 Source = "https://github.com/ThePhoenix78/BotAmino/"
 
 [tool.setuptools]
-packages = ["aminofix", "aminofix-stubs", "BotAmino", "BotAmino-stubs"]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.setuptools.package-data]
 "*" = ["*.py", "*.pyi"]
