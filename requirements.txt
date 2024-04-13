@@ -1,2 +1,4 @@
-amino.fix
+requests[socks]
+websocket-client[optional]
+json-minify
 typing-extensions>=4.0.0

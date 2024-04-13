@@ -24,13 +24,17 @@ OTHERS_EVENTS = (
     "on_voice_chat_end",
     "on_voice_chat_start",
     "on_voice_chat_not_answered",
-    "on_voice_chat_not_cancelled",
-    "on_voice_chat_not_declined",
+    #"on_voice_chat_not_cancelled",
+    #"on_voice_chat_not_declined",
+    "on_voice_chat_cancelled",
+    "on_voice_chat_declined",
     "on_video_chat_end",
     "on_video_chat_start",
     "on_video_chat_not_answered",
-    "on_video_chat_not_cancelled",
-    "on_video_chat_not_declined"
+    #"on_video_chat_not_cancelled",
+    #"on_video_chat_not_declined"
+    "on_video_chat_cancelled",
+    "on_video_chat_declined"
 )
 REMOVE_EVENTS = (
     "on_chat_removed_message",
@@ -73,7 +77,6 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         email=None,
         password=None,
         sid=None,
-        secret=None,
         deviceId=None,
         smdeviceId=None,
         proxies=None,
@@ -92,8 +95,6 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
             self.login(email=email, password=password)
         elif sid:
             self.login_sid(sid)
-        elif secret:
-            self.login_secret(secret=secret)
         else:
             try:
                 with open(PATH_CLIENT, "r") as f:

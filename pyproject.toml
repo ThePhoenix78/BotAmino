@@ -9,11 +9,7 @@ authors = [
 ]
 maintainers = [
     {name="ViktorSky", email="viktorbotsprojects@gmail.com"},
-    {name="FabioGaming", email="contact.fabiogaming@gmail.com"}
-]
-dependencies = [
-    "amino.fix",
-    "typing-extensions>=4.0.0"
+    #{name="FabioGaming", email="contact.fabiogaming@gmail.com"}
 ]
 classifiers = [
     "License :: OSI Approved :: MIT License",
@@ -26,7 +22,7 @@ keywords = [
     "amino",
     "aminoapps"
 ]
-dynamic = ["version"]
+dynamic = ["dependencies", "version"]
 
 [project.optional-dependencies]
 dev = [
@@ -42,13 +38,14 @@ Documentation = "https://BotAmino.readthedocs.io/"
 Source = "https://github.com/ThePhoenix78/BotAmino/"
 
 [tool.setuptools]
-packages = ["BotAmino", "BotAmino-stubs"]
+packages = ["aminofix", "aminofix-stubs", "BotAmino", "BotAmino-stubs"]
 
 [tool.setuptools.package-data]
 "*" = ["*.py", "*.pyi"]
 
 [tool.setuptools.dynamic]
 version = {attr="BotAmino.__version__"}
+dependencies = {file="requirements.txt"}
 
 [build-system]
 requires = ["setuptools>=61.0"]

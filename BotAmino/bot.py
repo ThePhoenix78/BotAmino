@@ -69,10 +69,11 @@ class Bot(SubClient, ACM):
         self.smdevice_id = client.smdevice_id
         self.language = client.language
         # ACM initializer not required
-        super().__init__(
+        SubClient.__init__(
+            self=self,
             comId=comId,
             aminoId=aminoId,
-            profile=client.profile,
+            client=client,
             deviceId=client.device_id,
             autoDevice=client.autoDevice,
             proxies=client.proxies,
@@ -91,8 +92,8 @@ class Bot(SubClient, ACM):
         self.community_leaders = []
         self.community_curators = []
         with contextlib.suppress(Exception):
-            self.community_leaders.extend(self.get_all_users("leader").profile.userId)
-            self.community_curators.extend(self.get_all_users("curator").profile.userId)
+            self.community_leaders.extend(self.get_all_users("leaders").profile.userId)
+            self.community_curators.extend(self.get_all_users("curators").profile.userId)
         self.community_staff = list(set(self.community_leaders + self.community_curators))
         # Set up bot for community files
         if not os.path.exists(self.community_filename):
