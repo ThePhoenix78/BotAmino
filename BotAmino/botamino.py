@@ -357,6 +357,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         amino_list = self.sub_clients()
         for comId in amino_list.comId:
             threading.Thread(target=self.threadLaunch, args=(comId, passive,)).start()
+            time.sleep(1)
 
     def single_launch(self, comId, passive=False):
         """Launch the bot in a community asynchronously"""
