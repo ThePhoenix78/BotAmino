@@ -1,4 +1,4 @@
 requests[socks]
-websocket-client[optional]
+websocket-client[optional]>=1.6.1
 json-minify
 typing-extensions>=4.0.0
