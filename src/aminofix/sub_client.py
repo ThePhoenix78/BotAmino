@@ -41,7 +41,7 @@ class SubClient(Client):
     ):
         Client.__init__(
             self=self,
-            deviceId=deviceId or client.deviceId,
+            deviceId=deviceId or client.device_id,
             userAgent=client.user_agent,
             autoDevice=autoDevice,
             proxies=proxies,
