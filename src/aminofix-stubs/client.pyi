@@ -50,12 +50,12 @@ class Client(Callbacks, SocketHandler):
         self.proxies: dict[str, str] | None
         self.certificatePath: str | None
         self.json: Incomplete | None
-        self.sid = None
-        self.userId = None
+        self.sid: str | None
+        self.userId: str | None
         self.account: UserProfile
         self.profile: UserProfile
         self.secret: str | None
-        self.active_live_chats: list[str] = []
+        self.active_live_chats: list[str]
         self.stop_loop: bool
     def parse_headers(self, data: str | None = None, type: str | None = None) -> dict[str, str]: ...
     def join_voice_chat(self, comId: int, chatId: str, joinType: int = 1) -> None: ...
