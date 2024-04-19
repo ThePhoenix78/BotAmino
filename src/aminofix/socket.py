@@ -276,5 +276,5 @@ class Callbacks:
     def on_invite_message(self, data): self.call("on_invite_message", Event(data.get("o", {})).Event)
     def on_user_typing_start(self, data): self.call("on_user_typing_start", Event(data.get("o", {})).Event)
     def on_user_typing_end(self, data): self.call("on_user_typing_end", Event(data.get("o", {})).Event)
-    def on_fetch_channel(self, data): self.call("on_fetch_channel", Channel(data).Channel)
+    def on_fetch_channel(self, data): self.call("on_fetch_channel", Channel(data.get("o", {})).Channel)
     def default(self, data): self.call("default", data)
