@@ -8,7 +8,7 @@ from aminofix import Client
 # internal
 from .bannedwords import BannedWords
 from .bot import Bot
-from .command import Command
+from .commands import CommandHandler
 from .parameters import Parameters
 from .timeout import TimeOut
 from .utils import PATH_CLIENT, safe_exit
@@ -44,7 +44,7 @@ REMOVE_EVENTS = (
 )
 
 
-class BotAmino(Command, Client, TimeOut, BannedWords):
+class BotAmino(CommandHandler, Client, TimeOut, BannedWords):
     """Create a new bot for amino.
 
     This class provides different useful functionalities for a robot,
@@ -78,16 +78,14 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         password=None,
         sid=None,
         deviceId=None,
-        smdeviceId=None,
         proxies=None,
         certificatePath=None,
         parser_feature='default',
         language='en'
     ):
-        self.smdevice_id = smdeviceId or str(uuid.uuid4())
         self.parser_feature = parser_feature
         self.language = language
-        Command.__init__(self)
+        CommandHandler.__init__(self)
         Client.__init__(self, deviceId=deviceId, proxies=proxies, certificatePath=certificatePath)
         TimeOut.__init__(self)
         BannedWords.__init__(self)
@@ -106,6 +104,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
                 print(f"Please enter your email and password in the file {PATH_CLIENT}")
                 print("-----end-----")
                 safe_exit(1)
+        self.lock = threading.Lock()
         self.botId = self.userId
         self.communaute = {}
         self.perms_list = []
@@ -121,15 +120,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
 
     def parse_headers(self, data=None, type=None):
         headers = super().parse_headers(data=data, type=type)
-        headers.update({
-            "SMDEVICEID": self.smdevice_id,
-            "NDCDEVICEID": self.device_id,
-            "NDCLANG": self.language,
-            "User-Agent": "Apple iPhone13 iOS v16.1.2 Main/3.13.1",
-            "Host": "service.aminoapps.com"
-        })
-        if self.userId:
-            headers["AUID"] = self.userId
+        headers["NDCLANG"] = self.language
         return headers
 
     @property
@@ -173,139 +164,6 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         """Generate a transaction ID"""
         return str(uuid.uuid4())
 
-    def start_video_chat(self, comId, chatId, joinType=1):
-        """Start a live stream in the chat
-
-        Parameters
-        ----------
-        comId : int
-            The community ID of the chat.
-        chatId : str
-            The ID of the chat.
-        joinType : int
-            The bot's join role: 1 for owner, 2 for viewer.
-
-        """
-        self.send(json.dumps({
-            "o": {
-                "ndcId": comId,
-                "threadId": chatId,
-                "joinRole": joinType,
-                "id": "2154531"  # Need to change?
-            },
-            "t": 112
-        }))
-        self.send(json.dumps({
-            "o": {
-                "ndcId": int(comId),
-                "threadId": chatId,
-                "joinRole": joinType,
-                "channelType": 4,
-                "id": "2154531"  # Need to change?
-            },
-            "t": 108
-        }))
-
-    def start_screen_room(self, comId, chatId, joinType=1):
-        """Start a screening room in the chat
-
-        Parameters
-        ----------
-        comId : int
-            The community ID of the chat.
-        chatId : str
-            The ID of the chat.
-        joinType : int
-            The bot's join role: 1 for owner, 2 for viewer.
-
-        """
-        self.send(json.dumps({
-            "o": {
-                "ndcId": comId,
-                "threadId": chatId,
-                "joinRole": joinType,
-                "id": "2154531"  # Need to change?
-            },
-            "t": 112
-        }))
-        self.send(json.dumps({
-            "o": {
-                "ndcId": comId,
-                "threadId": chatId,
-                "joinRole": joinType,
-                "channelType": 5,
-                "id": "2154531"  # Need to change?
-            },
-            "t": 108
-        }))
-
-    def join_screen_room(self, comId, chatId):
-        """Join in the screening room as viewer
-
-        Parameters
-        ----------
-        comId : int
-            The community ID of the chat.
-        chatId : str
-            The ID of the chat.
-
-        """
-        self.join_video_chat_as_viewer(comId, chatId)
-
-    def start_voice_room(self, comId, chatId, joinType=1):
-        """Start a voice room in the chat
-
-        Parameters
-        ----------
-        comId : int
-            The community ID of the chat.
-        chatId : str
-            The ID of the chat.
-        joinType : int
-            The bot's join role: 1 for owner, 2 for viewer.
-
-        """
-        self.send(json.dumps({
-            "o": {
-                "ndcId": comId,
-                "threadId": chatId,
-                "joinRole": joinType,
-                "id": "2154531"  # Need to change?
-            },
-            "t": 112
-        }))
-        self.send(json.dumps({
-            "o": {
-                "ndcId": comId,
-                "threadId": chatId,
-                "joinRole": joinType,
-                "channelType": 1,
-                "id": "2154531"  # Need to change?
-            },
-            "t": 108
-        }))
-
-    def end_voice_room(self, comId, chatId):
-        """End the voice room in the chat
-
-        Parameters
-        ----------
-        comId : int
-            The community ID of the chat.
-        chatId : str
-            The ID of the chat.
-
-        """
-        self.send(json.dumps({
-            "o": {
-                "ndcId": comId,
-                "threadId": chatId,
-                "joinRole": 2,
-                "id": "2154531"  # Need to change?
-            },
-            "t": 112
-        }))
-
     def show_online(self, comId):
         """Browse the community home"""
         self.send(json.dumps({
@@ -345,40 +203,40 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
         """Launch the bot in a community"""
         if comId not in self.communaute:
             self.add_community(comId, passive)
-        time.sleep(30)
-        if not self.launched:
-            self.launch_events()
-            self.launched = True
+        with self.lock:
+            if not self.launched:
+                self.launch_events()
+                self.launched = True
         if passive:
-            self.get_community(comId).passive()
+            threading.Thread(target=self.get_community(comId).passive).start()
 
     def launch(self, passive=False):
         """Launch the bot in the last 25 joined communities."""
         amino_list = self.sub_clients()
         for comId in amino_list.comId:
-            threading.Thread(target=self.threadLaunch, args=(comId, passive,)).start()
+            self.threadLaunch(comId, passive)
 
     def single_launch(self, comId, passive=False):
         """Launch the bot in a community asynchronously"""
-        threading.Thread(target=self.threadLaunch, args=[comId, passive]).start()
+        self.threadLaunch(comId, passive)
 
     def launch_events(self) -> None:
         """Launch the bot events"""
-        if self.categorie_exist("command") or self.categorie_exist("answer"):
+        if self.category_exist("command") or self.category_exist("answer"):
             self.launch_text_message()
-        if self.categorie_exist("on_member_join_chat"):
+        if self.category_exist("on_member_join_chat"):
             self.launch_on_member_join_chat()
-        if self.categorie_exist("on_member_leave_chat"):
+        if self.category_exist("on_member_leave_chat"):
             self.launch_on_member_leave_chat()
-        if self.categorie_exist("on_other"):
+        if self.category_exist("on_other"):
             self.launch_other_message()
-        if self.categorie_exist("on_remove"):
+        if self.category_exist("on_remove"):
             self.launch_removed_message()
-        if self.categorie_exist("on_delete"):
+        if self.category_exist("on_delete"):
             self.launch_delete_message()
-        if self.categorie_exist("on_all"):
+        if self.category_exist("on_all"):
             self.launch_all_message()
-        if self.categorie_exist("on_event"):
+        if self.category_exist("on_event"):
             self.launch_all_events()
 
     def message_analyse(self, data, category):
@@ -409,7 +267,7 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
                 return
             args = Parameters(data, subClient)
             # event execution: on_message
-            if self.categorie_exist("on_message"):
+            if self.category_exist("on_message"):
                 threading.Thread(target=self.execute, args=("on_message", args, "on_message",)).start()
             # banned word check
             if not self.check(args, 'staff', 'bot') and subClient.banned_words:
@@ -419,8 +277,8 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
                 subClient.send_message(args.chatId, self.spam_message)
                 return
             # command execution
-            elif self.categorie_exist("command") and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
-                print(f"{args.author} : {args.message}")
+            elif self.category_exist("command") and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
+                print(f"{args.author} : {args.message}".removesuffix("\n"))
                 command = args.message.lower().split()[0][len(subClient.prefix):]
                 # locked command check
                 if command in subClient.locked_command:
@@ -432,15 +290,15 @@ class BotAmino(Command, Client, TimeOut, BannedWords):
                 if self.admin_user != args.authorId:
                     self.time_user(args.authorId, self.wait)
                 # matched command
-                if command.lower() in self.commands["command"].keys():
+                if any(filter(lambda info: command.lower() in info, self.get_category("command"))):
                     threading.Thread(target=self.execute, args=[command, args]).start()
                 # unmatched command
                 elif self.no_command_message:
                     subClient.send_message(args.chatId, self.no_command_message)
                 return
             # answer execution
-            elif self.categorie_exist("answer") and args.message.lower() in self.commands["answer"] and not self.check(args, "bot"):
-                print(f"{args.author} : {args.message}")
+            elif self.category_exist("answer") and any(filter(lambda info: args.message.lower() in info, self.get_category("answer"))) and not self.check(args, "bot"):
+                print(f"{args.author} : {args.message}".removesuffix("\n"))
                 # post-answer timeout addition
                 if self.admin_user != args.authorId:
                     self.time_user(args.authorId, self.wait)

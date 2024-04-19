@@ -16,7 +16,6 @@ __all__ = ("ACM",)
 
 class ACM(Client):
     def __init__(self, profile: UserProfile, comId: int) -> None:
-        self.profile: UserProfile
         self.comId: int
     def create_community(
         self,

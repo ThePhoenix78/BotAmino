@@ -5,7 +5,12 @@ import urllib.parse
 
 import websocket
 
-from .lib.util import Event, gen_deviceId, signature
+from .lib.util import (
+    Channel,
+    Event,
+    gen_deviceId,
+    signature
+)
 
 __all__ = ("Callbacks", "SocketHandler",)
 
@@ -14,7 +19,6 @@ class SocketHandler:
         self.socket_url = "wss://ws1.aminoapps.com"
         self.debug = debug
         self.active = False
-        self.headers = None
         self.socket = None
         self.socket_thread = None
         self.reconnectTime = 180
@@ -47,6 +51,8 @@ class SocketHandler:
         if not self.socket_thread:
             self.run_amino_socket()
             time.sleep(5)
+        if not isinstance(data, (bytes, str)):
+            data = json.dumps(data)
         if self.socket:
             self.socket.send(data)
 
@@ -57,7 +63,7 @@ class SocketHandler:
             if self.sid is None:
                 return
             final = f"{self.device_id}|{int(time.time() * 1000)}"
-            self.headers = {
+            headers = {
                 "NDCDEVICEID": gen_deviceId() if self.autoDevice else self.device_id,
                 "NDCAUTH": f"sid={self.sid}",
                 "NDC-MSG-SIG": signature(final)
@@ -67,7 +73,7 @@ class SocketHandler:
                 on_message=self.handle_message,
                 on_open=self.on_open,
                 on_close=self.on_close,
-                header=self.headers
+                header=headers
             )
             kwargs = {
                 "ping_interval": 60,
@@ -118,6 +124,7 @@ class Callbacks:
     def __init__(self):
         self.handlers = {}
         self.methods = {
+            201: self._resolve_agora_token_response,
             304: self._resolve_chat_action_start,
             306: self._resolve_chat_action_end,
             1000: self._resolve_chat_message
@@ -193,6 +200,9 @@ class Callbacks:
         key = data['o'].get('actions', 0)
         return self.chat_actions_end.get(key, self.default)(data)
 
+    def _resolve_agora_token_response(self, data):
+        self.on_fetch_channel(data)
+
     def handle_message(self, ws, data):
         self.resolve(data)
 
@@ -266,4 +276,5 @@ class Callbacks:
     def on_invite_message(self, data): self.call("on_invite_message", Event(data.get("o", {})).Event)
     def on_user_typing_start(self, data): self.call("on_user_typing_start", Event(data.get("o", {})).Event)
     def on_user_typing_end(self, data): self.call("on_user_typing_end", Event(data.get("o", {})).Event)
+    def on_fetch_channel(self, data): self.call("on_fetch_channel", Channel(data).Channel)
     def default(self, data): self.call("default", data)

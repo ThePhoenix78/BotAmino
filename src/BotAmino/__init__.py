@@ -8,7 +8,7 @@ import typing as t
 from .bannedwords import *
 from .bot import *
 from .botamino import *
-from .command import *
+from .commands import *
 from .parameters import *
 from .timeout import *
 from .utils import *

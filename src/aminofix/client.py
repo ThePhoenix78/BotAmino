@@ -1,7 +1,6 @@
 import base64
 import json
 import locale
-import os
 import threading
 import time
 import uuid
@@ -39,135 +38,276 @@ class Client(Callbacks, SocketHandler):
         Callbacks.__init__(self)
         self.proxies = proxies
         self.certificatePath = certificatePath
-        self.json = None
         self.sid = None
         self.userId = None
         self.account = objects.UserProfile({})
         self.profile = objects.UserProfile({})
         self.secret = None
-        self.active_live_chats = []
-        self.stop_loop = False
+        self.active_live_chats = set()
 
     def parse_headers(self, data=None, type=None):
         deviceId = helpers.gen_deviceId() if self.autoDevice else self.device_id
         return headers.ApisHeaders(deviceId=deviceId, user_agent=self.user_agent, auid=self.userId, sid=self.sid, data=data, type=type).headers
 
-    def join_voice_chat(self, comId, chatId, joinType=1):
-        """
-        Joins a Voice Chat
-        **Parameters**
-            - **comId** : ID of the Community
-            - **chatId** : ID of the Chat
-        """
-        # Made by Light, Ley and Phoenix
-        data = {
-            "o": {
-                "ndcId": int(comId),
-                "threadId": chatId,
-                "joinRole": joinType,
-                "id": "2154531"  # Need to change?
-            },
-            "t": 112
-        }
-        data = json.dumps(data)
-        self.send(data)
+    def start_channel(self, comId, chatId, channelType):
+        """Start a live chat
 
-    def join_video_chat(self, comId, chatId, joinType=1):
+        Parameters
+        ----------
+        comId : `int`
+            The community ID of the chat.
+        chatId : `str`
+            The ID of the chat.
+        channelType : `int`
+            The Type of the Channel
+
         """
-        Joins a Video Chat
-        **Parameters**
-            - **comId** : ID of the Community
-            - **chatId** : ID of the Chat
-        """
-        # Made by Light, Ley and Phoenix
-        data = {
+        def reconnect_loop():
+            while chatId in self.active_live_chats:
+                self.join_channel(comId, chatId, 1, channelType)
+                time.sleep(60)
+        self.send(json.dumps({
             "o": {
-                "ndcId": int(comId),
+                "ndcId": comId,
                 "threadId": chatId,
-                "joinRole": joinType,
-                "channelType": 5,
-                "id": "2154531"  # Need to change?
+                "joinRole": 1,
+                "channelType": channelType,
+                "id": "2154531"
             },
             "t": 108
-        }
-        data = json.dumps(data)
-        self.send(data)
+        }))
+        time.sleep(2)
+        self.active_live_chats.add(chatId)
+        threading.Thread(target=reconnect_loop).start()
 
-    def join_video_chat_as_viewer(self, comId, chatId):
-        data = {
-            "o": {
-                "ndcId": int(comId),
-                "threadId": chatId,
-                "joinRole": 2,
-                "id": "72446"
-            },
-            "t": 112
-        }
-        data = json.dumps(data)
-        self.send(data)
-
-    def leave_from_live_chat(self, chatId):
+    def end_channel(self, comId, chatId):
         if chatId in self.active_live_chats:
             self.active_live_chats.remove(chatId)
-
-    def run_vc(self, comId, chatId, joinType):
-        while chatId in self.active_live_chats and not self.stop_loop:
-            data = {
-                "o": {
-                    "ndcId": int(comId),
-                    "threadId": chatId,
-                    "joinRole": joinType,
-                    "id": "2154531"  # Need to change?
-                },
-                "t": 112
-            }
-            data = json.dumps(data)
-            self.send(data)
-            time.sleep(60)
-            if self.stop_loop:
-                break
-
-    def start_vc(self, comId, chatId, joinType=1):
-        data = {
+        self.send(json.dumps({
             "o": {
-                "ndcId": int(comId),
+                "ndcId": comId,
                 "threadId": chatId,
-                "joinRole": joinType,
-                "id": "2154531"  # Need to change?
-            },
-            "t": 112
-        }
-        data = json.dumps(data)
-        self.send(data)
-        data = {
-            "o": {
-                "ndcId": int(comId),
-                "threadId": chatId,
-                "channelType": 1,
-                "id": "2154531"  # Need to change?
+                "channelType": 0,
+                "id": "2154531"
             },
             "t": 108
-        }
-        data = json.dumps(data)
-        self.send(data)
-        self.active_live_chats.append(chatId)
-        threading.Thread(target=lambda: self.run_vc(comId, chatId, joinType)).start()
-
-    def end_vc(self, comId, chatId, joinType=2):
-        self.leave_from_live_chat(chatId)
-        data = {
+        }))
+        time.sleep(1)
+        self.send(json.dumps({
             "o": {
-                "ndcId": int(comId),
+                "ndcId": comId,
                 "threadId": chatId,
-                "joinRole": joinType,
+                "joinRole": 2,
                 "id": "2154531"  # Need to change?
             },
             "t": 112
-        }
-        data = json.dumps(data)
-        self.send(data)
-        self.active_live_chats.remove(chatId)
-        self.stop_loop = True
+        }))
+        time.sleep(1)
+
+    def join_channel(self, comId, chatId, joinType, channelType):
+        """Joins a Channel
+
+        Parameters
+        ----------
+        comId : `int`
+            The ID of the Community
+        chatId : `str`
+            The ID of the Chat
+        joinType : `int`
+            The Role of the join request
+        channelType : `int`
+            The Type of the Channel
+
+        """
+        self.send(json.dumps({
+            "o": {
+                "ndcId": comId,
+                "threadId": chatId,
+                "joinRole": joinType,
+                "channelType": channelType,
+                "id": "2154531"  # Need to change?
+            },
+            "t": 112
+        }))
+        time.sleep(1)
+
+    def start_voice_chat(self, comId, chatId):
+        """Start a voice call/chat
+
+        Parameters
+        ----------
+        comId : `int`
+            The community ID of the chat.
+        chatId : `str`
+            The ID of the chat.
+
+        """
+        self.start_channel(comId, chatId, 1)
+
+    def end_voice_chat(self, comId, chatId):
+        """End the voice call/chat
+
+        Parameters
+        ----------
+        comId : int
+            The community ID of the chat.
+        chatId : str
+            The ID of the chat.
+
+        """
+        self.end_channel(comId, chatId)
+
+    def start_avatar_chat(self, comId, chatId):
+        """Start an avatar call/chat
+
+        Parameters
+        ----------
+        comId : `int`
+            The community ID of the chat.
+        chatId : `str`
+            The ID of the chat.
+
+        """
+        self.start_channel(comId, chatId, 3)
+
+    def end_avatar_chat(self, comId, chatId):
+        """End an avatar call/chat
+
+        Parameters
+        ----------
+        comId : `int`
+            The community ID of the chat.
+        chatId : `str`
+            The ID of the chat.
+
+        """
+        self.end_channel(comId, chatId)
+
+    def start_video_chat(self, comId, chatId):
+        """Start a live stream in the chat
+
+        Parameters
+        ----------
+        comId : `int`
+            The community ID of the chat.
+        chatId : `str`
+            The ID of the chat.
+
+        """
+        self.start_channel(comId, chatId, 4)
+
+    def end_video_chat(self, comId, chatId):
+        """End a video call/chat
+
+        Parameters
+        ----------
+        comId : `int`
+            The community ID of the chat.
+        chatId : `str`
+            The ID of the chat.
+
+        """
+        self.end_channel(comId, chatId)
+
+    def start_screen_room(self, comId, chatId):
+        """Start a screening room in the chat
+
+        Parameters
+        ----------
+        comId : `int`
+            The community ID of the chat.
+        chatId : `str`
+            The ID of the chat.
+
+        """
+        self.start_channel(comId, chatId, 5)
+
+    def end_screen_room(self, comId, chatId):
+        """End a screening room
+
+        Parameters
+        ----------
+        comId : `int`
+            The community ID of the chat.
+        chatId : `str`
+            The ID of the chat.
+
+        """
+        self.end_channel(comId, chatId)
+
+    def join_voice_chat(self, comId, chatId):
+        """Joins a Voice Chat
+
+        Parameters
+        ----------
+        comId : `int`
+            The ID of the Community
+        chatId : `str`
+            The ID of the Chat
+
+        """
+        self.join_channel(comId, chatId, 2, 1)
+
+    def join_avatar_chat(self, comId, chatId):
+        """Joins a Avatar Chat
+
+        Parameters
+        ----------
+        comId : `int`
+            The ID of the Community
+        chatId : `str`
+            The ID of the Chat
+
+        """
+        self.join_channel(comId, chatId, 2, 3)
+
+    def join_video_chat(self, comId, chatId):
+        """Joins a Video Chat
+
+        Parameters
+        ----------
+        comId : `int`
+            The ID of the Community
+        chatId : `str`
+            The ID of the Chat
+
+        """
+        self.join_channel(comId, chatId, 2, 4)
+
+    def join_screen_room(self, comId, chatId):
+        """Joins a Screening Room
+
+        Parameters
+        ----------
+        comId : `int`
+            The ID of the Community
+        chatId : `str`
+            The ID of the Chat
+
+        """
+        self.join_channel(comId, chatId, 2, 5)
+
+    def fetch_channel(self, comId, chatId):
+        """Request Channel Agora Token
+
+        The response will be handled in the `on_fetch_channel` event.
+
+        Parameters
+        ----------
+        comId : `int`
+            The ID of the Community
+        chatId : `str`
+            The ID of the Chat
+
+        """
+        self.send(json.dumps({
+            "o": {
+                "ndcId": comId,
+                "threadId": chatId,
+                "id": "2154531"
+            },
+            "t": 200
+        }))
 
     def login_sid(self, SID):
         """

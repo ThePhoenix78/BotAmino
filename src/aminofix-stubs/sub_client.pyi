@@ -5,6 +5,7 @@ from typing import (
     Sized,
     overload
 )
+from websocket import WebSocketApp
 from .client import Client
 from .lib.util import (
     AdminLogList,
@@ -92,9 +93,10 @@ class SubClient(Client):
         self.vc_connect: bool
         self.comId: int
         self.community: Community
-        self.profile: UserProfile
         self.sid: str
         self.userId: str
+        self.socket: WebSocketApp
+        self.client: Client
     def get_invite_codes(self, status: str = "normal", start: int = 0, size: int = 25) -> InviteCodeList: ...
     def generate_invite_code(self, duration: int = 0, force: bool = True) -> InviteCode: ...
     def get_vip_users(self, start: int = 0, size: int = 25) -> UserProfileList: ...

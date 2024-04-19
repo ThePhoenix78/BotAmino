@@ -4290,3 +4290,32 @@ class NoticeList:
             try: self.operatorRole.append(x["operator"]["role"])
             except (KeyError, TypeError): self.operatorRole.append(None)
         return self
+
+class Channel:
+    def __init__(self, data):
+        self.json = data
+        self.chatId = None
+        self.comId = None
+        self.expiredTime = None
+        self.key = None
+        self.name = None
+        self.uid = None
+
+    def __bool__(self):
+        return bool(self.json)
+
+    @property
+    def Channel(self):
+        try: self.chatId = self.json["threadId"]
+        except (KeyError, TypeError): pass
+        try: self.comId = self.json["ndcId"]
+        except (KeyError, TypeError): pass
+        try: self.expiredTime = self.json["expiredTime"]
+        except (KeyError, TypeError): pass
+        try: self.key = self.json["channelKey"]
+        except (KeyError, TypeError): pass
+        try: self.name = self.json["channelName"]
+        except (KeyError, TypeError): pass
+        try: self.uid = self.json["channelUid"]
+        except (KeyError, TypeError): pass
+        return self

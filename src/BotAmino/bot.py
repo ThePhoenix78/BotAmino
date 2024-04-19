@@ -66,7 +66,6 @@ class Bot(SubClient, ACM):
             comId = community
         else:
             aminoId = community
-        self.smdevice_id = client.smdevice_id
         self.language = client.language
         # ACM initializer not required
         SubClient.__init__(
@@ -117,15 +116,7 @@ class Bot(SubClient, ACM):
 
     def parse_headers(self, data=None, type=None):
         headers = super().parse_headers(data=data, type=type)
-        headers.update({
-            "SMDEVICEID": self.smdevice_id,
-            "NDCDEVICEID": self.device_id,
-            "NDCLANG": self.language,
-            "User-Agent": "Apple iPhone13 iOS v16.1.2 Main/3.13.1",
-            "Host": "service.aminoapps.com"
-        })
-        if self.userId:
-            headers["AUID"] = self.userId
+        headers["NDCLANG"] = self.language
         return headers
 
     @property
@@ -524,57 +515,150 @@ class Bot(SubClient, ACM):
                 return True
         return False
 
-    def start_screen_room(self, chatId, joinType=1):
-        """Start a screening room in the chat
+    def start_voice_chat(self, chatId):
+        """Start a voice call/chat
+
+        Parameters
+        ----------
+        chatId : `str`
+            The ID of the chat.
+
+        """
+        self.client.start_voice_chat(self.comId, chatId)
+
+    def end_voice_chat(self, chatId):
+        """End the voice call/chat
 
         Parameters
         ----------
         chatId : str
             The ID of the chat.
-        joinType : int
-            The bot's join role: 1 for owner, 2 for viewer.
 
         """
-        self.client.start_screen_room(comId=self.community_id, chatId=chatId, joinType=joinType)
+        self.client.end_voice_chat(self.comId, chatId)
 
-    def start_video_chat(self, chatId, joinType=1):
+    def start_avatar_chat(self, chatId):
+        """Start an avatar call/chat
+
+        Parameters
+        ----------
+        chatId : `str`
+            The ID of the chat.
+
+        """
+        self.client.start_avatar_chat(self.comId, chatId)
+
+    def end_avatar_chat(self, chatId):
+        """End an avatar call/chat
+
+        Parameters
+        ----------
+        chatId : `str`
+            The ID of the chat.
+
+        """
+        self.client.end_avatar_chat(self.comId, chatId)
+
+    def start_video_chat(self, chatId):
         """Start a live stream in the chat
 
         Parameters
         ----------
-        chatId : str
+        chatId : `str`
             The ID of the chat.
-        joinType : int
-            The bot's join role: 1 for owner, 2 for viewer.
 
         """
-        self.client.join_video_chat(comId=self.community_id, chatId=chatId, joinType=joinType)
+        self.client.start_video_chat(self.comId, chatId)
 
-    def start_voice_room(self, chatId, joinType=1):
-        """Start a voice room in the chat
+    def end_video_chat(self, chatId):
+        """End a video call/chat
 
         Parameters
         ----------
-        chatId : str
+        chatId : `str`
             The ID of the chat.
-        joinType : int
-            The bot's join role: 1 for owner, 2 for viewer.
 
         """
-        self.client.join_voice_chat(comId=self.community_id, chatId=chatId, joinType=joinType)
+        self.client.end_video_chat(self.comId, chatId)
 
-    def join_screen_room(self, chatId, joinType=1):
-        """Join in the screening room
+    def start_screen_room(self, chatId):
+        """Start a screening room in the chat
 
         Parameters
         ----------
-        chatId : str
+        chatId : `str`
             The ID of the chat.
-        joinType : int
-            The bot's join role: 1 for owner, 2 for viewer.
 
         """
-        self.client.join_video_chat_as_viewer(comId=self.community_id, chatId=chatId, joinType=joinType)
+        self.client.start_screen_room(self.comId, chatId)
+
+    def end_screen_room(self, chatId):
+        """End a screening room
+
+        Parameters
+        ----------
+        chatId : `str`
+            The ID of the chat.
+
+        """
+        self.client.end_screen_room(self.comId, chatId)
+
+    def join_voice_chat(self, chatId):
+        """Joins a Voice Chat
+
+        Parameters
+        ----------
+        chatId : `str`
+            The ID of the Chat
+
+        """
+        self.client.join_voice_chat(self.comId, chatId)
+
+    def join_avatar_chat(self, chatId):
+        """Joins a Avatar Chat
+
+        Parameters
+        ----------
+        chatId : `str`
+            The ID of the Chat
+
+        """
+        self.client.join_avatar_chat(self.comId, chatId)
+
+    def join_video_chat(self, chatId):
+        """Joins a Video Chat
+
+        Parameters
+        ----------
+        chatId : `str`
+            The ID of the Chat
+
+        """
+        self.client.join_video_chat(self.comId, chatId)
+
+    def join_screen_room(self, chatId):
+        """Joins a Screening Room
+
+        Parameters
+        ----------
+        chatId : `str`
+            The ID of the Chat
+
+        """
+        self.client.join_screen_room(self.comId, chatId)
+
+    def fetch_channel(self, chatId):
+        """Request Channel Agora Token
+
+        The response will be handled in the `on_fetch_channel` event.
+
+        Parameters
+        ----------
+        chatId : `str`
+            The ID of the Chat
+
+        """
+        self.client.fetch_channel(self.comId, chatId)
 
     def get_chats(self, type="recommended", start=0, size=250):
         """Get public chats"""

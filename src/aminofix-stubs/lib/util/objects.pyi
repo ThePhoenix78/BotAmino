@@ -1621,3 +1621,16 @@ class NoticeList:
     def __bool__(self) -> bool: ...
     @property
     def NoticeList(self) -> Self: ...
+
+class Channel:
+    def __init__(self, data) -> None:
+        self.json: dict[str, Any]
+        self.name: str
+        self.key: str
+        self.uid: int
+        self.expiredTime: int
+        self.comId: int
+        self.chatId: str
+    def __bool__(self) -> bool: ...
+    @property
+    def Channel(self) -> Self: ...

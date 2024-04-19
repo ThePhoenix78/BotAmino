@@ -1,0 +1,11 @@
+requests[socks]
+websocket-client[optional]>=1.7.0
+json-minify
+typing-extensions>=4.0.0
+
+[dev]
+mypy>=1.8.0
+typing-extensions>=4.0.0
+pytest>=7.0
+twine>=4.0.2
+wheel>=0.42.0

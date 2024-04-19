@@ -7,8 +7,8 @@ import uuid
 import json_minify
 
 from .client import Client
-from .lib.util import exceptions, headers, helpers, objects
-from .lib.util.helpers import gen_deviceId
+from .socket import Callbacks, SocketHandler
+from .lib.util import exceptions, helpers, objects
 
 __all__ = ("SubClient",)
 
@@ -39,6 +39,7 @@ class SubClient(Client):
         proxies=None,
         certificatePath=None
     ):
+        self.client = client
         Client.__init__(
             self=self,
             deviceId=deviceId or client.device_id,
@@ -51,6 +52,7 @@ class SubClient(Client):
         self.userId = client.userId
         self.account = client.account
         self.secret = client.secret
+        self.socket = client.socket
         self.vc_connect = False
         if comId:
             self.comId = comId
@@ -67,6 +69,11 @@ class SubClient(Client):
             raise exceptions.FailedLogin()
         except exceptions.UserUnavailable:
             pass
+
+    def __getattribute__(self, name):
+        if hasattr(Callbacks, name) or hasattr(SocketHandler, name):
+            return getattr(self.client, name)
+        return object.__getattribute__(self, name)
 
     def get_invite_codes(self, status="normal", start=0, size=25):
         response = self.session.get(f"{self.api}/g/s-x{self.comId}/community/invitation?status={status}&start={start}&size={size}", headers=self.parse_headers(), proxies=self.proxies, verify=self.certificatePath)
