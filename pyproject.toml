@@ -42,6 +42,7 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+exclude = ["BotAmino.egg-info"]
 
 [tool.setuptools.package-data]
 "*" = ["*.py", "*.pyi"]
