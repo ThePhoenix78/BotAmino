@@ -1,6 +1,7 @@
 import collections
 import contextlib
 import enum
+import functools
 import inspect
 import re
 import typing
@@ -265,6 +266,7 @@ def extract_annotations(callback):
     return {}
 
 
+@functools.lru_cache()
 def validate_lite_callback(callback):
     sign = inspect.signature(callback)
     if not sign.parameters:
@@ -282,6 +284,7 @@ def validate_lite_callback(callback):
         raise ValueError("Invalid parameters. Lite callback should have only 1 parameter")
 
 
+@functools.lru_cache()
 def validate_callback(callback):
     sign = inspect.signature(callback)
     if not sign.parameters:
