@@ -1,4 +1,5 @@
-import typing
+import requests
+import json
 
 from .acm import *
 from .client import *
@@ -18,16 +19,15 @@ __copyright__ = 'Copyright 2021-2023 Minori'
 __version__ = '2.3.6.2'
 __newest__ = __version__
 
-if not typing.TYPE_CHECKING:
-    import requests
-    import json
-    try:
-        with requests.get("https://pypi.org/pypi/amino.fix/json") as response:
-            __newest__ = json.loads(response.text)["info"]["version"]
-    except requests.RequestException:
-        pass
-    else:
-        del response
+
+try:
+    with requests.get("https://pypi.org/pypi/amino.fix/json") as response:
+        __newest__ = json.loads(response.text)["info"]["version"]
+except requests.RequestException:
+    pass
+else:
+    del response
+finally:
     del requests, json
 
 if __newest__ > __version__:

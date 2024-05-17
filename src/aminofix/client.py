@@ -62,23 +62,19 @@ class Client(Callbacks, SocketHandler):
             The Type of the Channel
 
         """
-        def reconnect_loop():
-            while chatId in self.active_live_chats:
-                self.join_channel(comId, chatId, 1, channelType)
-                time.sleep(60)
+        self.join_channel(comId, chatId, 1, channelType)
         self.send(json.dumps({
-            "o": {
-                "ndcId": comId,
-                "threadId": chatId,
-                "joinRole": 1,
-                "channelType": channelType,
-                "id": "2154531"
-            },
-            "t": 108
-        }))
+                "o": {
+                    "ndcId": comId,
+                    "threadId": chatId,
+                    "joinRole": 1,
+                    "channelType": channelType,
+                    "id": "2154531"
+                },
+                "t": 108
+            }))
         time.sleep(2)
         self.active_live_chats.add(chatId)
-        threading.Thread(target=reconnect_loop).start()
 
     def end_channel(self, comId, chatId):
         if chatId in self.active_live_chats:
@@ -354,7 +350,7 @@ class Client(Callbacks, SocketHandler):
             self.authenticated = True
             log = json.loads(response.text)
             self.sid = log["sid"]
-            self.userId = log["account"]["uid"]
+            self.userId = log["auid"]
             self.account = objects.UserProfile(log["account"]).UserProfile
             self.profile = objects.UserProfile(log["userProfile"]).UserProfile
             self.secret = log["secret"]
@@ -392,7 +388,7 @@ class Client(Callbacks, SocketHandler):
             self.authenticated = True
             log = json.loads(response.text)
             self.sid = log["sid"]
-            self.userId = log["account"]["uid"]
+            self.userId = log["auid"]
             self.account = objects.UserProfile(log["account"]).UserProfile
             self.profile = objects.UserProfile(log["userProfile"]).UserProfile
             self.secret = log["secret"]
@@ -428,7 +424,7 @@ class Client(Callbacks, SocketHandler):
             self.authenticated = True
             log = json.loads(response.text)
             self.sid = log["sid"]
-            self.userId = log["account"]["uid"]
+            self.userId = log["auid"]
             self.account = objects.UserProfile(log["account"]).UserProfile
             self.profile = objects.UserProfile(log["userProfile"]).UserProfile
             if self.socket_enabled:
@@ -1800,6 +1796,7 @@ class Client(Callbacks, SocketHandler):
         if response.status_code != 200: 
             return exceptions.CheckException(response.text)
         else:
+            self.profile = objects.UserProfile(json.loads(response.text)["userProfile"]).UserProfile
             return response.status_code
 
     def set_privacy_status(self, isAnonymous=False, getNotifications=False):

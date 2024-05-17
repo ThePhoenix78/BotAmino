@@ -1,3 +1,4 @@
+import logging
 import time
 import json
 import threading
@@ -12,6 +13,12 @@ from .lib.util import (
     signature
 )
 
+_logger = logging.getLogger("aminofix.socket")
+_handler = logging.StreamHandler()
+_handler.setLevel(logging.DEBUG)
+_logger.addHandler(_handler)
+_logger.setLevel(logging.DEBUG)
+
 __all__ = ("Callbacks", "SocketHandler",)
 
 class SocketHandler:
@@ -21,33 +28,101 @@ class SocketHandler:
         self.active = False
         self.socket = None
         self.socket_thread = None
-        self.reconnectTime = 180
-        self.reconnect_thread = None
         websocket.enableTrace(socket_trace)
 
-    def reconnect_handler(self):
-        # Made by enchart#3410 thx
-        # Fixed by The_Phoenix#3967
-        while self.active:
-            time.sleep(self.reconnectTime)
-            if self.active:
-                if self.debug is True:
-                    print(f"[socket][reconnect_handler] Reconnecting Socket")
-                self.close()
-                self.run_amino_socket()
+    def handle_message(self, data):
+        raise NotImplementedError
 
-    def on_open(self, ws):
+    def amino_socket_task(self):
+        if self.active or not self.socket or not self.socket.connected:
+            return
         self.active = True
-
-    def on_close(self, ws, code, msg):
+        while self.socket and self.socket.connected:
+            try:
+                data = self.socket.recv()
+            except websocket.WebSocketException:
+                break
+            else:
+                self.handle_message(data)
         self.active = False
+        if self.socket is None:
+            return
+        if self.socket.connected:
+            self.socket.close()
+            self.socket_thread = None
+        self.run_amino_socket()
 
-    def handle_message(self, ws, data):
-        pass
+    def run_amino_socket(self):
+        if getattr(self, "sid", None) is None:
+            return
+        socket = self.socket
+        if not socket:
+            socket = websocket.WebSocket()
+        if socket.connected:
+            if self.socket_thread and self.socket_thread.is_alive():
+                return
+            socket.close()
+            self.socket = None
+        if self.active:
+            self.active = False
+        if self.debug:
+            _logger.debug("[socket][start] Starting Socket")
+        self.socket_thread, kwargs = None, {}
+        if getattr(self, "proxies", None):
+            proxy_url = None
+            for protocol in ("socks5h", "socks5", "socks4a", "socks4", "https", "http"):
+                proxy_url = self.proxies.get(protocol)
+                if proxy_url:
+                    break
+            if proxy_url:
+                proxy = urllib.parse.urlparse(proxy_url)
+                kwargs["http_proxy_host"] = proxy.hostname
+                kwargs["http_proxy_port"] = proxy.port
+                kwargs["http_proxy_timeout"] = None
+                kwargs["proxy_type"] = proxy.scheme.removesuffix("s")
+                if proxy.username or proxy.password:
+                    kwargs["http_proxy_auth"] = (proxy.username, proxy.password)
+        proxy_tries = 5
+        while not socket.connected:
+            data = f"{self.device_id}|{int(time.time() * 1000)}"
+            kwargs.update({
+                "header": {
+                    "NDCDEVICEID": gen_deviceId() if self.autoDevice else self.device_id,
+                    "NDCAUTH": f"sid={self.sid}",
+                    "NDC-MSG-SIG": signature(data)
+                },
+                "url": f"{self.socket_url}/?signbody={data.replace('|', '%7C')}",
+                "timeout": None,
+                "host": None
+            })
+            try:
+                socket.connect(**kwargs)
+            except (
+                websocket.WebSocketBadStatusException,
+                websocket.WebSocketConnectionClosedException,
+                websocket.WebSocketAddressException
+            ):
+                time.sleep(1)
+                continue
+            except websocket.WebSocketProxyException:
+                if proxy_tries <= 0:
+                    raise
+                proxy_tries -= 1
+                time.sleep(1.5)
+                continue
+            else:
+                if self.debug:
+                    _logger.debug("[socket][start] Socket Started")
+                self.socket = socket
+                time.sleep(0.3)
+        self.socket_thread = threading.Thread(target=self.amino_socket_task)
+        self.socket_thread.start()
+        while not self.active:
+            pass
 
     def send(self, data):
-        if self.debug is True:
-            print(f"[socket][send] Sending Data : {data}")
+        if self.debug:
+            _logger.debug(f"[socket][send] Sending Data : {data}")
         if not self.socket_thread:
             self.run_amino_socket()
             time.sleep(5)
@@ -56,69 +131,16 @@ class SocketHandler:
         if self.socket:
             self.socket.send(data)
 
-    def run_amino_socket(self):
-        try:
-            if self.debug is True:
-                print(f"[socket][start] Starting Socket")
-            if self.sid is None:
-                return
-            final = f"{self.device_id}|{int(time.time() * 1000)}"
-            headers = {
-                "NDCDEVICEID": gen_deviceId() if self.autoDevice else self.device_id,
-                "NDCAUTH": f"sid={self.sid}",
-                "NDC-MSG-SIG": signature(final)
-            }
-            self.socket = websocket.WebSocketApp(
-                f"{self.socket_url}/?signbody={final.replace('|', '%7C')}",
-                on_message=self.handle_message,
-                on_open=self.on_open,
-                on_close=self.on_close,
-                header=headers
-            )
-            kwargs = {
-                "ping_interval": 60,
-                "ping_timeout": None,
-                "reconnect": self.reconnectTime
-            }
-            if self.proxies:
-                proxy_url = None
-                for protocol in ("socks5h", "socks5", "socks4a", "socks4", "https", "http"):
-                    value = self.proxies.get(protocol)
-                    if value:
-                        proxy_url = value
-                        break
-                if proxy_url:
-                    proxy = urllib.parse.urlparse(proxy_url)
-                    kwargs["http_proxy_host"] = proxy.hostname
-                    kwargs["http_proxy_port"] = proxy.port
-                    kwargs["http_proxy_timeout"] = None
-                    kwargs["proxy_type"] = "http" if proxy.scheme == "https" else proxy.scheme
-                    if proxy.username or proxy.password:
-                        kwargs["http_proxy_auth"] = (proxy.username, proxy.password)
-            self.socket_thread = threading.Thread(target=self.socket.run_forever, kwargs=kwargs)
-            self.socket_thread.start()
-            while not self.socket.sock:
-                pass
-            while not self.active:
-                if not self.socket_thread.is_alive() and not self.active:
-                    raise websocket.WebSocketConnectionClosedException()
-            if self.reconnect_thread is None:
-                self.reconnect_thread = threading.Thread(target=self.reconnect_handler)
-                self.reconnect_thread.start()
-            if self.debug is True:
-                print(f"[socket][start] Socket Started")
-        except Exception as e:
-            print(e)
-
     def close(self):
-        if self.debug is True:
-            print(f"[socket][close] Closing Socket")
+        if self.debug:
+            _logger.debug(f"[socket][close] Closing Socket")
         try:
             if self.socket:
                 self.socket.close()
-        except Exception as closeError:
-            if self.debug is True:
-                print(f"[socket][close] Error while closing Socket : {closeError}")
+                self.socket = None
+        except Exception as exc:
+            if self.debug:
+                _logger.debug(f"[socket][close] Error while closing Socket : {exc}")
 
 class Callbacks:
     def __init__(self):
@@ -203,11 +225,11 @@ class Callbacks:
     def _resolve_agora_token_response(self, data):
         self.on_fetch_channel(data)
 
-    def handle_message(self, ws, data):
-        self.resolve(data)
-
-    def resolve(self, data):
-        data = json.loads(data)
+    def handle_message(self, data):
+        try:
+            data = json.loads(data)
+        except Exception:
+            return
         return self.methods.get(data["t"], self.default)(data)
 
     def call(self, type, data):

@@ -328,6 +328,7 @@ class SubClient(Client):
         if response.status_code != 200: 
             return exceptions.CheckException(response.text)
         else:
+            self.profile = objects.UserProfile(json.loads(response.text)["userProfile"]).UserProfile
             return response.status_code
 
     def vote_poll(self, blogId, optionId):

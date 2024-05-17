@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
+from functools import lru_cache
 from inspect import Parameter
 from re import Pattern
 from typing import (

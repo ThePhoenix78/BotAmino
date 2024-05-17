@@ -1622,9 +1622,19 @@ class NoticeList:
     @property
     def NoticeList(self) -> Self: ...
 
+class WSException:
+    def __init__(self, data: dict[str, Any]) -> None:
+        self.json: dict[str, Any]
+        self.code: int
+        self.message: str
+    def __bool__(self) -> bool: ...
+    @property
+    def WSException(self) -> Self: ...
+
 class Channel:
     def __init__(self, data) -> None:
         self.json: dict[str, Any]
+        self.exception: WSException
         self.name: str
         self.key: str
         self.uid: int

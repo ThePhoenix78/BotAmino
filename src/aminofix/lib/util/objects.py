@@ -4291,9 +4291,30 @@ class NoticeList:
             except (KeyError, TypeError): self.operatorRole.append(None)
         return self
 
+
+class WSException:
+    def __init__(self, data):
+        self.json = data
+        self.code = None
+        self.message = None
+
+    def __bool__(self):
+        return bool(self.json)
+
+    @property
+    def WSException(self):
+        try: self.code = self.json["code"]
+        except (KeyError, TypeError): pass
+        try: self.message = self.json["message"]
+        except (KeyError, TypeError): pass
+        return self
+
+
 class Channel:
     def __init__(self, data):
         self.json = data
+        try: self.exception = WSException(data["exception"]).WSException
+        except (KeyError, TypeError): self.exception = WSException({})
         self.chatId = None
         self.comId = None
         self.expiredTime = None
@@ -4301,8 +4322,8 @@ class Channel:
         self.name = None
         self.uid = None
 
-    def __bool__(self):
-        return bool(self.json)
+    def __bool__(self) -> bool:
+        return not self.exception
 
     @property
     def Channel(self):
