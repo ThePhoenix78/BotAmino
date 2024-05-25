@@ -242,14 +242,14 @@ class BotAmino(CommandHandler, Client, TimeOut, BannedWords):
         if self.category_exist("on_event"):
             self.launch_all_events()
 
-    def message_analyse(self, data, category):
+    def message_analyse(self, name, data, category):
         """Run the chat-message event parser"""
         try:
             subClient = self.get_community(data.comId)
         except Exception:
             return
         args = Parameters(data, subClient)
-        threading.Thread(target=self.execute, args=(category, args, category,)).start()
+        threading.Thread(target=self.execute, args=(name, args, category,)).start()
 
     def on_member_event(self, data, category):
         """Internal method to execute the on_member_event event"""
@@ -317,27 +317,27 @@ class BotAmino(CommandHandler, Client, TimeOut, BannedWords):
         for event_name in OTHERS_EVENTS:
             @self.event(event_name)
             def _(data):
-                self.message_analyse(data, "on_other")
+                self.message_analyse("on_other", data, "on_other")
 
     def launch_all_message(self):
         """Internal method to launch on_all event"""
         for chat_method in self.chat_methods.values():
             @self.event(chat_method.__name__)
             def _(data):
-                self.message_analyse(data, "on_all")
+                self.message_analyse("on_all", data, "on_all")
 
     def launch_delete_message(self):
         """Internal method to launch on_delete event"""
         @self.event("on_delete_message")
         def _(data):
-            self.message_analyse(data, "on_delete")
+            self.message_analyse("on_delete", data, "on_delete")
 
     def launch_removed_message(self):
         """Internal method to launch on_remove event"""
         for type_name in REMOVE_EVENTS:
             @self.event(type_name)
             def _(data):
-                self.message_analyse(data, "on_remove")
+                self.message_analyse("on_remove", data, "on_remove")
 
     def launch_on_member_join_chat(self):
         """Internal method to launch on_member_join_chat event"""
@@ -356,4 +356,4 @@ class BotAmino(CommandHandler, Client, TimeOut, BannedWords):
         for chat_method in self.chat_methods.values():
             @self.event(chat_method.__name__)
             def _(data):
-                self.message_analyse(data, "on_event")
+                self.message_analyse(chat_method.__name__, data, "on_event")

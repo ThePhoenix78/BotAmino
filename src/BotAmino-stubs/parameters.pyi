@@ -1,9 +1,5 @@
-from typing import (
-    Any,
-    Dict,
-    Optional
-)
-from aminofix.lib.util.objects import Event  # type: ignore
+from typing import Any
+from aminofix.lib.util.objects import Event
 from .bot import Bot
 
 __all__ = ('Parameters',)
@@ -17,12 +13,12 @@ class Parameters:
         self.chatId: str
         self.comId: int
         self.info: Event
-        self.json: Dict[str, Any]
+        self.json: dict[str, Any]
         self.level: int
         self.message: str
         self.messageId: str
-        self.replySrc: Optional[str]
-        self.replyId: Optional[str]
-        self.replyMsg: Optional[str]
+        self.replySrc: str | None
+        self.replyId: str | None
+        self.replyMsg: str | None
         self.reputation: int
         self.subClient: Bot
