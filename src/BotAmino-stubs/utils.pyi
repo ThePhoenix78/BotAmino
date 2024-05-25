@@ -2,10 +2,13 @@ from abc import (
     ABCMeta,
     abstractmethod
 )
+from collections.abc import Generator
 from contextlib import suppress
+from io import BytesIO
 from re import Pattern
-from types import TracebackType
-from typing import NoReturn, Optional, Type
+from typing import Any, NoReturn
+
+from _typeshed import SupportsRead
 
 __all__ = (
     'NO_ICON_URL',
@@ -14,7 +17,8 @@ __all__ = (
     "PATH_UTILITIES",
     'CustomType',
     'print_exception',
-    'safe_exit'
+    'safe_exit',
+    'split_audio'
 )
 
 PY10: bool
@@ -33,11 +37,7 @@ class CustomType(metaclass=CustomTypeMeta):
     def __init__(self, value: str) -> None: ...
 
 class print_exception(suppress):
-    def __exit__(
-        self,
-        exctype: Optional[Type[BaseException]],
-        excinst: Optional[BaseException],
-        exctb: Optional[TracebackType]
-    ) -> bool: ...
+    pass
 
 def safe_exit(code: int = 0) -> NoReturn: ...
+def split_audio(file: SupportsRead[bytes] | bytes | str, format: str | None = None, chunk_secs: int = 180) -> Generator[BytesIO, Any, None]: ...

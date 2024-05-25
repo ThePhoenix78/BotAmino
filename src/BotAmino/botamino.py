@@ -1,5 +1,6 @@
 import contextlib
 import json
+import os
 import threading
 import time
 import uuid
@@ -24,15 +25,11 @@ OTHERS_EVENTS = (
     "on_voice_chat_end",
     "on_voice_chat_start",
     "on_voice_chat_not_answered",
-    #"on_voice_chat_not_cancelled",
-    #"on_voice_chat_not_declined",
     "on_voice_chat_cancelled",
     "on_voice_chat_declined",
     "on_video_chat_end",
     "on_video_chat_start",
     "on_video_chat_not_answered",
-    #"on_video_chat_not_cancelled",
-    #"on_video_chat_not_declined"
     "on_video_chat_cancelled",
     "on_video_chat_declined"
 )
@@ -52,19 +49,19 @@ class BotAmino(CommandHandler, Client, TimeOut, BannedWords):
 
     Parameters
     ----------
-    email : str, optional
+    email : `str`, `optional`
         The amino account email. Default is `None`.
-    password : str, optional
+    password : `str`, `optional`
         The amino account password. Default is `None`.
-    sid : str, optional
+    sid : `str`, `optional`
         The account session ID. Default is `None`.
-    deviceId : str, optional
+    deviceId : `str`, `optional`
         The session device ID. Default is `None`.
-    proxies : dict[str, str], `optional`
+    proxies : `dict[str, str]`, `optional`
         The session proxies. Default is `None`.
-    certificatePath : str, optional
+    certificatePath : `str`, `optional`
         The proxies certificate path. Default is `None`.
-    parser_feature : {'default', 'quotedkey'}, optional
+    parser_feature : `{'default', 'quotedkey'}`, `optional`
         Command parser feature.
         `default` : Capture quoted positional and key arguments
         `quotedkey` : allows the key to be enclosed in quotes
@@ -89,6 +86,12 @@ class BotAmino(CommandHandler, Client, TimeOut, BannedWords):
         Client.__init__(self, deviceId=deviceId, proxies=proxies, certificatePath=certificatePath)
         TimeOut.__init__(self)
         BannedWords.__init__(self)
+        if not email:
+            email = os.getenv("EMAIL")
+        if not password:
+            password = os.getenv("PASSWORD")
+        if not deviceId:
+            deviceId = os.getenv("DEVICE") or os.getenv("DEVICEID")
         if email and password:
             self.login(email=email, password=password)
         elif sid:
@@ -239,14 +242,14 @@ class BotAmino(CommandHandler, Client, TimeOut, BannedWords):
         if self.category_exist("on_event"):
             self.launch_all_events()
 
-    def message_analyse(self, data, category):
+    def message_analyse(self, name, data, category):
         """Run the chat-message event parser"""
         try:
             subClient = self.get_community(data.comId)
         except Exception:
             return
         args = Parameters(data, subClient)
-        threading.Thread(target=self.execute, args=(category, args, category,)).start()
+        threading.Thread(target=self.execute, args=(name, args, category,)).start()
 
     def on_member_event(self, data, category):
         """Internal method to execute the on_member_event event"""
@@ -290,14 +293,14 @@ class BotAmino(CommandHandler, Client, TimeOut, BannedWords):
                 if self.admin_user != args.authorId:
                     self.time_user(args.authorId, self.wait)
                 # matched command
-                if any(filter(lambda info: command.lower() in info, self.get_category("command"))):
+                if self.get_command_info(command.lower()):
                     threading.Thread(target=self.execute, args=[command, args]).start()
                 # unmatched command
                 elif self.no_command_message:
                     subClient.send_message(args.chatId, self.no_command_message)
                 return
             # answer execution
-            elif self.category_exist("answer") and any(filter(lambda info: args.message.lower() in info, self.get_category("answer"))) and not self.check(args, "bot"):
+            elif self.category_exist("answer") and self.get_answer_info(args.message.lower()) and not self.check(args, "bot"):
                 print(f"{args.author} : {args.message}".removesuffix("\n"))
                 # post-answer timeout addition
                 if self.admin_user != args.authorId:
@@ -314,27 +317,27 @@ class BotAmino(CommandHandler, Client, TimeOut, BannedWords):
         for event_name in OTHERS_EVENTS:
             @self.event(event_name)
             def _(data):
-                self.message_analyse(data, "on_other")
+                self.message_analyse("on_other", data, "on_other")
 
     def launch_all_message(self):
         """Internal method to launch on_all event"""
         for chat_method in self.chat_methods.values():
             @self.event(chat_method.__name__)
             def _(data):
-                self.message_analyse(data, "on_all")
+                self.message_analyse("on_all", data, "on_all")
 
     def launch_delete_message(self):
         """Internal method to launch on_delete event"""
         @self.event("on_delete_message")
         def _(data):
-            self.message_analyse(data, "on_delete")
+            self.message_analyse("on_delete", data, "on_delete")
 
     def launch_removed_message(self):
         """Internal method to launch on_remove event"""
         for type_name in REMOVE_EVENTS:
             @self.event(type_name)
             def _(data):
-                self.message_analyse(data, "on_remove")
+                self.message_analyse("on_remove", data, "on_remove")
 
     def launch_on_member_join_chat(self):
         """Internal method to launch on_member_join_chat event"""
@@ -353,4 +356,4 @@ class BotAmino(CommandHandler, Client, TimeOut, BannedWords):
         for chat_method in self.chat_methods.values():
             @self.event(chat_method.__name__)
             def _(data):
-                self.message_analyse(data, "on_event")
+                self.message_analyse(chat_method.__name__, data, "on_event")

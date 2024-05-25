@@ -1,9 +1,11 @@
 import abc
 import contextlib
 import inspect
+import io
 import os
 import re
 import sys
+import tempfile
 import typing
 
 __all__ = (
@@ -13,7 +15,8 @@ __all__ = (
     "PATH_UTILITIES",
     'CustomType',
     'print_exception',
-    'safe_exit'
+    'safe_exit',
+    'split_audio'
 )
 
 # constants
@@ -62,3 +65,39 @@ class print_exception(contextlib.suppress):
 def safe_exit(code=0):
     """exit the program"""
     os._exit(code)
+
+
+def split_audio(file, format=None, chunk_secs=180):
+    """Split an audio file in n seconds using pydub library"""
+    import pydub
+    chunk_length_ms = chunk_secs * 1000
+    if not isinstance(file, str):
+        if hasattr(file, "read"):
+            if hasattr(file, "name") and file.name.count(".") and not format:
+                *_, format = file.name.split(".")
+            file = file.read()
+        with tempfile.NamedTemporaryFile("w+b", suffix=format, delete=False) as tmp:
+            tmp.write(file)
+        audio = pydub.AudioSegment.from_file(tmp.name, format=format)
+        os.remove(tmp.name)
+    else:
+        audio = pydub.AudioSegment.from_file(file, format=format)
+    if not format:
+        format = "mp3"
+    audio_length_ms = len(audio)
+    prev_time = 0
+    for curr_time in range(chunk_length_ms, audio_length_ms, chunk_length_ms):
+        chunk = audio[prev_time:curr_time]
+        tmpfile = tempfile.mkdtemp(suffix=format)
+        try:
+            yield io.BytesIO(chunk.export(tmpfile, format=format).read())
+        finally:
+            os.remove(tmpfile)
+        prev_time = curr_time
+    if prev_time < audio_length_ms:
+        chunk = audio[prev_time:audio_length_ms]
+        tmpfile = tempfile.mkdtemp(suffix=format)
+        try:
+            yield io.BytesIO(chunk.export(tmpfile, format=format).read())
+        finally:
+            os.remove(tmpfile)

@@ -22,7 +22,7 @@ class CallbackInfo:
         self.condition = condition
 
     def __hash__(self):
-        return hash(self.callback)
+        return hash((*self.names, self.callback, self.condition))
 
     def __eq__(self, value: object) -> bool:
         if isinstance(value, CallbackInfo):
@@ -30,7 +30,7 @@ class CallbackInfo:
         return value in self
 
     def __contains__(self, key):
-        return key in self.names
+        return (key.lower() if isinstance(key, str) else key) in self.names
 
 
 class CommandHandler:
@@ -76,6 +76,14 @@ class CommandHandler:
     def answer_list(self):
         """Get answer list names"""
         return list(self.get_category("answer"))
+
+    def get_command_info(self, name):
+        for callback in filter(lambda command: name in command, self.commands_list()):
+            return callback
+
+    def get_answer_info(self, name):
+        for callback in filter(lambda answer: name in answer, self.answer_list()):
+            return callback
 
     def command(self, name=None, condition=None):
         """Decorator to create a command
