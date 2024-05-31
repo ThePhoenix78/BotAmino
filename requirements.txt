@@ -2,5 +2,3 @@ requests[socks]
 websocket-client[optional]>=1.7.0
 json-minify
 typing-extensions>=4.0.0
-pydub
-pydub-stubs

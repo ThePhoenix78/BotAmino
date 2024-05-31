@@ -72,7 +72,7 @@ def parse_args(message, feature='default'):
 def from_array_group(text, dtype, default=Empty):
     origin = typing.get_origin(dtype) or tuple
     args = typing.get_args(dtype) or (typing.Any, ...)
-    arguments = list(map(lambda s: s.strip(), text.split(ARRAY_SEPARATOR)))
+    arguments = list(map(lambda s: s.strip(), text.split(ARRAY_SEPARATOR))) if text else []
     invalid_factory = True
     if len(args) == 2 and args[1] is Ellipsis:
         args = tuple([args[0]] * len(arguments))
@@ -105,10 +105,11 @@ def from_array_group(text, dtype, default=Empty):
             isdefault = True
     return GroupResult(value, converted, isfactory, isdefault, unsafe)
 
+
 def from_boolean_group(text, dtype, default=Empty):
     converted, isfactory, isdefault, unsafe = False, False, False, False
     for bool_value, pattern in {True: REGEX_TRUE, False: REGEX_FALSE}.items():
-        if pattern.match(text):
+        if text and pattern.match(text):
             value, converted = dtype(bool_value), True
             break
     else:
@@ -127,7 +128,7 @@ def from_boolean_group(text, dtype, default=Empty):
 def from_list_group(text, dtype, default=Empty):
     origin, args = typing.get_origin(dtype) or dtype, typing.get_args(dtype)
     expected = args[0] if args else typing.Any
-    arguments = list(filter(None, map(str.strip, text.split(ARRAY_SEPARATOR))))
+    arguments = list(filter(None, map(str.strip, text.split(ARRAY_SEPARATOR)))) if text else []
     result = []
     converted, isfactory, isdefault, unsafe = False, False, False, False
     for value in arguments:
@@ -150,11 +151,14 @@ def from_list_group(text, dtype, default=Empty):
             isdefault = True
     return GroupResult(value, converted, isfactory, isdefault, unsafe)
 
+
 def from_literal_group(text, dtype, default=Empty):
     converted, isfactory, isdefault, unsafe = False, False, False, False
     args = typing.get_args(dtype)
     dtypes = set(type(arg) for arg in args)
     for arg_dtype in dtypes:
+        if not text:
+            continue
         option = build_value(text, arg_dtype)
         if option in args:
             value, converted = option, True
@@ -178,7 +182,7 @@ def from_mapping_group(text, dtype, default=Empty):
     if origin.__module__ in ["collections.abc", "typing"]:
         origin = dict
     args = typing.get_args(dtype) or (typing.Any, typing.Any)
-    arguments = text.split(MAPPING_SEPARATOR)
+    arguments = text.split(MAPPING_SEPARATOR) if text else []
     if len(arguments) % 2:
         arguments += ['']
     arguments = list(map(lambda s: s.strip(), arguments))
@@ -240,7 +244,9 @@ def from_none_group(text, dtype, default=Empty):
 def from_text_group(text, dtype, default=Empty):
     converted, isfactory, isdefault, unsafe = False, False, False, False
     try:
-        if issubclass(dtype, (bytearray, bytes)):
+        if not text:
+            raise ValueError
+        elif issubclass(dtype, (bytearray, bytes)):
             value = dtype(text, encoding='utf-8', errors='ignore')
         elif issubclass(dtype, str):
             value = dtype(text)
@@ -263,6 +269,8 @@ def from_text_group(text, dtype, default=Empty):
 def from_custom_group(text, dtype, default=Empty):
     converted, isfactory, isdefault, unsafe = False, False, False, False
     try:
+        if not text:
+            raise ValueError
         value, converted = dtype(text), True
     except Exception:
         value = default

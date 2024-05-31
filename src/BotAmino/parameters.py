@@ -51,6 +51,6 @@ class Parameters:
             if extensions['replyMessage'].get('mediaValue'):
                 self.replySrc = extensions['replyMessage']['mediaValue'].replace('_00.', '_hq.')
             self.replyId = extensions['replyMessage']['messageId']
-            self.replyMsg = extensions['replyMessage'].get('content')
+            self.replyMsg = extensions['replyMessage']['content']
         self.reputation = data.message.author.reputation
         self.subClient = subClient
