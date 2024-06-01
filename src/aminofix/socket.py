@@ -40,7 +40,7 @@ class SocketHandler:
         while self.socket and self.socket.connected:
             try:
                 data = self.socket.recv()
-            except websocket.WebSocketException:
+            except Exception:
                 break
             else:
                 self.handle_message(data)
@@ -136,8 +136,8 @@ class SocketHandler:
             _logger.debug(f"[socket][close] Closing Socket")
         try:
             if self.socket:
-                self.socket.close()
-                self.socket = None
+                socket, self.socket = self.socket, None
+                socket.close()
         except Exception as exc:
             if self.debug:
                 _logger.debug(f"[socket][close] Error while closing Socket : {exc}")
