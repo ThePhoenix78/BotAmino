@@ -6,6 +6,7 @@
 # Updated by V¡ktor
 import json
 import requests
+
 from .bannedwords import *
 from .bot import *
 from .botamino import *
@@ -37,10 +38,8 @@ __copyright__ = 'Copyright 2021-2022 ThePhoenix78'
 __url__ = 'https://github.com/ThePhoenix78/BotAmino'
 __newest__ = __version__ = '1.29.0'
 
-
 try:
-    with requests.get("https://pypi.python.org/pypi/BotAmino/json") as response:
-        __newest__ = json.loads(response.text)["info"]["version"]
+    __newest__ = json.loads(requests.get("https://pypi.python.org/pypi/BotAmino/json", timeout=2).text)["info"]["version"]
 except requests.RequestException:
     pass
 finally:
