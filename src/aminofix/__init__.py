@@ -21,12 +21,9 @@ __newest__ = __version__
 
 
 try:
-    with requests.get("https://pypi.org/pypi/amino.fix/json") as response:
-        __newest__ = json.loads(response.text)["info"]["version"]
+    __newest__ = json.loads(requests.get("https://pypi.org/pypi/amino.fix/json", timeout=2).text)["info"]["version"]
 except requests.RequestException:
     pass
-else:
-    del response
 finally:
     del requests, json
 
