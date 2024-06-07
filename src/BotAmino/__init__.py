@@ -18,14 +18,15 @@ from .utils import *
 # type-hint helper
 from . import typing as typing
 
-___all__ = (
+__all__ = (
     "PATH_AMINO",
     "PATH_CLIENT",
     "PATH_UTILITIES",
     "BannedWords",
     "Bot",
     "BotAmino",
-    "Command",
+    "CallbackInfo",
+    "CommandHandler",
     "CustomType",
     "Parameters",
     "TimeOut"
