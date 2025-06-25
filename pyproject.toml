@@ -2,57 +2,50 @@
 name = "BotAmino"
 description = "A library to create Amino bots"
 readme = "README.md"
-requires-python = ">=3.8"
-license = {file="LICENSE"}
-authors = [
-    {name="ThePhoenix78", email="thephoenix778@gmail.com"}
-]
+requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "ThePhoenix78", email = "thephoenix778@gmail.com" }]
 maintainers = [
-    {name="ViktorSky", email="viktorbotsprojects@gmail.com"},
+    { name = "ViktorSky", email = "viktorbotsprojects@gmail.com" },
     #{name="FabioGaming", email="contact.fabiogaming@gmail.com"}
 ]
 classifiers = [
-    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Operating System :: OS Independent"
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
 ]
-keywords = [
-    "BotAmino",
-    "bot",
-    "amino",
-    "aminoapps"
-]
-dynamic = ["dependencies", "version"]
-
-[project.optional-dependencies]
-dev = [
-    "mypy>=1.8.0",
-    "typing-extensions>=4.0.0",
-    "pytest>=7.0",
-    "twine>=4.0.2",
-    "wheel>=0.42.0",
-    "pydub",
-    "pydub-stubs"
-]
+keywords = ["BotAmino", "bot", "amino", "aminoapps"]
+dynamic = ["dependencies", "optional-dependencies", "version"]
 
 [project.urls]
 Documentation = "https://BotAmino.readthedocs.io/"
 Source = "https://github.com/ThePhoenix78/BotAmino/"
 
-[tool.setuptools]
-package-dir = {"" = "src"}
+[build-system]
+requires = ["setuptools>=77.0.3"]
+build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-exclude = ["BotAmino.egg-info"]
 
 [tool.setuptools.package-data]
-"*" = ["*.py", "*.pyi"]
+"*" = ["py.typed"]
 
 [tool.setuptools.dynamic]
-version = {attr="BotAmino.__version__"}
-dependencies = {file="requirements.txt"}
+version = { attr = "BotAmino.__version__" }
+dependencies = { file = "requirements.txt" }
+optional-dependencies.audio = { file = "requirements-audio.txt" }
+optional-dependencies.dev = { file = "requirements-dev.txt" }
 
-[build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
+[tool.pyright]
+pythonVersion = "3.9"
+typeCheckingMode = "strict"
+strictListInference = true
+strictDictionaryInference = true
+strictSetInference = true

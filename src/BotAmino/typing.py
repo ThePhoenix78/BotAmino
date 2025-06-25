@@ -1,27 +1,47 @@
 import collections.abc
+import pathlib
 import typing
 import typing_extensions
 
-from .parameters import Parameters
+# internal
+if typing.TYPE_CHECKING:
+    from .parameters import Parameters
 
 __all__ = (
-    'Callback',
-    'LiteCallback',
-    'CallbackCategory',
-    'Condition',
-    'Events',
-    'ParserFeature',
+    # commands
+    "Callback",
+    "LiteCallback",
+    "CallbackCategory",
+    "Condition",
+    "Events",
+    "FileTypeInput",
+    "ParserFeature",
+    # general
+    "Proxies",
+    # others
+    "BinaryFile",
+    "TextFile",
+    "SupportedAudioExt",
+    "SupportedImageExt",
+    "SupportedVideoExt",
+    # utils
+    "JsonDict",
 )
 
 P = typing_extensions.ParamSpec("P")
+# utils
+JsonDict = typing.Dict[str, typing.Any]
+
 # types
-Condition = collections.abc.Callable[[Parameters], bool]
-LiteCallback = collections.abc.Callable[[Parameters], typing.Any]
-Callback = collections.abc.Callable[typing_extensions.Concatenate[Parameters, P], typing.Any]
+LiteCallback = collections.abc.Callable[["Parameters"], typing.Any]
+Callback = collections.abc.Callable[
+    typing_extensions.Concatenate["Parameters", P], typing.Any
+]
+Condition = typing.Callable[["Parameters"], bool]
+Proxies = typing.MutableMapping[str, str]
 
 # type-vars
 LiteCallbackT = typing.TypeVar("LiteCallbackT", bound=LiteCallback)
-CallbackT = typing.TypeVar("CallbackT", bound=collections.abc.Callable[..., typing.Any])
 
 CallbackCategory = typing.Literal[
     "answer",
@@ -33,14 +53,14 @@ CallbackCategory = typing.Literal[
     "on_member_leave_chat",
     "on_message",
     "on_other",
-    "on_remove"
+    "on_remove",
 ]
 
 Events = typing.Literal[
     "on_avatar_chat_end",
     "on_avatar_chat_not_answered",
-    "on_avatar_chat_cancelled",
-    "on_avatar_chat_declined",
+    "on_avatar_chat_not_cancelled",
+    "on_avatar_chat_not_declined",
     "on_avatar_chat_start",
     "on_chat_background_changed",
     "on_chat_content_changed",
@@ -71,23 +91,35 @@ Events = typing.Literal[
     "on_timestamp_message",
     "on_video_chat_end",
     "on_video_chat_not_answered",
-    "on_video_chat_cancelled",
-    "on_video_chat_declined",
+    "on_video_chat_not_cancelled",
+    "on_video_chat_not_declined",
     "on_video_chat_start",
     "on_voice_chat_end",
     "on_voice_chat_not_answered",
-    "on_voice_chat_cancelled",
-    "on_voice_chat_declined",
+    "on_voice_chat_not_cancelled",
+    "on_voice_chat_not_declined",
     "on_voice_chat_permission_invite_only",
     "on_voice_chat_permission_invited_and_requested",
     "on_voice_chat_permission_open_to_everyone",
     "on_voice_chat_start",
     "on_voice_message",
     "on_welcome_message",
-    "on_youtube_message"
+    "on_youtube_message",
 ]
 
+FileTypeInput = typing.Literal["audio", "image", "gif", "video"]
+
 ParserFeature = typing.Literal[
-    'default',
-    'quotedkey',
+    "default",
+    "quotedkey",
 ]
+
+SupportedAudioExt = typing.Literal["acc", "m4a", "mp3"]
+
+SupportedImageExt = typing.Literal["gif", "jpeg", "png"]  # jpg is jpeg
+
+SupportedVideoExt = typing.Literal["mp4", "webm"]
+
+BinaryFile = typing.Union[typing.BinaryIO, pathlib.Path, str]
+
+TextFile = typing.Union[typing.TextIO, pathlib.Path, str]
