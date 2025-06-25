@@ -7,47 +7,83 @@ from .parser import (
     validate_lite_callback
 )
 
-__all__ = ('Command',)
+__all__ = ('CallbackInfo', 'CommandHandler',)
 
 
-class Command:
+class CallbackInfo:
+    def __init__(
+        self,
+        names,
+        callback,
+        condition
+    ):
+        self.names = set(name.lower() for name in names)
+        self.callback = callback
+        self.condition = condition
+
+    def __hash__(self):
+        return hash((*self.names, self.callback, self.condition))
+
+    def __eq__(self, value: object) -> bool:
+        if isinstance(value, CallbackInfo):
+            return self.callback == value.callback
+        return value in self
+
+    def __contains__(self, key):
+        return (key.lower() if isinstance(key, str) else key) in self.names
+
+
+class CommandHandler:
     """Represents the chat message commands plugin (Base)"""
 
     def __init__(self):
-        self.commands = {}
-        self.conditions = {}
+        self.callbacks = {}
 
     def execute(self, name, data, category="command"):
         """Try to execute the specified command"""
-        callback = self.commands[category][name]
-        condition = self.conditions[category].get(name, None)
+        category = self.get_category(category)
+        callback, condition = None, None
+        for callback_info in category:
+            if name not in callback_info:
+                continue
+            callback, condition = callback_info.callback, callback_info.condition
+        if callback is None:
+            return
         if condition and not condition(data):
             return
         arguments = parse_args(data.message, data.subClient.client.parser_feature)
         args, kwargs = bind_callback(callback, data, arguments)
         return callback(*args, **kwargs)
 
-    def categorie_exist(self, category):
+    def category_exist(self, category):
         """Check if the given callback-category exists"""
-        return category in self.commands
+        return category in self.callbacks
 
-    def add_categorie(self, category):
+    def get_category(self, category):
+        """Get a callback-category"""
+        self.add_category(category)
+        return self.callbacks[category]
+
+    def add_category(self, category):
         """Create the given callback-category"""
-        if category not in self.commands:
-            self.commands[category] = {}
-
-    def add_condition(self, category):
-        """Create condition for the given callback-category"""
-        if category not in self.conditions:
-            self.conditions[category] = {}
+        if category not in self.callbacks:
+            self.callbacks[category] = set()
 
     def commands_list(self):
         """Get command list names"""
-        return list(self.commands["command"])
+        return list(self.get_category("command"))
 
     def answer_list(self):
         """Get answer list names"""
-        return list(self.commands["answer"])
+        return list(self.get_category("answer"))
+
+    def get_command_info(self, name):
+        for callback in filter(lambda command: name in command, self.commands_list()):
+            return callback
+
+    def get_answer_info(self, name):
+        for callback in filter(lambda answer: name in answer, self.answer_list()):
+            return callback
 
     def command(self, name=None, condition=None):
         """Decorator to create a command
@@ -68,20 +104,14 @@ class Command:
         ```
 
         """
-        self.add_categorie("command")
-        self.add_condition("command")
-        names = set([name] if isinstance(name, str) else list(name) if isinstance(name, collections.abc.Iterable) else [])
+        names = set([name] if isinstance(name, str) else [] if name is None else list(name))
         if callable(condition):
             validate_lite_callback(condition)
         def inner(callback):
             validate_callback(callback)
             if not names:
                 names.add(callback.__name__)
-            if callable(condition):
-                for command in names:
-                    self.conditions["command"][command] = condition
-            for command in names:
-                self.commands["command"][command.lower()] = callback
+            self.get_category("command").add(CallbackInfo(names, callback, condition))
             return callback
         return inner
 
@@ -104,20 +134,14 @@ class Command:
         ```
 
         """
-        self.add_categorie("answer")
-        self.add_condition("answer")
-        names = set([name] if isinstance(name, str) else list(name) if isinstance(name, collections.abc.Iterable) else [])
+        names = set([name] if isinstance(name, str) else [] if name is None else list(name))
         if callable(condition):
             validate_lite_callback(condition)
         def inner(callback):
             validate_callback(callback)
             if not names:
                 names.add(callback.__name__)
-            if callable(condition):
-                for command in names:
-                    self.conditions["answer"][command] = condition
-            for command in names:
-                self.commands["answer"][command.lower()] = callback
+            self.get_category("answer").add(CallbackInfo(names, callback, condition))
             return callback
         return inner
 
@@ -138,14 +162,11 @@ class Command:
         ```
 
         """
-        self.add_categorie("on_member_join_chat")
-        self.add_condition("on_member_join_chat")
         if callable(condition):
             validate_lite_callback(condition)
-            self.conditions["on_member_join_chat"]["on_member_join_chat"] = condition
         def inner(callback):
             validate_lite_callback(callback)
-            self.commands["on_member_join_chat"]["on_member_join_chat"] = callback
+            self.get_category("on_member_join_chat").add(CallbackInfo(["on_member_join_chat"], callback, condition))
             return callback
         return inner
 
@@ -166,14 +187,11 @@ class Command:
         ```
 
         """
-        self.add_categorie("on_member_leave_chat")
-        self.add_condition("on_member_leave_chat")
         if callable(condition):
             validate_lite_callback(condition)
-            self.conditions["on_member_leave_chat"]["on_member_leave_chat"] = condition
         def inner(callback):
             validate_lite_callback(callback)
-            self.commands["on_member_leave_chat"]["on_member_leave_chat"] = callback
+            self.get_category("on_member_leave_chat").add(CallbackInfo(["on_member_leave_chat"], callback, condition))
             return callback
         return inner
 
@@ -194,14 +212,11 @@ class Command:
         ```
 
         """
-        self.add_categorie("on_message")
-        self.add_condition("on_message")
         if callable(condition):
             validate_lite_callback(condition)
-            self.conditions["on_message"]["on_message"] = condition
         def inner(callback):
             validate_lite_callback(callback)
-            self.commands["on_message"]["on_message"] = callback
+            self.get_category("on_message").add(CallbackInfo(["on_message"], callback, condition))
             return callback
         return inner
 
@@ -222,14 +237,11 @@ class Command:
         ```
 
         """
-        self.add_categorie("on_other")
-        self.add_condition("on_other")
         if callable(condition):
             validate_lite_callback(condition)
-            self.conditions["on_other"]["on_other"] = condition
         def inner(callback):
             validate_lite_callback(callback)
-            self.commands["on_other"]["on_other"] = callback
+            self.get_category("on_other").add(CallbackInfo(["on_other"], callback, condition))
             return callback
         return inner
 
@@ -250,14 +262,11 @@ class Command:
         ```
 
         """
-        self.add_categorie("on_delete")
-        self.add_condition("on_delete")
         if callable(condition):
             validate_lite_callback(condition)
-            self.conditions["on_delete"]["on_delete"] = condition
         def inner(callback):
             validate_lite_callback(callback)
-            self.commands["on_delete"]["on_delete"] = callback
+            self.get_category("on_delete").add(CallbackInfo(["on_delete"], callback, condition))
             return callback
         return inner
 
@@ -278,14 +287,11 @@ class Command:
         ```
 
         """
-        self.add_categorie("on_remove")
-        self.add_condition("on_remove")
         if callable(condition):
             validate_lite_callback(condition)
-            self.conditions["on_remove"]["on_remove"] = condition
         def inner(callback):
             validate_lite_callback(callback)
-            self.commands["on_remove"]["on_remove"] = callback
+            self.get_category("on_remove").add(CallbackInfo(["on_remove"], callback, condition))
             return callback
         return inner
 
@@ -306,14 +312,11 @@ class Command:
         ```
 
         """
-        self.add_categorie("on_all")
-        self.add_condition("on_all")
         if callable(condition):
             validate_lite_callback(condition)
-            self.conditions["on_all"]["on_all"] = condition
         def inner(callback):
             validate_lite_callback(callback)
-            self.commands["on_all"]["on_all"] = callback
+            self.get_category("on_all").add(CallbackInfo(["on_all"], callback, condition))
             return callback
         return inner
 
@@ -334,16 +337,11 @@ class Command:
         ```
 
         """
-        self.add_categorie("on_event")
-        self.add_condition("on_event")
         names = set(name if not isinstance(name, str) else [name])
         if callable(condition):
             validate_lite_callback(condition)
-            for key in names:
-                self.conditions["on_event"][key] = condition
         def inner(callback):
             validate_lite_callback(callback)
-            for key in names:
-                self.commands["on_event"][key] = callback
+            self.get_category("on_event").add(CallbackInfo(names, callback, condition))
             return callback
         return inner

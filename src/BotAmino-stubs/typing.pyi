@@ -1,29 +1,32 @@
-import collections.abc
-import typing
-import typing_extensions
-
+from collections.abc import Callable
+from typing import (
+    Any,
+    Literal,
+    TypeVar
+)
+from typing_extensions import Concatenate, ParamSpec
 from .parameters import Parameters
 
 __all__ = (
-    'Callback',
+    'Callback', 
     'LiteCallback',
     'CallbackCategory',
     'Condition',
     'Events',
-    'ParserFeature',
+    'ParserFeature'
 )
+P = ParamSpec("P")
 
-P = typing_extensions.ParamSpec("P")
 # types
-Condition = collections.abc.Callable[[Parameters], bool]
-LiteCallback = collections.abc.Callable[[Parameters], typing.Any]
-Callback = collections.abc.Callable[typing_extensions.Concatenate[Parameters, P], typing.Any]
+Condition = Callable[[Parameters], bool]
+LiteCallback = Callable[[Parameters], Any]
+Callback = Callable[Concatenate[Parameters, P], Any]
 
 # type-vars
-LiteCallbackT = typing.TypeVar("LiteCallbackT", bound=LiteCallback)
-CallbackT = typing.TypeVar("CallbackT", bound=collections.abc.Callable[..., typing.Any])
+LiteCallbackT = TypeVar("LiteCallbackT", bound=LiteCallback)
+CallbackT = TypeVar("CallbackT", bound=Callable[..., Any])
 
-CallbackCategory = typing.Literal[
+CallbackCategory = Literal[
     "answer",
     "command",
     "on_all",
@@ -36,7 +39,7 @@ CallbackCategory = typing.Literal[
     "on_remove"
 ]
 
-Events = typing.Literal[
+Events = Literal[
     "on_avatar_chat_end",
     "on_avatar_chat_not_answered",
     "on_avatar_chat_cancelled",
@@ -87,7 +90,7 @@ Events = typing.Literal[
     "on_youtube_message"
 ]
 
-ParserFeature = typing.Literal[
-    'default',
-    'quotedkey',
+ParserFeature = Literal[
+    "default",
+    "quotedkey"
 ]
