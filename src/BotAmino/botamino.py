@@ -1,20 +1,21 @@
 import contextlib
-import json
-import os
 import threading
 import time
+import typing
 import uuid
-# external
-from aminofix import Client
-# internal
+import dotenv
+
 from .bannedwords import BannedWords
 from .bot import Bot
-from .commands import CommandHandler
+from .client import Client
+from .command import Command
+from .errors import APIError, EmailAlreadyTaken
 from .parameters import Parameters
 from .timeout import TimeOut
-from .utils import PATH_CLIENT, safe_exit
+from .typing import CallbackCategory, ParserFeature, Proxies
+from .utils import decode_sid, safe_exit
 
-__all__ = ('BotAmino',)
+__all__ = ("BotAmino",)
 
 OTHERS_EVENTS = (
     "on_avatar_chat_end",
@@ -25,23 +26,30 @@ OTHERS_EVENTS = (
     "on_voice_chat_end",
     "on_voice_chat_start",
     "on_voice_chat_not_answered",
-    "on_voice_chat_cancelled",
-    "on_voice_chat_declined",
+    "on_voice_chat_not_cancelled",
+    "on_voice_chat_not_declined",
     "on_video_chat_end",
     "on_video_chat_start",
     "on_video_chat_not_answered",
-    "on_video_chat_cancelled",
-    "on_video_chat_declined"
+    "on_video_chat_not_cancelled",
+    "on_video_chat_not_declined",
 )
 REMOVE_EVENTS = (
     "on_chat_removed_message",
     "on_delete_message",
     "on_text_message_force_removed",
-    "on_text_message_removed_by_admin"
+    "on_text_message_removed_by_admin",
 )
 
 
-class BotAmino(CommandHandler, Client, TimeOut, BannedWords):
+class LoginInfo(typing.NamedTuple):
+    email: typing.Optional[str]
+    password: typing.Optional[str]
+    secret: typing.Optional[str]
+    sid: typing.Optional[str]
+
+
+class BotAmino(Client, Command, TimeOut, BannedWords):
     """Create a new bot for amino.
 
     This class provides different useful functionalities for a robot,
@@ -53,6 +61,7 @@ class BotAmino(CommandHandler, Client, TimeOut, BannedWords):
         The amino account email. Default is `None`.
     password : `str`, `optional`
         The amino account password. Default is `None`.
+    secret
     sid : `str`, `optional`
         The account session ID. Default is `None`.
     deviceId : `str`, `optional`
@@ -61,299 +70,390 @@ class BotAmino(CommandHandler, Client, TimeOut, BannedWords):
         The session proxies. Default is `None`.
     certificatePath : `str`, `optional`
         The proxies certificate path. Default is `None`.
+    timeout
     parser_feature : `{'default', 'quotedkey'}`, `optional`
         Command parser feature.
         `default` : Capture quoted positional and key arguments
         `quotedkey` : allows the key to be enclosed in quotes
+    language
+    env_file
+    prefix
+    bio
+    cooldown
+    no_command_message
+    spam_message
+    lock_message
+    admin_user
     language : `str`, `optional`
         The amino language. Default is `en`.
 
     """
-    def __init__(
-        self,
-        email=None,
-        password=None,
-        sid=None,
-        deviceId=None,
-        proxies=None,
-        certificatePath=None,
-        parser_feature='default',
-        language='en'
-    ):
-        self.parser_feature = parser_feature
-        self.language = language
-        CommandHandler.__init__(self)
-        Client.__init__(self, deviceId=deviceId, proxies=proxies, certificatePath=certificatePath)
-        TimeOut.__init__(self)
-        BannedWords.__init__(self)
-        if not email:
-            email = os.getenv("EMAIL")
-        if not password:
-            password = os.getenv("PASSWORD")
-        if not deviceId:
-            deviceId = os.getenv("DEVICE") or os.getenv("DEVICEID")
-        if email and password:
-            self.login(email=email, password=password)
-        elif sid:
-            self.login_sid(sid)
-        else:
-            try:
-                with open(PATH_CLIENT, "r") as f:
-                    email, password, *_ = f.readlines()
-                self.login(email=email.strip(), password=password.strip())
-            except FileNotFoundError:
-                with open(PATH_CLIENT, 'w') as f:
-                    f.write('email\npassword')
-                print(f"Please enter your email and password in the file {PATH_CLIENT}")
-                print("-----end-----")
-                safe_exit(1)
-        self.lock = threading.Lock()
-        self.botId = self.userId
-        self.communaute = {}
-        self.perms_list = []
-        self.prefix = "!"
-        self.wait = 0
-        self.admin_user = ""
-        self.bio = None
-        self.self_callable = False
-        self.no_command_message = ""
-        self.spam_message = "You are spamming, be careful"
-        self.lock_message = "Command locked sorry"
-        self.launched = False
-
-    def parse_headers(self, data=None, type=None):
-        headers = super().parse_headers(data=data, type=type)
-        headers["NDCLANG"] = self.language
-        return headers
 
     @property
-    def len_community(self):
+    def botId(self) -> typing.Optional[str]:
+        return self.userId
+
+    @property
+    def wait(self) -> typing.Optional[float]:
+        return self.cooldown
+
+    @wait.setter
+    def wait(self, value: typing.Optional[float]) -> None:
+        self.cooldown = value
+
+    def __init__(
+        self,
+        email: typing.Optional[str] = None,
+        password: typing.Optional[str] = None,
+        secret: typing.Optional[str] = None,
+        sid: typing.Optional[str] = None,
+        deviceId: typing.Optional[str] = None,
+        proxies: typing.Optional[Proxies] = None,
+        certificatePath: typing.Optional[str] = None,
+        timeout: typing.Optional[float] = None,
+        parser_feature: ParserFeature = "default",
+        language: typing.Optional[str] = None,
+        env_file: str = ".env",
+        prefix: str = "!",
+        bio: typing.Optional[typing.Union[typing.List[str], str]] = None,
+        cooldown: typing.Optional[float] = None,
+        no_command_message: typing.Optional[str] = None,
+        spam_message: typing.Optional[str] = None,
+        lock_message: typing.Optional[str] = None,
+        admin_user: typing.Optional[str] = None,
+    ) -> None:
+        Command.__init__(self)
+        TimeOut.__init__(self)
+        BannedWords.__init__(self)
+        Client.__init__(
+            self,
+            deviceId=deviceId,
+            proxies=proxies,
+            certificatePath=certificatePath,
+            language=language,
+            timeout=timeout,
+        )
+        if not (email or sid):
+            env = dotenv.dotenv_values(env_file)
+            email = env.get("EMAIL")
+            password = env.get("PASSWORD")
+            secret = env.get("SECRET")
+            sid = env.get("SID")
+        if email:
+            try:
+                self.register_check(email)
+            except EmailAlreadyTaken:
+                pass
+            else:
+                raise RuntimeError(
+                    "The email provided does not have an account"
+                ) from None
+        elif sid:
+            if decode_sid(sid).expired:
+                raise RuntimeError("sid has expired")
+        elif not secret:
+            with open(env_file, "w") as f:
+                f.write("EMAIL=\nPASSWORD=\nSECRET=\nSID=\n")
+                print(f"Please the account info in the file {env_file!r}")
+                print("-----end-----")
+                safe_exit()
+        self.communities: typing.Dict[int, Bot] = {}
+        self.perms_list: typing.List[str] = []
+        self.launched = False
+        self.login_info = LoginInfo(email, password, secret, sid)
+        self.env_file = env_file
+        self.parser_feature: ParserFeature = parser_feature
+        self.prefix = prefix
+        self.cooldown = cooldown
+        self.bio = bio
+        self.admin_user = admin_user
+        self.no_command_message = no_command_message
+        self.spam_message = spam_message or "You are spamming, be careful"
+        self.lock_message = lock_message or "Command locked sorry"
+        self.self_callable = False
+
+    @property
+    def communaute(self) -> typing.Dict[int, Bot]:
+        """Old attr name of launched communities"""
+        return self.communities
+
+    @property
+    def len_community(self) -> int:
         """Launched communities"""
-        return len(self.communaute)
+        return len(self.communities)
 
-    def tradlist(self, aminoIdOrLink):
+    def tradlist(
+        self, aminoIdOrLink: typing.Union[typing.Iterable[str], str]
+    ) -> typing.List[str]:
         """Get a list of user IDs from an iterable of Amino links"""
-        uidList = []
-        for aminoId in [aminoIdOrLink] if isinstance(aminoIdOrLink, str) else aminoIdOrLink:
-            amino_link = aminoId if aminoId.startswith('http') else f"http://aminoapps.com/u/{aminoId}"
-            with contextlib.suppress(Exception):
-                userId = self.get_from_code(amino_link).objectId
-                uidList.append(userId)
+        userIdList: typing.List[str] = []
+        for aminoId in (
+            [aminoIdOrLink] if isinstance(aminoIdOrLink, str) else aminoIdOrLink
+        ):
+            amino_link = (
+                aminoId
+                if aminoId.startswith("http")
+                else f"http://aminoapps.com/u/{aminoId}"
+            )
+            with contextlib.suppress(APIError):
+                info = self.get_from_link(amino_link)
+                userIdList.append(info.objectId)
                 continue
-            uidList.append(aminoId)
-        return uidList
+            userIdList.append(aminoId)
+        return userIdList
 
-    def add_community(self, comId, activity):
+    def add_community(self, comId: int, activity: bool) -> Bot:
         """Set a bot instance for the given community"""
-        self.communaute[comId] = Bot(self, comId, self.prefix, self.bio, activity)
+        if comId in self.communities:
+            return self.communities[comId]
+        return self.communities.setdefault(
+            comId, Bot(self, comId, self.prefix, self.bio, activity)
+        )
 
-    def get_community(self, comId):
+    def get_community(self, comId: int) -> typing.Optional[Bot]:
         """Get the bot instance for a given community"""
-        return self.communaute[comId]
+        return self.communities.get(comId)
 
-    def is_it_bot(self, uid):
+    def is_it_bot(self, userId: str) -> bool:
         """Check if the user is this bot"""
-        return uid == self.botId and not self.self_callable
+        return userId == self.botId
 
-    def is_it_admin(self, uid):
+    def is_it_admin(self, userId: str) -> bool:
         """Check if the user is an admin of this bot"""
-        return uid in self.perms_list or uid == self.admin_user
+        return userId in self.perms_list or userId == self.admin_user
 
-    def get_wallet_amount(self):
+    def get_wallet_amount(self) -> int:
         """Get the total coin balance of this bot"""
-        return self.get_wallet_info().totalCoins or 0
+        return self.get_wallet_info().totalCoins
 
-    def generate_transaction_id(self):
+    def generate_transaction_id(self) -> str:
         """Generate a transaction ID"""
         return str(uuid.uuid4())
 
-    def show_online(self, comId):
-        """Browse the community home"""
-        self.send(json.dumps({
-            "o": {
-                "actions": ["Browsing"],
-                "target": f"ndc://x{comId}/",
-                "ndcId": comId,
-                "id": "82333"
-            },
-            "t":304
-        }))
-
-    def check(self, args, *can, id_=None):
+    def check(
+        self,
+        args: Parameters,
+        *can: typing.Literal["admin", "bot", "staff", "leader", "curator", "agent"],
+        userId: typing.Optional[str] = None,
+    ):
         """Check if the user is this bot or staff member"""
-        id_ = id_ if id_ else args.authorId
+        userId = userId or args.authorId
         foo = {
-            'admin': self.is_it_admin,
-            'bot': self.is_it_bot,
-            'agent': args.subClient.is_agent,
-            'curator': args.subClient.is_curator,
-            'leader': args.subClient.is_leader,
-            'staff': args.subClient.is_in_staff
+            "admin": self.is_it_admin,
+            "bot": self.is_it_bot,
+            "staff": args.subClient.is_in_staff,
+            "leader": args.subClient.is_leader,
+            "curator": args.subClient.is_curator,
+            "agent": args.subClient.is_agent,
         }
-        for i in can:
-            if foo[i](id_):
+        for name in can:
+            if foo[name](userId):
                 return True
         return False
 
-    def check_all(self):
+    def check_all(self) -> None:
         """Check-in in the bot's launched communities"""
-        for bot in self.communaute.values():
+        for bot in self.communities.values():
             with contextlib.suppress(Exception):
                 bot.check_in()
             time.sleep(5)
 
-    def threadLaunch(self, comId, passive=False):
+    def threadLaunch(self, comId: int, passive: bool = False) -> None:
         """Launch the bot in a community"""
-        if comId not in self.communaute:
-            self.add_community(comId, passive)
-        with self.lock:
-            if not self.launched:
-                self.launch_events()
-                self.launched = True
+        if comId not in self.communities:
+            bot = self.add_community(comId, passive)
+        else:
+            bot = self.communities[comId]
+        time.sleep(30)
+        if not self.launched:
+            self.launch_events()
+            self.launched = True
         if passive:
-            threading.Thread(target=self.get_community(comId).passive).start()
+            bot.passive()
 
-    def launch(self, passive=False):
+    def launch(self, passive: bool = False) -> None:
         """Launch the bot in the last 25 joined communities."""
-        amino_list = self.sub_clients()
-        for comId in amino_list.comId:
-            self.threadLaunch(comId, passive)
+        joined = self.joined_communities(size=25)
+        for comId in joined.communities.comId:
+            threading.Thread(
+                target=self.threadLaunch,
+                args=(
+                    comId,
+                    passive,
+                ),
+            ).start()
 
-    def single_launch(self, comId, passive=False):
+    def single_launch(self, comId: int, passive: bool = False) -> None:
         """Launch the bot in a community asynchronously"""
-        self.threadLaunch(comId, passive)
+        threading.Thread(target=self.threadLaunch, args=[comId, passive]).start()
 
     def launch_events(self) -> None:
         """Launch the bot events"""
-        if self.category_exist("command") or self.category_exist("answer"):
+        if self.categorie_exist("command") or self.categorie_exist("answer"):
             self.launch_text_message()
-        if self.category_exist("on_member_join_chat"):
+        if self.categorie_exist("on_member_join_chat"):
             self.launch_on_member_join_chat()
-        if self.category_exist("on_member_leave_chat"):
+        if self.categorie_exist("on_member_leave_chat"):
             self.launch_on_member_leave_chat()
-        if self.category_exist("on_other"):
+        if self.categorie_exist("on_other"):
             self.launch_other_message()
-        if self.category_exist("on_remove"):
+        if self.categorie_exist("on_remove"):
             self.launch_removed_message()
-        if self.category_exist("on_delete"):
+        if self.categorie_exist("on_delete"):
             self.launch_delete_message()
-        if self.category_exist("on_all"):
+        if self.categorie_exist("on_all"):
             self.launch_all_message()
-        if self.category_exist("on_event"):
+        if self.categorie_exist("on_event"):
             self.launch_all_events()
 
-    def message_analyse(self, name, data, category):
+    def message_analyse(
+        self, key: typing.Any, data: Parameters, category: CallbackCategory
+    ) -> None:
         """Run the chat-message event parser"""
-        try:
-            subClient = self.get_community(data.comId)
-        except Exception:
+        subClient = self.get_community(data.comId)
+        if not subClient:
             return
         args = Parameters(data, subClient)
-        threading.Thread(target=self.execute, args=(name, args, category,)).start()
+        threading.Thread(
+            target=self.execute,
+            args=(
+                key,
+                args,
+                category,
+            ),
+        ).start()
 
-    def on_member_event(self, data, category):
+    def on_member_event(self, data: Parameters, category: CallbackCategory) -> None:
         """Internal method to execute the on_member_event event"""
-        try:
-            subClient = self.get_community(data.comId)
-        except Exception:
+        subClient = self.get_community(data.comId)
+        if not subClient:
             return
         args = Parameters(data, subClient)
         if not self.check(args, "bot"):
-            threading.Thread(target=self.execute, args=[category, args, category]).start()
+            threading.Thread(
+                target=self.execute, args=[category, args, category]
+            ).start()
 
     def launch_text_message(self):
         """Internal method to launch on_text_message event"""
-        def text_message(data):
-            try:
-                subClient = self.get_community(data.comId)
-            except Exception:
+
+        @self.on_text_message
+        def _(data: typing.Any) -> None:
+            subClient = self.get_community(data.comId)
+            if not subClient:
                 return
             args = Parameters(data, subClient)
             # event execution: on_message
-            if self.category_exist("on_message"):
-                threading.Thread(target=self.execute, args=("on_message", args, "on_message",)).start()
+            if self.categorie_exist("on_message"):
+                threading.Thread(
+                    target=self.execute,
+                    args=(
+                        "on_message",
+                        args,
+                        "on_message",
+                    ),
+                ).start()
             # banned word check
-            if not self.check(args, 'staff', 'bot') and subClient.banned_words:
-                self.check_banned_words(args, args.subClient.is_in_staff(self.botId))
+            if not self.check(args, "staff", "bot") and subClient.banned_words:
+                botId = typing.cast(str, self.botId)
+                self.check_banned_words(args, args.subClient.is_in_staff(botId))
+            if self.check(args, "bot"):
+                return
             # command timeout check
-            if not self.timed_out(args.authorId) and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
+            if not self.timed_out(args.authorId) and args.message.startswith(
+                subClient.prefix
+            ):
                 subClient.send_message(args.chatId, self.spam_message)
                 return
             # command execution
-            elif self.category_exist("command") and args.message.startswith(subClient.prefix) and not self.check(args, "bot"):
-                print(f"{args.author} : {args.message}".removesuffix("\n"))
-                command = args.message.lower().split()[0][len(subClient.prefix):]
+            elif self.categorie_exist("command") and args.message.startswith(
+                subClient.prefix
+            ):
+                print(f"{args.author} : {args.message}")
+                command = args.message.lower().split()[0][len(subClient.prefix) :]
                 # locked command check
                 if command in subClient.locked_command:
                     subClient.send_message(args.chatId, self.lock_message)
                     return
                 # command message formatting
-                args.message = ' '.join(args.message.split()[1:])
+                args.message = " ".join(args.message.split()[1:])
                 # post-command timeout addition
-                if self.admin_user != args.authorId:
+                if self.admin_user != args.authorId and self.wait:
                     self.time_user(args.authorId, self.wait)
                 # matched command
-                if self.get_command_info(command.lower()):
+                if command.lower() in self.commands["command"].keys():
                     threading.Thread(target=self.execute, args=[command, args]).start()
                 # unmatched command
                 elif self.no_command_message:
                     subClient.send_message(args.chatId, self.no_command_message)
                 return
             # answer execution
-            elif self.category_exist("answer") and self.get_answer_info(args.message.lower()) and not self.check(args, "bot"):
-                print(f"{args.author} : {args.message}".removesuffix("\n"))
+            elif (
+                self.categorie_exist("answer")
+                and args.message.lower() in self.commands["answer"]
+            ):
+                print(f"{args.author} : {args.message}")
                 # post-answer timeout addition
-                if self.admin_user != args.authorId:
+                if self.admin_user != args.authorId and self.wait:
                     self.time_user(args.authorId, self.wait)
-                threading.Thread(target=self.execute, args=[args.message.lower(), args, "answer"]).start()
+                threading.Thread(
+                    target=self.execute, args=[args.message.lower(), args, "answer"]
+                ).start()
                 return
 
-        @self.event("on_text_message")
-        def _(data):
-            text_message(data)
-
-    def launch_other_message(self):
+    def launch_other_message(self) -> None:
         """Internal method to launch on_other event"""
-        for event_name in OTHERS_EVENTS:
-            @self.event(event_name)
-            def _(data):
-                self.message_analyse("on_other", data, "on_other")
+
+        @self.on_strike_message
+        @self.on_voice_call
+        @self.on_video_call
+        @self.on_avatar_call
+        @self.on_screen_room
+        def _(data: typing.Any) -> None:
+            self.message_analyse("on_other", data, "on_other")
 
     def launch_all_message(self):
         """Internal method to launch on_all event"""
-        for chat_method in self.chat_methods.values():
-            @self.event(chat_method.__name__)
-            def _(data):
-                self.message_analyse("on_all", data, "on_all")
+
+        @self.on_chat_message
+        def _(data: typing.Any) -> None:
+            self.message_analyse("on_all", data, "on_all")
 
     def launch_delete_message(self):
         """Internal method to launch on_delete event"""
-        @self.event("on_delete_message")
-        def _(data):
+
+        @self.on_deleted_message
+        def _(data: typing.Any) -> None:
             self.message_analyse("on_delete", data, "on_delete")
 
     def launch_removed_message(self):
         """Internal method to launch on_remove event"""
-        for type_name in REMOVE_EVENTS:
-            @self.event(type_name)
-            def _(data):
-                self.message_analyse("on_remove", data, "on_remove")
+
+        @self.on_forced_deleted_message
+        @self.on_deleted_message_by_mod
+        def _(data: typing.Any) -> None:
+            self.message_analyse("on_remove", data, "on_remove")
 
     def launch_on_member_join_chat(self):
         """Internal method to launch on_member_join_chat event"""
-        @self.event("on_group_member_join")
-        def _(data):
+
+        @self.on_chat_member_join
+        def _(data: typing.Any) -> None:
             self.on_member_event(data, "on_member_join_chat")
 
     def launch_on_member_leave_chat(self):
         """Internal method to launch on_member_leave_chat event"""
-        @self.event("on_group_member_leave")
-        def _(data):
+
+        @self.on_chat_member_left
+        def _(data: typing.Any) -> None:
             self.on_member_event(data, "on_member_leave_chat")
 
     def launch_all_events(self):
         """Internal method to launch on_event event"""
-        for chat_method in self.chat_methods.values():
-            @self.event(chat_method.__name__)
-            def _(data):
-                self.message_analyse(chat_method.__name__, data, "on_event")
+
+        @self.on_error_message
+        @self.on_notification_message
+        @self.on_channel_message
+        @self.on_chat_message
+        def _(data: typing.Any):
+            self.message_analyse("on_event", data, "on_event")
