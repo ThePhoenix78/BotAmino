@@ -4,40 +4,30 @@
 # Modified by vedansh#4039
 # Big optimisation thanks to SempreLEGIT#1378 ♥
 # Updated by V¡ktor
-
-__all__ = (
-    "BannedWords",
-    "Bot",
-    "BotAmino",
-    "Client",
-    "Command",
-    "HTTPClient",
-    "Parameters",
-    "SubClient",
-    "TimeOut"
-)
-
-from typing import TYPE_CHECKING
-
-from .acm import *
+import json
+import requests
 from .bannedwords import *
 from .bot import *
 from .botamino import *
-from .client import *
-from .command import *
-from .http import *
+from .commands import *
 from .parameters import *
-from .subclient import *
 from .timeout import *
-from .ws import *
+from .utils import *
 
-from . import (
-    errors as errors,
-    objects as objects,
-    parser as parser,
-    types as types,
-    typing as typing,
-    utils as utils
+# type-hint helper
+from . import typing as typing
+
+___all__ = (
+    "PATH_AMINO",
+    "PATH_CLIENT",
+    "PATH_UTILITIES",
+    "BannedWords",
+    "Bot",
+    "BotAmino",
+    "Command",
+    "CustomType",
+    "Parameters",
+    "TimeOut"
 )
 
 __title__ = 'BotAmino'
@@ -47,17 +37,14 @@ __copyright__ = 'Copyright 2021-2022 ThePhoenix78'
 __url__ = 'https://github.com/ThePhoenix78/BotAmino'
 __newest__ = __version__ = '1.29.0'
 
-if not TYPE_CHECKING:
-    import urllib.error
-    import urllib.request
 
-    try:
-        with urllib.request.urlopen("https://pypi.org/rss/project/botamino/releases.xml", timeout=25) as response:
-            __newest__ = response.read().split(b"<title>", 2)[-1].split(b"<")[0].decode()
-    except urllib.error.URLError:
-        pass
-    finally:
-        del urllib
+try:
+    with requests.get("https://pypi.python.org/pypi/BotAmino/json") as response:
+        __newest__ = json.loads(response.text)["info"]["version"]
+except requests.RequestException:
+    pass
+finally:
+    del json, requests
 
 if __version__ < __newest__:
     print(f"New version of {__title__} available: {__newest__} (Using {__version__})")
