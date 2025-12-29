@@ -1,6 +1,8 @@
 ## For EDUCATIONAL PURPOSE only
 
-# AminoBot
+# DEPRECATED, will be sunseted soon
+
+# BotAmino
 An API for bot amino based on Slimakoi's work
 
 Discord server https://discord.gg/KZgKktQ6Rt
